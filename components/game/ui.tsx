@@ -302,6 +302,20 @@ export const TouchControls = ({ inputRef, mode, layout = { scale: 1, x: 0, y: 0 
         paddingRight: `${24 - layout.x}px`
     };
 
+    // COMMON DEV BUTTON (Safe Zone - Top Left)
+    const DevButton = () => (
+        <div className="absolute top-6 left-6 pointer-events-auto z-[200]">
+            <button
+                onClick={onOpenSettings}
+                className="px-3 py-2 bg-purple-900/70 border border-purple-500/60 rounded-lg backdrop-blur-md text-purple-300 font-bold text-xs uppercase tracking-widest hover:bg-purple-800/90 hover:shadow-[0_0_20px_rgba(168,85,247,0.5)] transition-all shadow-lg flex items-center gap-1.5"
+            >
+                <Settings size={14} /> DEV
+            </button>
+        </div>
+    );
+
+
+
     // --- TILT MODE: Bubble Level + Action Buttons ---
     if (mode === 'TILT') {
         // Calculate bubble position based on tiltX (accessed via inputRef for visualization)
@@ -367,10 +381,12 @@ export const TouchControls = ({ inputRef, mode, layout = { scale: 1, x: 0, y: 0 
     // --- JOYSTICK MODE: Action Buttons ONLY (Joystick is separate) ---
     if (mode === 'JOYSTICK') {
         return (
-            <div className="absolute inset-0 pointer-events-none z-[100] flex flex-col justify-end" style={containerStyle}>
+            <div className="absolute inset-0 pointer-events-none z-[100]" style={containerStyle}>
                 <DevButton />
+
+                {/* Version Overlay */}
                 <div className="absolute bottom-1 right-1 text-[10px] text-slate-600 font-mono opacity-50 pointer-events-none">
-                    v4.3.4-NOMOTION
+                    v4.3.6
                 </div>
 
                 <div className="absolute bottom-8 right-8 flex flex-col gap-4 items-center pointer-events-auto">
