@@ -459,6 +459,13 @@ export const TouchControls = ({ inputRef, mode, layout = { scale: 1, x: 0, y: 0 
                     </button>
                 </div>
             </div>
+
+            <DevButton />
+
+            {/* Version Overlay */}
+            <div className="absolute bottom-1 right-1 text-[10px] text-slate-600 font-mono opacity-50 pointer-events-none">
+                {Constants.APP_VERSION}
+            </div>
         </div>
     );
 };
