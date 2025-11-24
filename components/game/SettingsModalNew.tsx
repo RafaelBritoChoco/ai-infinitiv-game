@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Gamepad2, Save, RotateCcw, Monitor, Volume2, Cpu, Wind, Eye, Activity, Download, Upload, Zap } from 'lucide-react';
 import { GameConfig, detectPerformanceMode } from '../../types';
+import * as Constants from '../../constants';
 
 interface SettingsModalProps {
     onClose: () => void;
@@ -83,8 +84,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
     return (
         <>
-            <div className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-[2px]" onClick={onClose} />
-            <div className="fixed right-0 top-0 bottom-0 z-[110] w-full sm:w-[450px] bg-slate-900/95 border-l-0 sm:border-l-2 border-cyan-500/50 shadow-[-15px_0_40px_rgba(0,0,0,0.7)] flex flex-col animate-in slide-in-from-right duration-300">
+            <div className="fixed inset-0 bg-black/40 backdrop-blur-[2px]" style={{ zIndex: Constants.Z_LAYERS.MODAL }} onClick={onClose} />
+            <div className="fixed right-0 top-0 bottom-0 w-full sm:w-[450px] bg-slate-900/95 border-l-0 sm:border-l-2 border-cyan-500/50 shadow-[-15px_0_40px_rgba(0,0,0,0.7)] flex flex-col animate-in slide-in-from-right duration-300" style={{ zIndex: Constants.Z_LAYERS.MODAL + 10 }}>
 
                 {/* HEADER */}
                 <div className="p-3 border-b border-slate-800 flex justify-between items-center bg-slate-950/90 backdrop-blur-sm shrink-0">
@@ -92,7 +93,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         <h2 className="text-lg font-black text-white italic tracking-tight flex items-center gap-2">
                             <span className="text-cyan-500">DEV</span> CONSOLE
                         </h2>
-                        <span className="px-2 py-0.5 bg-cyan-900/30 text-cyan-400 text-[9px] font-mono rounded border border-cyan-500/20">v4.3.4</span>
+                        <span className="px-2 py-0.5 bg-cyan-900/30 text-cyan-400 text-[9px] font-mono rounded border border-cyan-500/20">{Constants.APP_VERSION}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
                         <button onClick={handleExport} className="p-1.5 bg-slate-800 hover:bg-slate-700 rounded text-slate-400 hover:text-white transition-colors" title="Export">

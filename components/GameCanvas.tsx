@@ -361,8 +361,8 @@ const GameCanvas: React.FC = () => {
             {showSensorDebug && <SensorDebugModal onClose={() => setShowSensorDebug(false)} />}
 
             {/* GLOBAL VERSION OVERLAY */}
-            <div className="absolute bottom-1 right-1 text-[10px] text-slate-600 font-mono opacity-50 pointer-events-none z-[9999]">
-                v4.3.4-NOMOTION
+            <div className="absolute bottom-1 right-1 text-[10px] text-slate-600 font-mono opacity-50 pointer-events-none" style={{ zIndex: Constants.Z_LAYERS.OVERLAY }}>
+                {Constants.APP_VERSION}
             </div>
 
             {/* SETTINGS MODAL */}

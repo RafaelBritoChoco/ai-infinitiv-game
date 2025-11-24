@@ -107,5 +107,17 @@ export const ENABLE_PLATFORM_TEXTURES: boolean = true;
 export const ENABLE_LEAF_ANIMATION: boolean = true;
 export const ENABLE_SCREEN_EFFECTS: boolean = true;
 export const ENABLE_BACKDROP_BLUR: boolean = true;
+
+// --- APP METADATA ---
+export const APP_VERSION = "v4.3.7-REVIEW";
+
+// --- Z-INDEX LAYERS ---
+export const Z_LAYERS = {
+    GAME: 0,
+    UI: 100,
+    MODAL: 200,
+    OVERLAY: 9999
+};
 export const INPUT_THROTTLE_MS_HIGH = 16; // 60fps
 export const INPUT_THROTTLE_MS_LOW = 33; // 30fps
+
