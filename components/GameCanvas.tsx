@@ -1,0 +1,408 @@
+
+import React, { useRef, useEffect, useState, useCallback } from 'react';
+import * as Constants from '../constants';
+import { Player, Platform, PlatformType, Particle, GameConfig, SaveNode, CharacterSkin, GameState, detectPerformanceMode } from '../types';
+import { Play, Move, Trash2, PlusSquare, Save, AlertTriangle, Pause } from 'lucide-react';
+
+// --- Sub-Module Imports ---
+import { SKINS, SETTINGS_GROUPS } from './game/assets';
+import { SceneryObject, initBackground } from './game/background';
+import { createPlatform } from './game/platforms';
+import { generateSkin } from './game/aiSkin';
+import { getWorldWidthAtHeight, getScaleAndOffset, getWorldPos } from './game/utils';
+import { useGameLoop } from './game/useGameLoop';
+import { soundManager } from './game/audioManager'; // Import Sound Manager
+import { Persistence } from './game/persistence';
+
+// --- Custom Hooks ---
+import { useGameController } from './game/hooks/useGameController';
+import { useInputController } from './game/hooks/useInputController';
+
+// --- UI Components ---
+import { CalibrationModal, GameOverMenu, StartScreen, PauseMenu, ControlsModal, LeftSidebar, RightSidebar, ShopModal, TouchControls, PortraitLock, LayoutEditorModal, SensorDebugModal } from './game/ui';
+import { SettingsModal } from './game/SettingsModalNew';
+import { VirtualJoystick } from './game/VirtualJoystick';
+
+const GameCanvas: React.FC = () => {
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
+
+    // --- Configuration State ---
+    const configRef = useRef<GameConfig>({ ...Constants });
+    const [showDebug, setShowDebug] = useState(false);
+    const [expandedCategory, setExpandedCategory] = useState<string | null>('physics');
+    const [forceUpdate, setForceUpdate] = useState(0);
+
+    // --- Editor State ---
+    const [editorTool, setEditorTool] = useState<'SELECT' | 'MOVE' | 'ADD' | 'DELETE'>('MOVE');
+    const [selectedPlatformId, setSelectedPlatformId] = useState<number | null>(null);
+
+    // --- UI Local State ---
+    const [availableSkins, setAvailableSkins] = useState<CharacterSkin[]>(SKINS);
+    const [gamepadConnected, setGamepadConnected] = useState(false);
+    const [gyroEnabled, setGyroEnabled] = useState(false);
+    const [damageFlash, setDamageFlash] = useState(0);
+    const [jetpackMode, setJetpackMode] = useState<'IDLE' | 'BURST' | 'GLIDE'>('IDLE');
+    const [dangerWarning, setDangerWarning] = useState(false);
+    const [isControlsOpen, setIsControlsOpen] = useState(false);
+    const [showCalibration, setShowCalibration] = useState(false);
+    const [showLayoutEditor, setShowLayoutEditor] = useState(false);
+    const [controlLayout, setControlLayout] = useState({ scale: 1, x: 0, y: 0 });
+    const [rotationLock, setRotationLock] = useState(true);
+    const [tiltDebug, setTiltDebug] = useState(0);
+    const [rawTiltDebug, setRawTiltDebug] = useState(0);
+    const [showSensorDebug, setShowSensorDebug] = useState(false);
+    const [showSettings, setShowSettings] = useState(false); // NEW: Settings Modal State
+
+    // Shadow Refs for Loop Stability
+    const jetpackModeRef = useRef<'IDLE' | 'BURST' | 'GLIDE'>('IDLE');
+    const damageFlashRef = useRef(0);
+    const availableSkinsRef = useRef(SKINS);
+    const isControlsOpenRef = useRef(false);
+    const calibrationRef = useRef({ offset: 0, sensitivity: Constants.GYRO_SENSITIVITY, inverted: false });
+
+    // Sync Refs
+    useEffect(() => { availableSkinsRef.current = availableSkins; }, [availableSkins]);
+    useEffect(() => { isControlsOpenRef.current = isControlsOpen; }, [isControlsOpen]);
+
+    const [aiPrompt, setAiPrompt] = useState("");
+    const [isGeneratingSkin, setIsGeneratingSkin] = useState(false);
+    const [showAiInput, setShowAiInput] = useState(false);
+
+    // --- Refs (Passed to Controller) ---
+    const playerRef = useRef<Player & {
+        squashX: number,
+        squashY: number,
+        eyeBlinkTimer: number,
+        facingRight: boolean
+    }>({
+        x: Constants.VIEWPORT_WIDTH / 2 - Constants.PLAYER_SIZE / 2,
+        y: 0,
+        width: Constants.PLAYER_SIZE,
+        height: Constants.PLAYER_SIZE,
+        vx: 0,
+        vy: 0,
+        isGrounded: false,
+        squashX: 1,
+        squashY: 1,
+        eyeBlinkTimer: 0,
+        facingRight: true,
+        jumpCooldown: 0
+    });
+
+    const platformsRef = useRef<Platform[]>([]);
+    const particlesRef = useRef<Particle[]>([]);
+    const backgroundRef = useRef<SceneryObject[]>([]);
+    const trailRef = useRef<{ x: number, y: number, life: number, skin: CharacterSkin, facingRight: boolean, scaleY: number }[]>([]);
+    const saveNodesRef = useRef<SaveNode[]>([]);
+
+    const inputRef = useRef({
+        left: false, right: false, up: false, down: false,
+        jetpack: false, jumpIntent: false, jumpPressedTime: 0,
+        pausePressed: false, menuSelect: false, menuBack: false,
+        menuInputCooldown: 0, lastInputMask: 0, tiltX: 0, targetTiltX: 0
+    });
+
+    const mouseRef = useRef({ isDown: false, x: 0, y: 0, dragOffsetX: 0, dragOffsetY: 0 });
+
+    const cameraRef = useRef({ y: 0, targetY: 0, shake: 0 });
+    const zoomRef = useRef(1.0);
+    const fallStartRef = useRef<number | null>(null);
+    const timeElapsedRef = useRef<number>(0);
+    const lastPlatformYRef = useRef<number>(0);
+    const platformGenCountRef = useRef<number>(0);
+
+    // --- HOOKS ---
+
+    // 1. Game Controller (Manages State, Logic, Menu, Start/Over)
+    const {
+        gameState, setGameState, stateRef,
+        leaderboard, setLeaderboard, leaderboardRef, highScoreEntryStatusRef,
+        showGameOverMenu, setShowGameOverMenu,
+        menuIndex, setMenuIndex,
+        handleStart, handleGameOver, handleMenuAction, updateMenuNavigation,
+        buyUpgrade, handleSaveLeaderboardScore
+    } = useGameController({
+        configRef, canvasRef, playerRef, platformsRef, backgroundRef, cameraRef, zoomRef, fallStartRef, particlesRef, trailRef,
+        timeElapsedRef, lastPlatformYRef, platformGenCountRef, saveNodesRef, damageFlashRef, jetpackModeRef, inputRef,
+        availableSkinsRef, isControlsOpenRef, showCalibration, setShowCalibration, setIsControlsOpen
+    });
+
+    // 2. Input Controller (Keyboard, Mouse, Touch, Gyro)
+    const { handleCanvasMouseDown, handleCanvasMouseMove, handleCanvasMouseUp, handleFirstInteraction } = useInputController({
+        inputRef, stateRef, setGameState, configRef, canvasRef, playerRef, platformsRef, cameraRef, zoomRef, mouseRef,
+        editorTool, setEditorTool, selectedPlatformId, setSelectedPlatformId, handleStart, showGameOverMenu, showCalibration,
+        setShowCalibration, gyroEnabled, setRawTiltDebug, setTiltDebug, calibrationRef
+    });
+
+    // --- Load Persistence ---
+    // Orientation listener removed - handled by useInputController
+    useEffect(() => {
+        const savedCoins = Persistence.loadCoins();
+        const savedUpgrades = Persistence.loadUpgrades();
+        const savedHighScore = Persistence.loadHighScore();
+        const savedMaxAlt = Persistence.loadMaxAltitude();
+        const savedControlMode = Persistence.loadControlMode();
+        const savedLeaderboard = Persistence.loadLeaderboard();
+        const savedCal = Persistence.loadCalibration();
+
+        if (savedCal) calibrationRef.current = savedCal;
+
+        setGameState(prev => ({
+            ...prev,
+            highScore: savedHighScore,
+            maxAltitude: savedMaxAlt,
+            totalCoins: savedCoins,
+            mobileControlMode: savedControlMode || 'BUTTONS',
+            upgrades: { ...prev.upgrades, ...savedUpgrades }
+        }));
+
+        // Auto-enable gyro state if TILT mode was saved (for Android/non-strict envs)
+        if (savedControlMode === 'TILT') {
+            setGyroEnabled(true);
+        }
+
+        setLeaderboard(savedLeaderboard);
+
+        // Initialize available skins from local storage if needed, or stick to default
+        // If using AI skins, you might want to load them here too
+    }, []);
+
+    // --- Helpers ---
+    const handleGenerateSkinWrapper = async () => {
+        if (!aiPrompt.trim()) return;
+        const hasKey = await (window as any).aistudio.hasSelectedApiKey();
+        if (!hasKey) { await (window as any).aistudio.openSelectKey(); }
+
+        soundManager.playClick();
+        setIsGeneratingSkin(true);
+        try {
+            await generateSkin(aiPrompt, process.env.API_KEY, setAvailableSkins, setGameState, setShowAiInput);
+        } catch (e) {
+            console.error("AI Gen Error", e);
+            alert("Error generating character. Try again.");
+        } finally {
+            setIsGeneratingSkin(false);
+        }
+    };
+
+    // --- Game Loop ---
+    useGameLoop({
+        canvasRef, containerRef, stateRef, playerRef, platformsRef, particlesRef,
+        backgroundRef, trailRef, inputRef, cameraRef, zoomRef, fallStartRef,
+        timeElapsedRef, lastPlatformYRef, platformGenCountRef, configRef,
+        gameState, setGameState, setDamageFlash, setDangerWarning, jetpackMode,
+        setJetpackMode, handleStart, gamepadConnected, setGamepadConnected,
+        setShowGameOverMenu, editorTool, selectedPlatformId, damageFlash, showGameOverMenu,
+        saveNodesRef, jetpackModeRef, damageFlashRef, jetpackAllowedRef: useRef(true),
+        leaderboard, leaderboardRef, highScoreEntryStatusRef, onGameOver: handleGameOver, onMenuUpdate: updateMenuNavigation
+    });
+
+    return (
+        <div className="flex h-screen w-full bg-black overflow-hidden font-sans select-none" onClick={handleFirstInteraction}>
+            <LeftSidebar gameState={gameState} config={configRef.current} gamepadConnected={gamepadConnected} leaderboard={leaderboard} />
+
+            {/* CENTER GAME AREA */}
+            <div className="flex-1 relative flex justify-center items-center bg-[#050505] overflow-hidden shadow-[inset_0_0_100px_rgba(0,0,0,0.9)]">
+                <div
+                    ref={containerRef}
+                    className="relative w-full h-full max-w-4xl shadow-2xl"
+                >
+                    <div className="absolute inset-0 bg-red-600 pointer-events-none z-20 mix-blend-overlay transition-opacity duration-100" style={{ opacity: damageFlash * 0.5 }} />
+
+                    {dangerWarning && !gameState.isGameOver && (
+                        <div className="absolute top-20 left-0 right-0 text-center z-30 animate-pulse">
+                            <div className="inline-flex items-center gap-3 bg-red-900/80 text-red-100 px-6 py-2 rounded border border-red-500 font-black tracking-[0.2em] text-sm shadow-[0_0_20px_#ef4444]">
+                                <AlertTriangle size={18} /> VELOCITY WARNING
+                            </div>
+                        </div>
+                    )}
+
+                    <canvas
+                        ref={canvasRef}
+                        className={gameState.isEditing ? "cursor-crosshair" : "cursor-default"}
+                        onMouseDown={handleCanvasMouseDown}
+                        onMouseMove={handleCanvasMouseMove}
+                        onMouseUp={handleCanvasMouseUp}
+                        onTouchStart={handleCanvasMouseDown}
+                        onTouchMove={handleCanvasMouseMove}
+                        onTouchEnd={handleCanvasMouseUp}
+                    />
+
+                    {gameState.isPlaying && !gameState.isGameOver && (
+                        <div className="absolute top-6 right-6 z-40">
+                            <button
+                                onMouseEnter={() => soundManager.playHover()}
+                                onClick={() => { soundManager.playClick(); setGameState(p => ({ ...p, isPaused: !p.isPaused })); }}
+                                className="p-3 bg-black/50 backdrop-blur text-cyan-400 rounded-full border border-cyan-500/50 hover:bg-cyan-900/50 transition-all shadow-[0_0_10px_#06b6d4]">
+                                {gameState.isPaused ? <Play size={24} /> : <Pause size={24} />}
+                            </button>
+                        </div>
+                    )}
+
+                    {gameState.isEditing && (
+                        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 bg-black/80 border border-cyan-500/50 p-2 rounded-full flex gap-3 shadow-[0_0_20px_rgba(6,182,212,0.3)] z-40 backdrop-blur">
+                            <button onClick={() => setEditorTool('MOVE')} className={`p-3 rounded-full transition-all ${editorTool === 'MOVE' ? 'bg-cyan-600 text-white shadow-[0_0_10px_#0891b2]' : 'text-slate-400 hover:text-white'}`}><Move size={20} /></button>
+                            <button onClick={() => setEditorTool('ADD')} className={`p-3 rounded-full transition-all ${editorTool === 'ADD' ? 'bg-green-600 text-white shadow-[0_0_10px_#16a34a]' : 'text-slate-400 hover:text-white'}`}><PlusSquare size={20} /></button>
+                            <button onClick={() => setEditorTool('DELETE')} className={`p-3 rounded-full transition-all ${editorTool === 'DELETE' ? 'bg-red-600 text-white shadow-[0_0_10px_#dc2626]' : 'text-slate-400 hover:text-white'}`}><Trash2 size={20} /></button>
+                            <div className="w-px bg-slate-700 mx-1"></div>
+                            <button onClick={() => { if (platformsRef.current.length > 0) { Persistence.saveTestLevel(platformsRef.current); alert('Level Saved!'); } }} className="p-3 text-slate-400 hover:text-white hover:bg-slate-800 rounded-full"><Save size={20} /></button>
+                            <button onClick={() => setGameState(p => ({ ...p, isEditing: false }))} className="p-3 text-slate-400 hover:text-white hover:bg-slate-800 rounded-full"><Play size={20} /></button>
+                        </div>
+                    )}
+                </div>
+
+                {gameState.isPaused && !gameState.isGameOver && !showDebug && (
+                    <PauseMenu
+                        setGameState={setGameState}
+                        handleStart={() => handleStart(gameState.gameMode)}
+                        selectedIndex={menuIndex}
+                        onOpenCalibration={() => setShowCalibration(true)}
+                        onOpenSettings={() => setShowSettings(true)}
+                    />
+                )}
+
+                {!gameState.isPlaying && !gameState.isGameOver && !showCalibration && (
+                    <StartScreen
+                        gameState={gameState} setGameState={setGameState} availableSkins={SKINS}
+                        showAiInput={showAiInput} setShowAiInput={setShowAiInput} aiPrompt={aiPrompt}
+                        setAiPrompt={setAiPrompt} isGeneratingSkin={isGeneratingSkin}
+                        handleGenerateSkin={handleGenerateSkinWrapper} handleStart={handleStart}
+                        onOpenControls={() => setIsControlsOpen(true)}
+                        onOpenCalibration={() => setShowCalibration(true)}
+                        onOpenSettings={() => setShowSettings(true)}
+                        selectedIndex={menuIndex}
+                        gyroEnabled={gyroEnabled}
+                    />
+                )}
+
+                {isControlsOpen && (
+                    <ControlsModal
+                        onClose={() => setIsControlsOpen(false)}
+                        currentMode={gameState.mobileControlMode}
+                        setMobileControlMode={(mode: 'BUTTONS' | 'TILT') => setGameState(prev => ({ ...prev, mobileControlMode: mode }))}
+                        onCalibrate={() => { setIsControlsOpen(false); setShowCalibration(true); }}
+                        onOpenLayoutEditor={() => { setIsControlsOpen(false); setShowLayoutEditor(true); }}
+                        rotationLock={rotationLock}
+                        setRotationLock={setRotationLock}
+                    />
+                )}
+
+                {showLayoutEditor && (
+                    <LayoutEditorModal
+                        onClose={() => setShowLayoutEditor(false)}
+                        layout={controlLayout}
+                        onSave={(newLayout: any) => {
+                            setControlLayout(newLayout);
+                            // Persistence.saveControlLayout(newLayout); // TODO: Implement persistence
+                            setShowLayoutEditor(false);
+                        }}
+                    />
+                )}
+
+                {showCalibration && (
+                    <CalibrationModal
+                        isOpen={showCalibration}
+                        onClose={() => setShowCalibration(false)}
+                        configRef={configRef}
+                    />
+                )}
+
+                {gameState.isGameOver && (
+                    <GameOverMenu
+                        gameState={gameState}
+                        handleStart={handleStart}
+                        setGameState={setGameState}
+                        leaderboard={leaderboard}
+                        onSaveScore={handleSaveLeaderboardScore}
+                        selectedIndex={menuIndex}
+                    />
+                )}
+                {gameState.isShopOpen && (
+                    <ShopModal gameState={gameState} setGameState={setGameState} selectedIndex={menuIndex} />
+                )}
+
+                {/* VIRTUAL JOYSTICK (Mobile Only) */}
+                {gameState.isPlaying && !gameState.isGameOver && !gameState.isPaused && gameState.mobileControlMode === 'JOYSTICK' && (
+                    <VirtualJoystick
+                        size={150}
+                        opacity={0.3}
+                        onMove={(x, y) => {
+                            // Update input ref with joystick position
+                            inputRef.current.left = x < -0.2;
+                            inputRef.current.right = x > 0.2;
+                            // Can also use analog values directly if needed
+                            inputRef.current.targetTiltX = x; // Store raw value for smooth control
+                        }}
+                    />
+                )}
+            </div>
+
+            <RightSidebar gameState={gameState} config={configRef.current} jetpackMode={jetpackMode} setShowDebug={setShowDebug} tiltDebug={tiltDebug} gyroEnabled={gyroEnabled} />
+
+
+            {/* DEV CONSOLE BUTTON - Top LEFT to avoid pause button conflict */}
+            {gameState.isPlaying && !gameState.isGameOver && (
+                <div className="absolute top-6 left-6 z-[200] pointer-events-auto">
+                    <button
+                        onClick={() => setShowSettings(true)}
+                        className="px-3 py-2 bg-purple-900/70 border border-purple-500/60 rounded-lg backdrop-blur-md text-purple-300 font-bold text-xs uppercase tracking-widest hover:bg-purple-800/90 hover:shadow-[0_0_20px_rgba(168,85,247,0.5)] transition-all shadow-lg flex items-center gap-1.5"
+                    >
+                        <span>⚙️</span> DEV
+                    </button>
+                </div>
+            )}
+
+            {/* CONTROLS LAYER - STRICTLY GAMEPLAY ONLY */}
+            {gameState.isPlaying && !gameState.isGameOver && !gameState.isPaused && (
+                <>
+                    {/* 1. Touch Controls (Buttons/Tilt/Joystick Actions) */}
+                    <TouchControls
+                        inputRef={inputRef}
+                        mode={gameState.mobileControlMode}
+                        layout={controlLayout}
+                        gameState={gameState}
+                    />
+
+                    {/* 2. Virtual Joystick */}
+                    {gameState.mobileControlMode === 'JOYSTICK' && (
+                        <VirtualJoystick
+                            size={150}
+                            opacity={0.3}
+                            onMove={(x, y) => {
+                                inputRef.current.left = x < -0.2;
+                                inputRef.current.right = x > 0.2;
+                                inputRef.current.targetTiltX = x;
+                            }}
+                        />
+                    )}
+                </>
+            )}
+
+            <PortraitLock locked={rotationLock} />
+
+            {showSensorDebug && <SensorDebugModal onClose={() => setShowSensorDebug(false)} />}
+
+            {/* GLOBAL VERSION OVERLAY */}
+            <div className="absolute bottom-1 right-1 text-[10px] text-slate-600 font-mono opacity-50 pointer-events-none z-[9999]">
+                v4.3.4-NOMOTION
+            </div>
+
+            {/* SETTINGS MODAL */}
+            {showSettings && (
+                <SettingsModal
+                    onClose={() => setShowSettings(false)}
+                    gameState={gameState}
+                    setGameState={setGameState}
+                    config={configRef.current}
+                    setConfig={(newConfig: any) => {
+                        configRef.current = { ...configRef.current, ...newConfig };
+                        setForceUpdate(p => p + 1);
+                    }}
+                />
+            )}
+        </div>
+    );
+};
+
+export default GameCanvas;

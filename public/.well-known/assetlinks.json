@@ -1,0 +1,50 @@
+[
+    {
+        "relation": [
+            "delegate_permission/common.handle_all_urls"
+        ],
+        "target": {
+            "namespace": "android_app",
+            "package_name": "app.vercel.ai_infinitiv_q2hkf2sr7_chocos_projects_d192a299.twa",
+            "sha256_cert_fingerprints": [
+                "46:AE:4C:79:D8:E5:9A:7C:49:BF:8C:26:43:AF:AF:89:A5:64:13:FC:D7:3B:A2:26:18:F8:71:96:26:05:73:61"
+            ]
+        }
+    },
+    {
+        "relation": [
+            "delegate_permission/common.handle_all_urls"
+        ],
+        "target": {
+            "namespace": "android_app",
+            "package_name": "app.vercel.ai_infinitiv_chocos_projects_d192a299.twa",
+            "sha256_cert_fingerprints": [
+                "46:AE:4C:79:D8:E5:9A:7C:49:BF:8C:26:43:AF:AF:89:A5:64:13:FC:D7:3B:A2:26:18:F8:71:96:26:05:73:61"
+            ]
+        }
+    },
+    {
+        "relation": [
+            "delegate_permission/common.handle_all_urls"
+        ],
+        "target": {
+            "namespace": "android_app",
+            "package_name": "app.vercel.ai_infinitiv.twa",
+            "sha256_cert_fingerprints": [
+                "46:AE:4C:79:D8:E5:9A:7C:49:BF:8C:26:43:AF:AF:89:A5:64:13:FC:D7:3B:A2:26:18:F8:71:96:26:05:73:61"
+            ]
+        }
+    },
+    {
+        "relation": [
+            "delegate_permission/common.handle_all_urls"
+        ],
+        "target": {
+            "namespace": "android_app",
+            "package_name": "com.infinitiv.game",
+            "sha256_cert_fingerprints": [
+                "46:AE:4C:79:D8:E5:9A:7C:49:BF:8C:26:43:AF:AF:89:A5:64:13:FC:D7:3B:A2:26:18:F8:71:96:26:05:73:61"
+            ]
+        }
+    }
+]

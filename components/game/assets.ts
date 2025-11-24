@@ -1,0 +1,246 @@
+
+import { CharacterSkin } from '../../types';
+import { Wind, Heart, Activity, Rocket, Map, Monitor, Volume2 } from 'lucide-react';
+import * as Constants from '../../constants';
+
+// --- Pixel Art Matrices for Background ---
+export const PIXEL_ARTS = {
+  TREE: [
+    [0,0,0,0,1,1,1,0,0,0,0],
+    [0,0,1,1,1,1,1,1,1,0,0],
+    [0,1,1,1,1,1,1,1,1,1,0],
+    [0,1,1,1,1,1,1,1,1,1,0],
+    [0,0,1,1,1,1,1,1,1,0,0],
+    [0,0,0,0,2,2,2,0,0,0,0],
+    [0,0,0,0,2,2,2,0,0,0,0],
+    [0,0,0,0,2,2,2,0,0,0,0],
+    [0,0,0,0,2,2,2,0,0,0,0]
+  ],
+  BUSH: [
+    [0,0,1,1,1,0,0],
+    [0,1,1,1,1,1,0],
+    [1,1,1,1,1,1,1],
+    [1,1,1,1,1,1,1]
+  ],
+  CLOUD_SMALL: [
+    [0,0,1,1,1,0,0],
+    [0,1,1,1,1,1,0],
+    [1,1,1,1,1,1,1],
+    [0,1,1,1,1,1,0]
+  ],
+  CLOUD_BIG: [
+    [0,0,0,1,1,1,1,0,0,0],
+    [0,0,1,1,1,1,1,1,0,0],
+    [0,1,1,1,1,1,1,1,1,0],
+    [1,1,1,1,1,1,1,1,1,1],
+    [0,1,1,1,1,1,1,1,1,0],
+    [0,0,1,1,1,1,1,0,0,0]
+  ]
+};
+
+// --- Collectible Sprites (10x10) ---
+export const COLLECTIBLE_SPRITES = {
+    COIN: [
+        [0,0,0,1,1,1,1,0,0,0],
+        [0,0,1,2,2,2,2,1,0,0],
+        [0,1,2,2,3,3,2,2,1,0],
+        [0,1,2,3,2,2,3,2,1,0],
+        [1,2,2,3,2,2,3,2,2,1],
+        [1,2,2,3,2,2,3,2,2,1],
+        [0,1,2,2,3,3,2,2,1,0],
+        [0,1,2,2,2,2,2,2,1,0],
+        [0,0,1,2,2,2,2,1,0,0],
+        [0,0,0,1,1,1,1,0,0,0]
+    ],
+    FUEL: [
+        [0,0,1,1,1,1,1,1,0,0],
+        [0,0,1,2,2,2,2,1,0,0],
+        [0,0,1,3,3,4,3,1,0,0],
+        [0,0,1,3,3,4,3,1,0,0],
+        [0,0,1,3,3,4,3,1,0,0],
+        [0,0,1,3,3,4,3,1,0,0],
+        [0,0,1,3,3,4,3,1,0,0],
+        [0,0,1,3,3,4,3,1,0,0],
+        [0,0,1,2,2,2,2,1,0,0],
+        [0,0,1,1,1,1,1,1,0,0]
+    ]
+};
+
+// --- Character Skins (16x16 High Detail Grid) ---
+// Legend: 0=Trans, 1=Outline, 2=Main, 3=Highlight, 4=WhiteEye, 5=Pupil, 6=Accent
+export const SKINS: CharacterSkin[] = [
+  {
+    id: 'cat', name: 'GINGER', color: '#f97316',
+    pixels: [
+        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+        [0,0,1,1,0,0,0,0,0,0,0,0,1,1,0,0],
+        [0,1,2,2,1,0,0,0,0,0,0,1,2,2,1,0],
+        [0,1,2,3,2,1,1,1,1,1,1,2,3,2,1,0],
+        [0,1,2,3,2,2,2,2,2,2,2,2,3,2,1,0],
+        [0,1,2,2,2,4,4,2,2,4,4,2,2,2,1,0],
+        [0,1,2,2,2,5,4,2,2,5,4,2,2,2,1,0],
+        [0,1,2,2,2,2,2,6,6,2,2,2,2,2,1,0],
+        [0,0,1,2,2,2,2,2,2,2,2,2,2,1,0,0],
+        [0,0,1,2,2,3,3,3,3,3,3,2,2,1,1,1],
+        [0,1,2,2,3,3,3,3,3,3,3,3,2,2,2,1],
+        [0,1,2,2,2,2,2,2,2,2,2,2,2,2,2,1],
+        [0,1,2,2,1,1,2,2,2,2,1,1,2,2,1,0],
+        [0,1,2,1,0,0,1,2,2,1,0,0,1,2,1,0],
+        [0,0,1,0,0,0,0,1,1,0,0,0,0,1,0,0],
+        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+    ]
+  },
+  {
+    id: 'frog', name: 'KERO', color: '#84cc16',
+    pixels: [
+        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+        [0,0,1,1,1,0,0,0,0,0,0,1,1,1,0,0],
+        [0,1,2,2,2,1,0,0,0,0,1,2,2,2,1,0],
+        [0,1,2,4,4,2,1,1,1,1,2,4,4,2,1,0],
+        [1,2,2,4,5,2,2,2,2,2,2,5,4,2,2,1],
+        [1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1],
+        [1,2,2,6,6,2,2,2,2,2,2,6,6,2,2,1],
+        [1,2,2,2,2,3,3,3,3,3,3,2,2,2,2,1],
+        [0,1,2,2,3,3,6,6,6,6,3,3,2,2,1,0],
+        [0,1,2,2,3,3,3,3,3,3,3,3,2,2,1,0],
+        [1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1],
+        [1,2,2,1,1,2,2,2,2,2,2,1,1,2,2,1],
+        [1,2,1,0,0,1,1,1,1,1,1,0,0,1,2,1],
+        [1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1],
+        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+    ]
+  },
+  {
+    id: 'bunny', name: 'LUNA', color: '#f472b6',
+    pixels: [
+        [0,0,1,1,1,0,0,0,0,0,0,1,1,1,0,0],
+        [0,0,1,3,2,1,0,0,0,0,1,2,3,1,0,0],
+        [0,0,1,3,2,1,0,0,0,0,1,2,3,1,0,0],
+        [0,0,1,3,2,1,0,0,0,0,1,2,3,1,0,0],
+        [0,0,1,3,2,1,1,1,1,1,1,2,3,1,0,0],
+        [0,0,1,2,2,2,2,2,2,2,2,2,2,1,0,0],
+        [0,0,1,2,2,4,4,2,2,4,4,2,2,1,0,0],
+        [0,0,1,2,2,5,4,2,2,5,4,2,2,1,0,0],
+        [0,0,1,2,2,2,2,6,6,2,2,2,2,1,0,0],
+        [0,0,1,2,2,2,2,2,2,2,2,2,2,1,0,0],
+        [0,1,2,2,3,3,3,3,3,3,3,3,2,2,1,0],
+        [1,2,2,2,3,3,3,3,3,3,3,3,2,2,2,1],
+        [1,2,2,2,1,1,2,2,2,2,1,1,2,2,2,1],
+        [1,2,2,1,0,0,1,1,1,1,0,0,1,2,2,1],
+        [0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0],
+        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+    ]
+  },
+  {
+    id: 'panda', name: 'PANDA', color: '#f8fafc',
+    pixels: [
+        [0,0,0,1,1,1,0,0,0,0,1,1,1,0,0,0],
+        [0,0,1,6,6,6,1,1,1,1,6,6,6,1,0,0],
+        [0,0,1,6,6,6,2,2,2,2,6,6,6,1,0,0],
+        [0,0,1,2,2,2,2,2,2,2,2,2,2,1,0,0],
+        [0,0,1,2,6,6,6,2,2,6,6,6,2,1,0,0],
+        [0,0,1,2,6,4,4,6,6,4,4,6,2,1,0,0],
+        [0,0,1,2,6,5,4,6,6,5,4,6,2,1,0,0],
+        [0,0,1,2,2,2,2,6,6,2,2,2,2,1,0,0],
+        [0,0,1,2,2,2,2,2,2,2,2,2,2,1,0,0],
+        [0,1,6,6,2,2,2,2,2,2,2,2,6,6,1,0],
+        [1,6,6,6,2,2,2,2,2,2,2,2,6,6,6,1],
+        [1,6,6,6,2,2,2,2,2,2,2,2,6,6,6,1],
+        [1,6,6,6,1,1,2,2,2,2,1,1,6,6,6,1],
+        [0,1,1,1,0,0,1,1,1,1,0,0,1,1,1,0],
+        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+    ]
+  }
+];
+
+// --- Settings Schema for Accordion ---
+export const SETTINGS_GROUPS = [
+    {
+        id: 'audio',
+        title: 'ÁUDIO (SYNTHWAVE)',
+        icon: Volume2,
+        fields: [
+            { key: 'VOLUME_MASTER', label: 'Volume Geral', min: 0, max: 1, step: 0.05 },
+            { key: 'VOLUME_MUSIC', label: 'Música (80s)', min: 0, max: 1, step: 0.05 },
+            { key: 'VOLUME_SFX', label: 'Efeitos Sonoros', min: 0, max: 1, step: 0.05 },
+        ]
+    },
+    {
+        id: 'physics',
+        title: 'FÍSICA & GRAVIDADE',
+        icon: Wind,
+        fields: [
+            { key: 'GRAVITY', label: 'Gravidade (Peso)', min: 0.1, max: 2.0, step: 0.05 },
+            { key: 'AIR_RESISTANCE', label: 'Resistência do Ar', min: 0.90, max: 0.999, step: 0.001 },
+            { key: 'FRICTION', label: 'Atrito do Chão', min: 0.5, max: 0.99, step: 0.01 },
+            { key: 'MAX_FALL_SPEED', label: 'Vel. Máxima de Queda', min: 10, max: 100, step: 1 },
+            { key: 'LETHAL_FALL_SPEED', label: 'Vel. Queda Letal', min: 30, max: 100, step: 1 },
+            { key: 'MAX_RISE_SPEED', label: 'Vel. Máxima de Subida', min: -100, max: -10, step: 1 },
+        ]
+    },
+    {
+        id: 'health',
+        title: 'VIDA & DANO',
+        icon: Heart,
+        fields: [
+            { key: 'MAX_HEALTH', label: 'Vida Máxima', min: 1, max: 10, step: 1 },
+            { key: 'SAFE_FALL_SPEED', label: 'Vel. Queda Segura', min: 10, max: 60, step: 1 },
+            { key: 'FALL_DAMAGE_MULTIPLIER', label: 'Multiplicador de Dano', min: 0, max: 5, step: 0.5 },
+            { key: 'PLATFORM_RESPAWN_DELAY', label: 'Tempo Respawn Plat (ms)', min: 100, max: 5000, step: 100 },
+        ]
+    },
+    {
+        id: 'movement',
+        title: 'MOVIMENTO & CONTROLE',
+        icon: Activity,
+        fields: [
+            { key: 'MOVE_ACCELERATION', label: 'Aceleração', min: 0.1, max: 10, step: 0.1 },
+            { key: 'WEAK_JUMP_FORCE', label: 'Força Pulo Normal', min: 10, max: 100, step: 1 },
+            { key: 'PERFECT_JUMP_FORCE', label: 'Força Hyper Jump', min: 10, max: 100, step: 1 },
+            { key: 'PARRY_WINDOW_MS', label: 'Janela Hyper Jump (ms)', min: 0, max: 1000, step: 10 },
+            { key: 'GYRO_SENSITIVITY', label: 'Sensibilidade Giroscópio', min: 1, max: 20, step: 1 },
+        ]
+    },
+    {
+        id: 'jetpack',
+        title: 'JETPACK & COMBUSTÍVEL',
+        icon: Rocket,
+        fields: [
+            { key: 'JETPACK_FORCE', label: 'Potência', min: 0.1, max: 5, step: 0.1 },
+            { key: 'JETPACK_FUEL_MAX', label: 'Tanque Máx', min: 10, max: 200, step: 5 },
+            { key: 'JETPACK_STARTING_FUEL', label: 'Combustível Inicial', min: 0, max: 200, step: 5 },
+            { key: 'JETPACK_FUEL_COST_PER_FRAME', label: 'Gasto/Frame', min: 0.01, max: 2, step: 0.01 },
+            { key: 'JETPACK_IGNITION_COST', label: 'Custo Ativação', min: 0, max: 50, step: 1 },
+            { key: 'FUEL_REGEN_ON_LAND', label: 'Recarga Pouso', min: 0, max: 100, step: 1 },
+        ]
+    },
+    {
+        id: 'world',
+        title: 'MUNDO & PLATAFORMAS',
+        icon: Map,
+        fields: [
+             { key: 'PLAYER_SIZE', label: 'Tamanho Personagem', min: 20, max: 150, step: 5 },
+             { key: 'PLATFORM_START_WIDTH', label: 'Largura Inicial', min: 50, max: 500, step: 10 },
+             { key: 'PLATFORM_END_WIDTH', label: 'Largura Final', min: 10, max: 200, step: 5 },
+             { key: 'PLATFORM_HEIGHT', label: 'Altura Plataforma', min: 10, max: 100, step: 5 },
+             { key: 'PLATFORM_GAP_MIN', label: 'Gap Mínimo', min: 50, max: 300, step: 10 },
+             { key: 'PLATFORM_GAP_MAX', label: 'Gap Máximo', min: 100, max: 600, step: 10 },
+             { key: 'LEVEL_HEIGHT', label: 'Altura Nível (m)', min: 100, max: 2000, step: 100 },
+             { key: 'SWAY_AMPLITUDE', label: 'Amplitude Balanço', min: 0, max: 200, step: 10 },
+        ]
+    },
+    {
+        id: 'camera',
+        title: 'CÂMERA & VISUAL',
+        icon: Monitor,
+        fields: [
+            { key: 'VIEWPORT_WIDTH', label: 'Largura Base', min: 500, max: 3000, step: 50 },
+            { key: 'WORLD_EXPANSION_RATE', label: 'Taxa Expansão Mundo', min: 0, max: 1.0, step: 0.01 },
+            { key: 'MAX_ZOOM_OUT', label: 'Zoom Máximo', min: 1, max: 5, step: 0.1 },
+            { key: 'CAMERA_LOOKAHEAD_FALLING', label: 'Antecipação Câmera (Queda)', min: 0, max: 50, step: 1 },
+            { key: 'PLATFORM_DESPAWN_BUFFER', label: 'Buffer Despawn', min: 1000, max: 10000, step: 500 },
+        ]
+    }
+];
