@@ -100,7 +100,7 @@ export const CUSTOM_UI_LAYOUT = {
             style={{ zIndex: Constants.Z_LAYERS.OVERLAY + 10 }}
         >
             {/* HEADER - Compact on mobile */}
-            <div className={`bg-slate-900/90 border-b border-cyan-500/30 flex items-center justify-between backdrop-blur-md shadow-xl pointer-events-auto ${isMobile ? 'h-10 px-2' : 'h-16 px-6'}`}>
+            <div data-editor-ui className={`bg-slate-900/90 border-b border-cyan-500/30 flex items-center justify-between backdrop-blur-md shadow-xl pointer-events-auto ${isMobile ? 'h-10 px-2' : 'h-16 px-6'}`}>
                 <div className="flex items-center gap-2">
                     <div className={`bg-red-600 text-white font-black rounded ${isMobile ? 'text-[8px] px-1 py-0.5' : 'text-xs px-2 py-1'}`}>
                         {isMobile ? 'ED' : 'EDITOR'}
@@ -143,7 +143,7 @@ export const CUSTOM_UI_LAYOUT = {
                 <UIEditorOverlay isActive={activeTab === 'UI'} />
 
                 {activeTab === 'UI' && (
-                    <div className={`absolute left-1/2 transform -translate-x-1/2 bg-black/60 backdrop-blur rounded-full border border-cyan-500/30 flex items-center shadow-lg pointer-events-auto ${isMobile ? 'top-1 px-2 py-1 gap-1' : 'top-4 px-6 py-3 gap-4'}`}>
+                    <div data-editor-ui className={`absolute left-1/2 transform -translate-x-1/2 bg-black/60 backdrop-blur rounded-full border border-cyan-500/30 flex items-center shadow-lg pointer-events-auto ${isMobile ? 'top-1 px-2 py-1 gap-1' : 'top-4 px-6 py-3 gap-4'}`}>
                         <span className={`font-bold ${isMobile ? 'text-[8px]' : 'text-sm'}`}>
                             {isMobile ? 'TAP' : 'CLICK TO SELECT'}
                         </span>
@@ -167,6 +167,7 @@ export const CUSTOM_UI_LAYOUT = {
                 {/* MOBILE SAVE BUTTON - Large and visible */}
                 {activeTab === 'UI' && isMobile && (
                     <button
+                        data-editor-ui
                         onClick={handleSave}
                         className="absolute bottom-20 right-4 bg-green-600 hover:bg-green-500 text-white rounded-full shadow-lg pointer-events-auto flex items-center justify-center"
                         style={{
@@ -181,7 +182,7 @@ export const CUSTOM_UI_LAYOUT = {
 
                 {activeTab === 'LEVEL' && (
                     <>
-                        <div className={`absolute right-2 bg-black/80 backdrop-blur rounded-lg border border-purple-500/30 pointer-events-auto ${isMobile ? 'top-1 p-2' : 'top-4 p-4'}`}>
+                        <div data-editor-ui className={`absolute right-2 bg-black/80 backdrop-blur rounded-lg border border-purple-500/30 pointer-events-auto ${isMobile ? 'top-1 p-2' : 'top-4 p-4'}`}>
                             <h3 className={`font-bold text-purple-300 mb-1 ${isMobile ? 'text-[9px]' : 'text-sm'}`}>Cam</h3>
                             <div className="flex flex-col gap-1">
                                 <div className={`font-mono text-cyan-300 ${isMobile ? 'text-[8px]' : 'text-xs'}`}>Y: {Math.round(cameraY)}</div>
@@ -191,7 +192,7 @@ export const CUSTOM_UI_LAYOUT = {
                             </div>
                         </div>
 
-                        <div className={`absolute left-2 bg-black/80 backdrop-blur rounded-lg border border-purple-500/30 max-w-xs pointer-events-auto ${isMobile ? 'top-1 p-2' : 'top-4 p-4'}`}>
+                        <div data-editor-ui className={`absolute left-2 bg-black/80 backdrop-blur rounded-lg border border-purple-500/30 max-w-xs pointer-events-auto ${isMobile ? 'top-1 p-2' : 'top-4 p-4'}`}>
                             <h3 className={`font-bold text-purple-300 mb-1 flex items-center gap-1 ${isMobile ? 'text-[9px]' : 'text-sm'}`}>
                                 <MousePointer2 size={isMobile ? 10 : 16} /> {isMobile ? 'Edit' : 'Level Editor'}
                             </h3>
