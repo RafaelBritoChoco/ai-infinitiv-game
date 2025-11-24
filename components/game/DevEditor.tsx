@@ -164,6 +164,21 @@ export const CUSTOM_UI_LAYOUT = {
                     </div>
                 )}
 
+                {/* MOBILE SAVE BUTTON - Large and visible */}
+                {activeTab === 'UI' && isMobile && (
+                    <button
+                        onClick={handleSave}
+                        className="absolute bottom-20 right-4 bg-green-600 hover:bg-green-500 text-white rounded-full shadow-lg pointer-events-auto flex items-center justify-center"
+                        style={{
+                            width: '56px',
+                            height: '56px',
+                            zIndex: 100001
+                        }}
+                    >
+                        <Save size={24} />
+                    </button>
+                )}
+
                 {activeTab === 'LEVEL' && (
                     <>
                         <div className={`absolute right-2 bg-black/80 backdrop-blur rounded-lg border border-purple-500/30 pointer-events-auto ${isMobile ? 'top-1 p-2' : 'top-4 p-4'}`}>
