@@ -322,36 +322,13 @@ const GameCanvas: React.FC = () => {
                     <ShopModal gameState={gameState} setGameState={setGameState} selectedIndex={menuIndex} />
                 )}
 
-                {/* VIRTUAL JOYSTICK (Mobile Only) */}
-                {gameState.isPlaying && !gameState.isGameOver && !gameState.isPaused && gameState.mobileControlMode === 'JOYSTICK' && (
-                    <VirtualJoystick
-                        size={150}
-                        opacity={0.3}
-                        onMove={(x, y) => {
-                            // Update input ref with joystick position
-                            inputRef.current.left = x < -0.2;
-                            inputRef.current.right = x > 0.2;
-                            // Can also use analog values directly if needed
-                            inputRef.current.targetTiltX = x; // Store raw value for smooth control
-                        }}
-                    />
-                )}
+
             </div>
 
             <RightSidebar gameState={gameState} config={configRef.current} jetpackMode={jetpackMode} setShowDebug={setShowDebug} tiltDebug={tiltDebug} gyroEnabled={gyroEnabled} />
 
 
-            {/* DEV CONSOLE BUTTON - Top LEFT to avoid pause button conflict */}
-            {gameState.isPlaying && !gameState.isGameOver && (
-                <div className="absolute top-6 left-6 z-[200] pointer-events-auto">
-                    <button
-                        onClick={() => setShowSettings(true)}
-                        className="px-3 py-2 bg-purple-900/70 border border-purple-500/60 rounded-lg backdrop-blur-md text-purple-300 font-bold text-xs uppercase tracking-widest hover:bg-purple-800/90 hover:shadow-[0_0_20px_rgba(168,85,247,0.5)] transition-all shadow-lg flex items-center gap-1.5"
-                    >
-                        <span>⚙️</span> DEV
-                    </button>
-                </div>
-            )}
+
 
             {/* CONTROLS LAYER - STRICTLY GAMEPLAY ONLY */}
             {gameState.isPlaying && !gameState.isGameOver && !gameState.isPaused && (

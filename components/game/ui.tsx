@@ -368,6 +368,7 @@ export const TouchControls = ({ inputRef, mode, layout = { scale: 1, x: 0, y: 0 
     if (mode === 'JOYSTICK') {
         return (
             <div className="absolute inset-0 pointer-events-none z-[100] flex flex-col justify-end" style={containerStyle}>
+                <DevButton />
                 <div className="absolute bottom-1 right-1 text-[10px] text-slate-600 font-mono opacity-50 pointer-events-none">
                     v4.3.4-NOMOTION
                 </div>

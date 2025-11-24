@@ -83,8 +83,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
     return (
         <>
-            <div className="fixed inset-0 z-[100] bg-black/20 backdrop-blur-[2px]" onClick={onClose} />
-            <div className="fixed right-0 top-0 bottom-0 z-[110] w-[450px] bg-slate-900/95 border-l-2 border-cyan-500/50 shadow-[-15px_0_40px_rgba(0,0,0,0.7)] flex flex-col animate-in slide-in-from-right duration-300">
+            <div className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-[2px]" onClick={onClose} />
+            <div className="fixed right-0 top-0 bottom-0 z-[110] w-full sm:w-[450px] bg-slate-900/95 border-l-0 sm:border-l-2 border-cyan-500/50 shadow-[-15px_0_40px_rgba(0,0,0,0.7)] flex flex-col animate-in slide-in-from-right duration-300">
 
                 {/* HEADER */}
                 <div className="p-3 border-b border-slate-800 flex justify-between items-center bg-slate-950/90 backdrop-blur-sm shrink-0">
@@ -104,30 +104,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         </label>
                         <div className="w-px h-4 bg-slate-700" />
                         <button onClick={onClose} className="p-1.5 hover:bg-red-900/30 rounded text-slate-400 hover:text-red-400 transition-colors">
-                            <X size={16} />
-                        </button>
-                    </div>
-                </div>
-
-                {/* TABS */}
-                <div className="flex gap-0.5 p-1.5 border-b border-slate-800 bg-slate-950/30 overflow-x-auto shrink-0">
-                    {TABS.map(tab => (
-                        <button
-                            key={tab.id}
-                            onClick={() => setActiveTab(tab.id)}
-                            className={`px-2 py-1.5 rounded flex items-center gap-1.5 font-bold transition-all text-[10px] whitespace-nowrap ${activeTab === tab.id ? 'bg-cyan-900/30 text-cyan-400 border border-cyan-500/30' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800'}`}
-                        >
-                            <tab.icon size={12} /> {tab.label}
-                        </button>
-                    ))}
-                </div>
-
-                {/* CONTENT */}
-                <div className="flex-1 p-3 overflow-y-auto custom-scrollbar bg-slate-900/30">
-
-                    {/* PERFORMANCE TAB */}
-                    {activeTab === 'PERFORMANCE' && (
-                        <div className="space-y-4">
                             <section>
                                 <h3 className="text-yellow-500 font-bold mb-2 uppercase tracking-widest text-[10px] flex items-center gap-1.5">
                                     <Zap size={12} /> Graphics Quality
@@ -177,7 +153,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                                     <ConfigSlider label="Max Platforms (Low)" configKey="MAX_PLATFORMS_LOW" min={20} max={50} step={5} format={(v) => v.toFixed(0)} />
                                 </div>
                             </section>
-                        </div>
+                    </div>
                     )}
 
                     {/* CONTROLS TAB */}
