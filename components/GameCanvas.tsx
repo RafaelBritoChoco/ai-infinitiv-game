@@ -2,7 +2,7 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import * as Constants from '../constants';
 import { Player, Platform, PlatformType, Particle, GameConfig, SaveNode, CharacterSkin, GameState, detectPerformanceMode } from '../types';
-import { Play, Move, Trash2, PlusSquare, Save, AlertTriangle, Pause } from 'lucide-react';
+import { Play, Move, Trash2, PlusSquare, Save, AlertTriangle, Pause, Settings } from 'lucide-react';
 
 // --- Sub-Module Imports ---
 import { SKINS, SETTINGS_GROUPS } from './game/assets';
@@ -363,6 +363,16 @@ const GameCanvas: React.FC = () => {
             {/* GLOBAL VERSION OVERLAY */}
             <div className="absolute bottom-1 right-1 text-[10px] text-slate-600 font-mono opacity-50 pointer-events-none" style={{ zIndex: Constants.Z_LAYERS.OVERLAY }}>
                 {Constants.APP_VERSION}
+            </div>
+
+            {/* DEV BUTTON - ALWAYS VISIBLE */}
+            <div className="absolute top-6 left-6 pointer-events-auto" style={{ zIndex: Constants.Z_LAYERS.MODAL }}>
+                <button
+                    onClick={() => setShowSettings(true)}
+                    className="px-3 py-2 bg-purple-900/70 border border-purple-500/60 rounded-lg backdrop-blur-md text-purple-300 font-bold text-xs uppercase tracking-widest hover:bg-purple-800/90 hover:shadow-[0_0_20px_rgba(168,85,247,0.5)] transition-all shadow-lg flex items-center gap-1.5"
+                >
+                    <Settings size={14} /> DEV
+                </button>
             </div>
 
             {/* SETTINGS MODAL */}
