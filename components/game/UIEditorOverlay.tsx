@@ -101,9 +101,7 @@ export const UIEditorOverlay: React.FC<UIEditorOverlayProps> = ({ isActive }) =>
         };
     }, [isActive, selectedElement, isDragging, dragOffset]);
 
-    if (!isActive) return null;
-
-    const isMobile = window.innerWidth < 768;
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 
     return (
         <>
@@ -127,34 +125,32 @@ export const UIEditorOverlay: React.FC<UIEditorOverlayProps> = ({ isActive }) =>
                 <div
                     style={{
                         position: 'fixed',
+                        bottom: isMobile ? '70px' : 'auto',
                         top: isMobile ? 'auto' : '80px',
-                        bottom: isMobile ? '60px' : 'auto',
-                        right: isMobile ? '50%' : '20px',
-                        transform: isMobile ? 'translateX(50%)' : 'none',
+                        left: isMobile ? '50%' : 'auto',
+                        right: isMobile ? 'auto' : '20px',
+                        transform: isMobile ? 'translateX(-50%)' : 'none',
                         background: 'rgba(0, 0, 0, 0.95)',
                         border: '1px solid rgba(59, 130, 246, 0.5)',
-                        borderRadius: '8px',
-                        padding: '12px',
+                        borderRadius: '6px',
+                        padding: isMobile ? '4px 8px' : '12px',
                         color: 'white',
-                        fontSize: '11px',
+                        fontSize: isMobile ? '8px' : '11px',
                         zIndex: 100000,
-                        minWidth: isMobile ? '280px' : '200px',
-                        maxWidth: isMobile ? '90vw' : '300px',
+                        minWidth: isMobile ? 'auto' : '200px',
+                        maxWidth: isMobile ? '200px' : '300px',
                         backdropFilter: 'blur(10px)',
                         boxShadow: '0 4px 20px rgba(0,0,0,0.5)'
                     }}
                 >
-                    <div style={{ fontWeight: 'bold', marginBottom: '8px', color: '#3b82f6', fontSize: '12px' }}>
+                    <div style={{ fontWeight: 'bold', marginBottom: isMobile ? '2px' : '8px', color: '#3b82f6', fontSize: isMobile ? '9px' : '12px' }}>
                         {isMobile ? '📱' : '🖱️'} Selected
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', marginBottom: '8px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: isMobile ? '2px' : '6px', marginBottom: isMobile ? '2px' : '8px', fontSize: isMobile ? '7px' : '10px' }}>
                         <div><strong>X:</strong> {Math.round(elementInfo.x)}</div>
                         <div><strong>Y:</strong> {Math.round(elementInfo.y)}</div>
                         <div><strong>W:</strong> {Math.round(elementInfo.width)}</div>
                         <div><strong>H:</strong> {Math.round(elementInfo.height)}</div>
-                    </div>
-                    <div style={{ fontSize: '10px', color: '#94a3b8', borderTop: '1px solid rgba(100, 116, 139, 0.3)', paddingTop: '6px' }}>
-                        {elementInfo.text.substring(0, 40)}{elementInfo.text.length > 40 ? '...' : ''}
                     </div>
                 </div>
             )}
@@ -162,21 +158,21 @@ export const UIEditorOverlay: React.FC<UIEditorOverlayProps> = ({ isActive }) =>
             <div
                 style={{
                     position: 'fixed',
-                    bottom: '20px',
+                    bottom: isMobile ? '10px' : '20px',
                     left: '50%',
                     transform: 'translateX(-50%)',
                     background: 'rgba(0, 0, 0, 0.8)',
                     border: '1px solid rgba(59, 130, 246, 0.5)',
                     borderRadius: '999px',
-                    padding: isMobile ? '6px 16px' : '8px 20px',
+                    padding: isMobile ? '4px 12px' : '8px 20px',
                     color: '#3b82f6',
-                    fontSize: isMobile ? '10px' : '12px',
+                    fontSize: isMobile ? '8px' : '12px',
                     fontWeight: 'bold',
                     zIndex: 100000,
                     backdropFilter: 'blur(10px)'
                 }}
             >
-                🎯 {isMobile ? 'TAP & DRAG' : 'CLICK & DRAG'}
+                🎯 {isMobile ? 'TAP' : 'CLICK & DRAG'}
             </div>
         </>
     );

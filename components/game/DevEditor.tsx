@@ -29,6 +29,7 @@ export const DevEditor: React.FC<DevEditorProps> = ({
 }) => {
     const [activeTab, setActiveTab] = useState<'UI' | 'LEVEL'>('UI');
     const [cameraY, setCameraY] = useState(0);
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 
     const handleSave = () => {
         if (platformsRef.current.length > 0) {
@@ -73,7 +74,7 @@ export const CUSTOM_UI_LAYOUT = {
             a.click();
             URL.revokeObjectURL(url);
 
-            alert('✅ SAVED!\n\n📁 customConfig.ts downloaded\n\n→ Commit to GitHub for global deploy');
+            alert('✅ SAVED!\n\n📁 customConfig.ts downloaded');
         }
     };
 
@@ -98,40 +99,41 @@ export const CUSTOM_UI_LAYOUT = {
             className="fixed inset-0 flex flex-col font-sans text-white select-none pointer-events-none"
             style={{ zIndex: Constants.Z_LAYERS.OVERLAY + 10 }}
         >
-            {/* HEADER */}
-            <div className="h-16 bg-slate-900/90 border-b border-cyan-500/30 flex items-center justify-between px-6 backdrop-blur-md shadow-xl pointer-events-auto">
-                <div className="flex items-center gap-4">
-                    <div className="bg-red-600 text-white text-xs font-black px-2 py-1 rounded">EDITOR</div>
-                    <h2 className="text-lg font-bold tracking-wide text-cyan-400">VISUAL DESIGNER</h2>
+            {/* HEADER - Compact on mobile */}
+            <div className={`bg-slate-900/90 border-b border-cyan-500/30 flex items-center justify-between backdrop-blur-md shadow-xl pointer-events-auto ${isMobile ? 'h-10 px-2' : 'h-16 px-6'}`}>
+                <div className="flex items-center gap-2">
+                    <div className={`bg-red-600 text-white font-black rounded ${isMobile ? 'text-[8px] px-1 py-0.5' : 'text-xs px-2 py-1'}`}>
+                        {isMobile ? 'ED' : 'EDITOR'}
+                    </div>
                 </div>
 
-                <div className="flex bg-slate-800/50 rounded-lg p-1 border border-slate-700">
+                <div className={`flex bg-slate-800/50 rounded-lg border border-slate-700 ${isMobile ? 'p-0.5' : 'p-1'}`}>
                     <button
                         onClick={() => setActiveTab('UI')}
-                        className={`px-6 py-2 rounded-md text-sm font-bold transition-all ${activeTab === 'UI' ? 'bg-cyan-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+                        className={`rounded-md font-bold transition-all ${isMobile ? 'px-2 py-0.5 text-[9px]' : 'px-6 py-2 text-sm'} ${activeTab === 'UI' ? 'bg-cyan-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
                     >
-                        UI LAYOUT
+                        UI
                     </button>
                     <button
                         onClick={() => setActiveTab('LEVEL')}
-                        className={`px-6 py-2 rounded-md text-sm font-bold transition-all ${activeTab === 'LEVEL' ? 'bg-purple-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+                        className={`rounded-md font-bold transition-all ${isMobile ? 'px-2 py-0.5 text-[9px]' : 'px-6 py-2 text-sm'} ${activeTab === 'LEVEL' ? 'bg-purple-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
                     >
-                        LEVEL DESIGN
+                        LVL
                     </button>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1">
                     <button
                         onClick={handleSave}
-                        className="flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-bold text-sm transition-all"
+                        className={`flex items-center gap-1 bg-green-600 hover:bg-green-500 text-white rounded-lg font-bold transition-all ${isMobile ? 'px-2 py-0.5 text-[9px]' : 'px-4 py-2 text-sm'}`}
                     >
-                        <Save size={16} /> SAVE
+                        <Save size={isMobile ? 10 : 16} /> {isMobile ? '' : 'SAVE'}
                     </button>
                     <button
                         onClick={onClose}
-                        className="p-2 hover:bg-red-500/20 rounded-full text-slate-400 hover:text-red-400 transition-colors"
+                        className={`hover:bg-red-500/20 rounded-full text-slate-400 hover:text-red-400 transition-colors ${isMobile ? 'p-0.5' : 'p-2'}`}
                     >
-                        <X size={24} />
+                        <X size={isMobile ? 14 : 24} />
                     </button>
                 </div>
             </div>
@@ -141,9 +143,10 @@ export const CUSTOM_UI_LAYOUT = {
                 <UIEditorOverlay isActive={activeTab === 'UI'} />
 
                 {activeTab === 'UI' && (
-                    <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-black/60 backdrop-blur px-6 py-3 rounded-full border border-cyan-500/30 flex items-center gap-4 shadow-lg pointer-events-auto">
-                        <span className="font-bold text-sm">CLICK ELEMENTS TO SELECT & DRAG</span>
-                        <div className="h-4 w-px bg-slate-600 mx-2" />
+                    <div className={`absolute left-1/2 transform -translate-x-1/2 bg-black/60 backdrop-blur rounded-full border border-cyan-500/30 flex items-center shadow-lg pointer-events-auto ${isMobile ? 'top-1 px-2 py-1 gap-1' : 'top-4 px-6 py-3 gap-4'}`}>
+                        <span className={`font-bold ${isMobile ? 'text-[8px]' : 'text-sm'}`}>
+                            {isMobile ? 'TAP' : 'CLICK TO SELECT'}
+                        </span>
                         <button
                             onClick={() => {
                                 const elements = document.querySelectorAll('[style*="position: fixed"]');
@@ -152,34 +155,33 @@ export const CUSTOM_UI_LAYOUT = {
                                     (el as HTMLElement).style.left = '';
                                     (el as HTMLElement).style.top = '';
                                 });
-                                alert('✅ UI Reset!');
+                                alert('✅ Reset!');
                             }}
-                            className="px-3 py-1 bg-red-600 hover:bg-red-500 rounded text-xs font-bold flex items-center gap-1"
+                            className={`bg-red-600 hover:bg-red-500 rounded font-bold flex items-center gap-0.5 ${isMobile ? 'px-1.5 py-0.5 text-[7px]' : 'px-3 py-1 text-xs'}`}
                         >
-                            <RotateCcw size={12} /> RESET
+                            <RotateCcw size={isMobile ? 8 : 12} />
                         </button>
                     </div>
                 )}
 
                 {activeTab === 'LEVEL' && (
                     <>
-                        <div className="absolute top-4 right-4 bg-black/80 backdrop-blur p-4 rounded-lg border border-purple-500/30 pointer-events-auto">
-                            <h3 className="font-bold text-purple-300 mb-2 text-sm">Camera</h3>
-                            <div className="flex flex-col gap-2">
-                                <div className="text-xs font-mono text-cyan-300">Y: {Math.round(cameraY)}</div>
-                                <button onClick={handleCameraReset} className="px-3 py-1 bg-slate-700 hover:bg-slate-600 rounded text-xs font-bold flex items-center gap-1">
-                                    <RotateCcw size={12} /> Reset
+                        <div className={`absolute right-2 bg-black/80 backdrop-blur rounded-lg border border-purple-500/30 pointer-events-auto ${isMobile ? 'top-1 p-2' : 'top-4 p-4'}`}>
+                            <h3 className={`font-bold text-purple-300 mb-1 ${isMobile ? 'text-[9px]' : 'text-sm'}`}>Cam</h3>
+                            <div className="flex flex-col gap-1">
+                                <div className={`font-mono text-cyan-300 ${isMobile ? 'text-[8px]' : 'text-xs'}`}>Y: {Math.round(cameraY)}</div>
+                                <button onClick={handleCameraReset} className={`bg-slate-700 hover:bg-slate-600 rounded font-bold flex items-center gap-0.5 ${isMobile ? 'px-1 py-0.5 text-[7px]' : 'px-3 py-1 text-xs'}`}>
+                                    <RotateCcw size={isMobile ? 8 : 12} />
                                 </button>
-                                <div className="text-xs text-slate-400">Scroll to pan</div>
                             </div>
                         </div>
 
-                        <div className="absolute top-4 left-4 bg-black/80 backdrop-blur p-4 rounded-lg border border-purple-500/30 max-w-xs pointer-events-auto">
-                            <h3 className="font-bold text-purple-300 mb-2 flex items-center gap-2">
-                                <MousePointer2 size={16} /> Level Editor
+                        <div className={`absolute left-2 bg-black/80 backdrop-blur rounded-lg border border-purple-500/30 max-w-xs pointer-events-auto ${isMobile ? 'top-1 p-2' : 'top-4 p-4'}`}>
+                            <h3 className={`font-bold text-purple-300 mb-1 flex items-center gap-1 ${isMobile ? 'text-[9px]' : 'text-sm'}`}>
+                                <MousePointer2 size={isMobile ? 10 : 16} /> {isMobile ? 'Edit' : 'Level Editor'}
                             </h3>
-                            <p className="text-sm text-slate-300 mb-4">
-                                Ctrl+Click to add platforms. Scroll to pan camera.
+                            <p className={`text-slate-300 mb-2 ${isMobile ? 'text-[8px]' : 'text-sm'}`}>
+                                {isMobile ? 'Ctrl+Click' : 'Ctrl+Click to add platforms'}
                             </p>
 
                             <button
@@ -187,14 +189,10 @@ export const CUSTOM_UI_LAYOUT = {
                                     setGameState((prev: any) => ({ ...prev, isEditing: !prev.isEditing }));
                                     onClose();
                                 }}
-                                className={`w-full py-2 rounded font-bold mb-4 ${gameState.isEditing ? 'bg-red-600 text-white' : 'bg-purple-600 text-white'}`}
+                                className={`w-full rounded font-bold ${isMobile ? 'py-1 text-[8px]' : 'py-2 text-sm'} ${gameState.isEditing ? 'bg-red-600 text-white' : 'bg-purple-600 text-white'}`}
                             >
-                                {gameState.isEditing ? 'DISABLE EDIT' : 'ENABLE EDIT'}
+                                {gameState.isEditing ? 'DISABLE' : 'ENABLE'}
                             </button>
-
-                            <div className="text-xs text-slate-500">
-                                * Enable, edit, then SAVE
-                            </div>
                         </div>
                     </>
                 )}
