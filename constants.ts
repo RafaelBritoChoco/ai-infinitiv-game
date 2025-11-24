@@ -108,8 +108,8 @@ export const ENABLE_LEAF_ANIMATION: boolean = true;
 export const ENABLE_SCREEN_EFFECTS: boolean = true;
 export const ENABLE_BACKDROP_BLUR: boolean = true;
 
-// --- APP METADATA ---
-export const APP_VERSION = "v4.3.7-REVIEW";
+// Application version
+export const APP_VERSION = 'v4.4.0-EDITOR';
 
 // --- Z-INDEX LAYERS ---
 export const Z_LAYERS = {
