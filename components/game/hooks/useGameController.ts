@@ -348,19 +348,26 @@ export const useGameController = (props: GameControllerProps) => {
         }
     }, [handleMenuAction, showGameOverMenu, showCalibration]);
 
-    // Fetch Global Leaderboard on Mount
+    // Fetch Global Leaderboard on Mount & Poll every 5 minutes
     useEffect(() => {
-        Persistence.fetchGlobalLeaderboard().then(globalScores => {
-            if (globalScores && globalScores.length > 0) {
-                setLeaderboard(globalScores);
-                leaderboardRef.current = globalScores;
-            } else {
-                // Fallback to local
-                const local = Persistence.loadLeaderboard();
-                setLeaderboard(local);
-                leaderboardRef.current = local;
-            }
-        });
+        const fetchLeaderboard = () => {
+            Persistence.fetchGlobalLeaderboard().then(globalScores => {
+                if (globalScores && globalScores.length > 0) {
+                    setLeaderboard(globalScores);
+                    leaderboardRef.current = globalScores;
+                } else {
+                    // Fallback to local
+                    const local = Persistence.loadLeaderboard();
+                    setLeaderboard(local);
+                    leaderboardRef.current = local;
+                }
+            });
+        };
+
+        fetchLeaderboard(); // Initial fetch
+        const interval = setInterval(fetchLeaderboard, 5 * 60 * 1000); // 5 minutes
+
+        return () => clearInterval(interval);
     }, []);
 
     const handleSaveLeaderboardScore = (name: string) => {

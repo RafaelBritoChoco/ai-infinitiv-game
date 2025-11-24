@@ -1123,16 +1123,16 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
     return (
         <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/90 backdrop-blur-md overflow-y-auto custom-scrollbar">
             {/* HEADER */}
-            <div className="mb-8 text-center relative">
+            <div className="mb-4 md:mb-8 text-center relative shrink-0">
                 <div className="absolute -inset-10 bg-cyan-500/20 blur-3xl rounded-full animate-pulse"></div>
-                <h1 className="text-6xl md:text-8xl font-black italic tracking-tighter text-white relative z-10 drop-shadow-[0_0_15px_rgba(6,182,212,0.8)]">
+                <h1 className="text-4xl md:text-8xl font-black italic tracking-tighter text-white relative z-10 drop-shadow-[0_0_15px_rgba(6,182,212,0.8)]">
                     AI <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-500">INFINITIV</span>
                 </h1>
-                <p className="text-cyan-500 font-mono tracking-[0.5em] text-sm mt-2 font-bold uppercase">Vertical Ascent Protocol <span className="text-xs text-slate-500 ml-2">{Constants.APP_VERSION}</span></p>
+                <p className="text-cyan-500 font-mono tracking-[0.5em] text-[10px] md:text-sm mt-2 font-bold uppercase">Vertical Ascent Protocol <span className="text-xs text-slate-500 ml-2">{Constants.APP_VERSION}</span></p>
             </div>
 
             {/* MAIN MENU GRID */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-4xl px-8 relative z-10">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 w-full max-w-4xl px-4 md:px-8 relative z-10 pb-32">
 
                 {/* LEFT COLUMN - CHARACTER */}
                 <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6 backdrop-blur-sm flex flex-col items-center">
@@ -1214,18 +1214,18 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
                     {/* START BUTTON */}
                     <button
                         onClick={() => handleStart('NORMAL')}
-                        className={`w-full py-6 bg-cyan-600 hover:bg-cyan-500 text-white font-black text-2xl rounded-2xl shadow-[0_0_30px_rgba(6,182,212,0.4)] hover:shadow-[0_0_50px_rgba(6,182,212,0.6)] transition-all transform hover:scale-[1.02] flex items-center justify-center gap-3 border border-cyan-400/30 ${selectedIndex === 0 ? 'ring-2 ring-white scale-[1.02]' : ''}`}
+                        className={`w-full py-4 md:py-6 bg-cyan-600 hover:bg-cyan-500 text-white font-black text-xl md:text-2xl rounded-2xl shadow-[0_0_30px_rgba(6,182,212,0.4)] hover:shadow-[0_0_50px_rgba(6,182,212,0.6)] transition-all transform hover:scale-[1.02] flex items-center justify-center gap-3 border border-cyan-400/30 ${selectedIndex === 0 ? 'ring-2 ring-white scale-[1.02]' : ''}`}
                     >
-                        <Play size={28} fill="currentColor" /> {t[lang].start}
+                        <Play size={24} className="md:w-7 md:h-7" fill="currentColor" /> {t[lang].start}
                     </button>
 
                     {/* SHOP BUTTON */}
                     <button
                         onClick={() => setGameState((p: any) => ({ ...p, isShopOpen: true }))}
-                        className="w-full py-4 bg-yellow-600 hover:bg-yellow-500 text-white font-black text-lg rounded-xl shadow-[0_0_20px_rgba(202,138,4,0.4)] hover:shadow-[0_0_40px_rgba(202,138,4,0.6)] transition-all transform hover:scale-[1.02] flex items-center justify-center gap-3 border border-yellow-400/30"
+                        className="w-full py-3 md:py-4 bg-yellow-600 hover:bg-yellow-500 text-white font-black text-base md:text-lg rounded-xl shadow-[0_0_20px_rgba(202,138,4,0.4)] hover:shadow-[0_0_40px_rgba(202,138,4,0.6)] transition-all transform hover:scale-[1.02] flex items-center justify-center gap-3 border border-yellow-400/30"
                     >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" /><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" /></svg>
-                        LOJA ({gameState.totalCoins} MOEDAS)
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="md:w-6 md:h-6"><circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" /><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" /></svg>
+                        LOJA ({gameState.totalCoins})
                     </button>
 
                     {/* CONTROL MODE TOGGLE */}
@@ -1233,18 +1233,18 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
                         {/* BUTTONS MODE */}
                         <button
                             onClick={() => setGameState((p: any) => ({ ...p, mobileControlMode: 'BUTTONS' }))}
-                            className={`py-4 rounded-xl border-2 font-bold text-sm flex flex-col items-center gap-2 transition-all ${gameState.mobileControlMode === 'BUTTONS' ? 'bg-slate-800 border-cyan-500 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.2)]' : 'bg-slate-900/50 border-slate-800 text-slate-500 hover:border-slate-600'}`}
+                            className={`py-3 md:py-4 rounded-xl border-2 font-bold text-[10px] md:text-sm flex flex-col items-center gap-2 transition-all ${gameState.mobileControlMode === 'BUTTONS' ? 'bg-slate-800 border-cyan-500 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.2)]' : 'bg-slate-900/50 border-slate-800 text-slate-500 hover:border-slate-600'}`}
                         >
-                            <Gamepad2 size={24} />
+                            <Gamepad2 size={20} className="md:w-6 md:h-6" />
                             BUTTONS
                         </button>
 
                         {/* JOYSTICK MODE (NEW) */}
                         <button
                             onClick={() => setGameState((p: any) => ({ ...p, mobileControlMode: 'JOYSTICK' }))}
-                            className={`py-4 rounded-xl border-2 font-bold text-sm flex flex-col items-center gap-2 transition-all ${gameState.mobileControlMode === 'JOYSTICK' ? 'bg-slate-800 border-cyan-500 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.2)]' : 'bg-slate-900/50 border-slate-800 text-slate-500 hover:border-slate-600'}`}
+                            className={`py-3 md:py-4 rounded-xl border-2 font-bold text-[10px] md:text-sm flex flex-col items-center gap-2 transition-all ${gameState.mobileControlMode === 'JOYSTICK' ? 'bg-slate-800 border-cyan-500 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.2)]' : 'bg-slate-900/50 border-slate-800 text-slate-500 hover:border-slate-600'}`}
                         >
-                            <Move size={24} />
+                            <Move size={20} className="md:w-6 md:h-6" />
                             JOYSTICK
                         </button>
                     </div>

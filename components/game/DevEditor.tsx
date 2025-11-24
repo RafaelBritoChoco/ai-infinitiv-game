@@ -28,7 +28,7 @@ export const DevEditor: React.FC<DevEditorProps> = ({
     cameraRef
 }) => {
     const [activeTab, setActiveTab] = useState<'UI' | 'LEVEL'>('UI');
-    const [cameraY, setCameraY] = useState(0);
+    const [saveStatus, setSaveStatus] = useState<'IDLE' | 'SAVED'>('IDLE');
     const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 
     const handleSave = () => {
@@ -67,17 +67,20 @@ export const CUSTOM_UI_LAYOUT = {
     y: ${controlLayout.y}
 };
 `;
-
-            const blob = new Blob([fileContent], { type: 'text/typescript' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'customConfig.ts';
-            a.click();
-            URL.revokeObjectURL(url);
+            // Only download on desktop to avoid mobile issues
+            if (!isMobile) {
+                const blob = new Blob([fileContent], { type: 'text/typescript' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'customConfig.ts';
+                a.click();
+                URL.revokeObjectURL(url);
+            }
         }
 
-        alert('✅ SAVED!\n\n' + (platformsRef.current.length > 0 ? '📁 customConfig.ts downloaded\n\n' : '') + '💾 Saved to localStorage');
+        setSaveStatus('SAVED');
+        setTimeout(() => setSaveStatus('IDLE'), 2000);
     };
 
     const handleWheel = (e: React.WheelEvent) => {
@@ -127,9 +130,9 @@ export const CUSTOM_UI_LAYOUT = {
                 <div className="flex items-center gap-1">
                     <button
                         onClick={handleSave}
-                        className={`flex items-center gap-1 bg-green-600 hover:bg-green-500 text-white rounded-lg font-bold transition-all ${isMobile ? 'px-2 py-0.5 text-[9px]' : 'px-4 py-2 text-sm'}`}
+                        className={`flex items-center gap-1 rounded-lg font-bold transition-all ${isMobile ? 'px-2 py-0.5 text-[9px]' : 'px-4 py-2 text-sm'} ${saveStatus === 'SAVED' ? 'bg-green-500 text-white' : 'bg-green-600 hover:bg-green-500 text-white'}`}
                     >
-                        <Save size={isMobile ? 10 : 16} /> {isMobile ? '' : 'SAVE'}
+                        <Save size={isMobile ? 10 : 16} /> {saveStatus === 'SAVED' ? 'SAVED!' : (isMobile ? '' : 'SAVE')}
                     </button>
                     <button
                         onClick={onClose}
@@ -157,7 +160,8 @@ export const CUSTOM_UI_LAYOUT = {
                                     (el as HTMLElement).style.left = '';
                                     (el as HTMLElement).style.top = '';
                                 });
-                                alert('✅ Reset!');
+                                setSaveStatus('SAVED');
+                                setTimeout(() => setSaveStatus('IDLE'), 2000);
                             }}
                             className={`bg-red-600 hover:bg-red-500 rounded font-bold flex items-center gap-0.5 ${isMobile ? 'px-1.5 py-0.5 text-[7px]' : 'px-3 py-1 text-xs'}`}
                         >
@@ -171,14 +175,14 @@ export const CUSTOM_UI_LAYOUT = {
                     <button
                         data-editor-ui
                         onClick={handleSave}
-                        className="absolute bottom-20 right-4 bg-green-600 hover:bg-green-500 text-white rounded-full shadow-lg pointer-events-auto flex items-center justify-center"
+                        className={`absolute bottom-20 right-4 text-white rounded-full shadow-lg pointer-events-auto flex items-center justify-center transition-all ${saveStatus === 'SAVED' ? 'bg-green-500 scale-110' : 'bg-green-600 hover:bg-green-500'}`}
                         style={{
                             width: '56px',
                             height: '56px',
                             zIndex: 100001
                         }}
                     >
-                        <Save size={24} />
+                        {saveStatus === 'SAVED' ? <span className="text-[10px] font-bold">OK</span> : <Save size={24} />}
                     </button>
                 )}
 
