@@ -916,14 +916,6 @@ export const PauseMenu = ({ setGameState, handleStart, selectedIndex = 0, onOpen
                 </button>
 
                 <button
-                    onClick={onOpenCalibration}
-                    className="w-full py-4 bg-slate-800 hover:bg-slate-700 border-2 border-slate-600 hover:border-cyan-500 text-white font-bold uppercase tracking-widest rounded-xl transition-all"
-                >
-                    📱 CALIBRAR MOTION
-                </button>
-
-
-                <button
                     onClick={() => {
                         setGameState((prev: any) => ({ ...prev, isPaused: false, isPlaying: false, isGameOver: false }));
                     }}
@@ -931,19 +923,6 @@ export const PauseMenu = ({ setGameState, handleStart, selectedIndex = 0, onOpen
                 >
                     🏠 MENU PRINCIPAL
                 </button>
-                <button
-                    onClick={onOpenSettings}
-                    className="w-full py-4 bg-slate-900 hover:bg-slate-800 border-2 border-slate-700 hover:border-cyan-500 text-slate-400 hover:text-white font-bold uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-2"
-                >
-                    <Settings size={20} /> SETTINGS / DEV
-                </button>
-            </div>
-
-            {/* TIP */}
-            <div className="mt-6 p-4 bg-slate-900/50 border border-cyan-900 rounded-lg">
-                <p className="text-xs text-cyan-400 text-center uppercase tracking-wider">
-                    💡 Dica: Calibre o motion se os controles estiverem difíceis
-                </p>
             </div>
         </div>
     </div>
@@ -1141,7 +1120,7 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
                 <h1 className="text-6xl md:text-8xl font-black italic tracking-tighter text-white relative z-10 drop-shadow-[0_0_15px_rgba(6,182,212,0.8)]">
                     AI <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-500">INFINITIV</span>
                 </h1>
-                <p className="text-cyan-500 font-mono tracking-[0.5em] text-sm mt-2 font-bold uppercase">Vertical Ascent Protocol <span className="text-xs text-slate-500 ml-2">v4.3.2-NOMOTION</span></p>
+                <p className="text-cyan-500 font-mono tracking-[0.5em] text-sm mt-2 font-bold uppercase">Vertical Ascent Protocol <span className="text-xs text-slate-500 ml-2">{Constants.APP_VERSION}</span></p>
             </div>
 
             {/* MAIN MENU GRID */}

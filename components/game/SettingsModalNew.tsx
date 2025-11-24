@@ -82,14 +82,67 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
     const detectedMode = detectPerformanceMode();
 
+    // Drag & Drop State
+    const [isDragging, setIsDragging] = useState(false);
+    const [position, setPosition] = useState({ x: window.innerWidth - 420, y: 20 });
+    const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+
+    const handleMouseDown = (e: React.MouseEvent) => {
+        if ((e.target as HTMLElement).closest('.drag-handle')) {
+            setIsDragging(true);
+            setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
+        }
+    };
+
+    const handleMouseMove = (e: MouseEvent) => {
+        if (isDragging) {
+            setPosition({
+                x: Math.max(0, Math.min(window.innerWidth - 400, e.clientX - dragStart.x)),
+                y: Math.max(0, Math.min(window.innerHeight - 600, e.clientY - dragStart.y))
+            });
+        }
+    };
+
+    const handleMouseUp = () => {
+        setIsDragging(false);
+    };
+
+    React.useEffect(() => {
+        if (isDragging) {
+            window.addEventListener('mousemove', handleMouseMove);
+            window.addEventListener('mouseup', handleMouseUp);
+            return () => {
+                window.removeEventListener('mousemove', handleMouseMove);
+                window.removeEventListener('mouseup', handleMouseUp);
+            };
+        }
+    }, [isDragging, dragStart]);
+
     return (
         <>
-            <div className="fixed inset-0 bg-black/40 backdrop-blur-[2px]" style={{ zIndex: Constants.Z_LAYERS.MODAL }} onClick={onClose} />
-            <div className="fixed right-0 top-0 bottom-0 w-full sm:w-[450px] bg-slate-900/95 border-l-0 sm:border-l-2 border-cyan-500/50 shadow-[-15px_0_40px_rgba(0,0,0,0.7)] flex flex-col animate-in slide-in-from-right duration-300" style={{ zIndex: Constants.Z_LAYERS.MODAL + 10 }}>
+            {/* Semi-transparent backdrop */}
+            <div className="fixed inset-0 bg-black/20" style={{ zIndex: Constants.Z_LAYERS.MODAL - 1 }} onClick={onClose} />
 
-                {/* HEADER */}
-                <div className="p-3 border-b border-slate-800 flex justify-between items-center bg-slate-950/90 backdrop-blur-sm shrink-0">
+            {/* Floating draggable modal */}
+            <div
+                className="fixed w-96 h-[600px] bg-slate-900/98 backdrop-blur-md border-2 border-cyan-500/50 rounded-lg shadow-2xl flex flex-col"
+                style={{
+                    zIndex: Constants.Z_LAYERS.MODAL,
+                    left: `${position.x}px`,
+                    top: `${position.y}px`,
+                    cursor: isDragging ? 'grabbing' : 'default'
+                }}
+                onMouseDown={handleMouseDown}
+            >
+
+                {/* HEADER com Drag Handle */}
+                <div className="p-3 border-b border-slate-800 flex justify-between items-center bg-slate-950/90 backdrop-blur-sm shrink-0 drag-handle cursor-move">
                     <div className="flex items-center gap-2">
+                        <div className="flex flex-col gap-0.5">
+                            <div className="w-3 h-0.5 bg-slate-600 rounded"></div>
+                            <div className="w-3 h-0.5 bg-slate-600 rounded"></div>
+                            <div className="w-3 h-0.5 bg-slate-600 rounded"></div>
+                        </div>
                         <h2 className="text-lg font-black text-white italic tracking-tight flex items-center gap-2">
                             <span className="text-cyan-500">DEV</span> CONSOLE
                         </h2>
