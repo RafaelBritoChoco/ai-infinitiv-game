@@ -120,8 +120,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
     return (
         <>
-            {/* Semi-transparent backdrop */}
-            <div className="fixed inset-0 bg-black/20" style={{ zIndex: Constants.Z_LAYERS.MODAL - 1 }} onClick={onClose} />
+            {/* Semi-transparent backdrop - NÃO fecha ao clicar */}
+            <div className="fixed inset-0 bg-black/20" style={{ zIndex: Constants.Z_LAYERS.MODAL - 1 }} />
 
             {/* Floating draggable modal */}
             <div
