@@ -759,9 +759,6 @@ export const RightSidebar = ({ gameState, config, jetpackMode, setShowDebug, til
                     <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_5px_#22c55e]"></div>
                     SYSTEMS ONLINE
                 </div>
-                <button onMouseEnter={() => soundManager.playHover()} onClick={() => { soundManager.playClick(); setShowDebug(true); }} className="p-2 bg-slate-900/50 hover:bg-cyan-900/30 text-cyan-400 hover:text-white rounded-full border border-cyan-900/50 transition-all">
-                    <div className="animate-spin-slow"><Zap size={16} /></div>
-                </button>
             </div>
 
             {/* TILT DEBUGGER */}
