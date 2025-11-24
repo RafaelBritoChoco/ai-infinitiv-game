@@ -104,6 +104,37 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         </label>
                         <div className="w-px h-4 bg-slate-700" />
                         <button onClick={onClose} className="p-1.5 hover:bg-red-900/30 rounded text-slate-400 hover:text-red-400 transition-colors">
+                            <X size={16} />
+                        </button>
+                    </div>
+                </div>
+
+                {/* TABS */}
+                <div className="flex overflow-x-auto border-b border-slate-800 bg-slate-950/50 shrink-0 scrollbar-hide">
+                    {TABS.map(tab => {
+                        const Icon = tab.icon;
+                        const isActive = activeTab === tab.id;
+                        return (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id)}
+                                className={`flex items-center gap-2 px-4 py-3 text-[10px] font-bold uppercase tracking-wider transition-all whitespace-nowrap border-b-2 ${isActive
+                                    ? 'text-cyan-400 border-cyan-500 bg-cyan-950/20'
+                                    : 'text-slate-500 border-transparent hover:text-slate-300 hover:bg-slate-800/50'
+                                    }`}
+                            >
+                                <Icon size={14} />
+                                {tab.label}
+                            </button>
+                        );
+                    })}
+                </div>
+
+                {/* CONTENT */}
+                <div className="flex-1 p-3 overflow-y-auto custom-scrollbar bg-slate-900/30">
+                    {/* PERFORMANCE TAB */}
+                    {activeTab === 'PERFORMANCE' && (
+                        <div className="space-y-4">
                             <section>
                                 <h3 className="text-yellow-500 font-bold mb-2 uppercase tracking-widest text-[10px] flex items-center gap-1.5">
                                     <Zap size={12} /> Graphics Quality
@@ -153,7 +184,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                                     <ConfigSlider label="Max Platforms (Low)" configKey="MAX_PLATFORMS_LOW" min={20} max={50} step={5} format={(v) => v.toFixed(0)} />
                                 </div>
                             </section>
-                    </div>
+                        </div>
                     )}
 
                     {/* CONTROLS TAB */}
