@@ -1121,7 +1121,7 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
 
 
     return (
-        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/90 backdrop-blur-md">
+        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/90 backdrop-blur-md overflow-y-auto custom-scrollbar">
             {/* HEADER */}
             <div className="mb-8 text-center relative">
                 <div className="absolute -inset-10 bg-cyan-500/20 blur-3xl rounded-full animate-pulse"></div>

@@ -32,10 +32,12 @@ export const DevEditor: React.FC<DevEditorProps> = ({
     const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 
     const handleSave = () => {
-        if (platformsRef.current.length > 0) {
-            localStorage.setItem('NEON_TEST_LEVEL', JSON.stringify(platformsRef.current));
-            localStorage.setItem('NEON_UI_LAYOUT', JSON.stringify(controlLayout));
+        // Save to localStorage
+        localStorage.setItem('NEON_TEST_LEVEL', JSON.stringify(platformsRef.current));
+        localStorage.setItem('NEON_UI_LAYOUT', JSON.stringify(controlLayout));
 
+        // Generate config file only if there are platforms
+        if (platformsRef.current.length > 0) {
             const timestamp = new Date().toISOString();
             const platformsCode = platformsRef.current.map(p => `    {
         id: ${p.id},
@@ -73,9 +75,9 @@ export const CUSTOM_UI_LAYOUT = {
             a.download = 'customConfig.ts';
             a.click();
             URL.revokeObjectURL(url);
-
-            alert('✅ SAVED!\n\n📁 customConfig.ts downloaded');
         }
+
+        alert('✅ SAVED!\n\n' + (platformsRef.current.length > 0 ? '📁 customConfig.ts downloaded\n\n' : '') + '💾 Saved to localStorage');
     };
 
     const handleWheel = (e: React.WheelEvent) => {
