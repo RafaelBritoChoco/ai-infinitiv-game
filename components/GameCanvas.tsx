@@ -2,7 +2,7 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import * as Constants from '../constants';
 import { Player, Platform, PlatformType, Particle, GameConfig, SaveNode, CharacterSkin, GameState, detectPerformanceMode } from '../types';
-import { Play, Move, Trash2, PlusSquare, Save, AlertTriangle, Pause, Settings } from 'lucide-react';
+import { Play, Move, Trash2, PlusSquare, Save, AlertTriangle, Pause, Settings, Edit } from 'lucide-react';
 
 // --- Sub-Module Imports ---
 import { SKINS, SETTINGS_GROUPS } from './game/assets';
@@ -20,6 +20,7 @@ import { useInputController } from './game/hooks/useInputController';
 
 // --- UI Components ---
 import { CalibrationModal, GameOverMenu, StartScreen, PauseMenu, ControlsModal, LeftSidebar, RightSidebar, ShopModal, TouchControls, PortraitLock, LayoutEditorModal, SensorDebugModal } from './game/ui';
+import { DevEditor } from './game/DevEditor';
 import { SettingsModal } from './game/SettingsModalNew';
 import { VirtualJoystick } from './game/VirtualJoystick';
 
@@ -53,6 +54,7 @@ const GameCanvas: React.FC = () => {
     const [rawTiltDebug, setRawTiltDebug] = useState(0);
     const [showSensorDebug, setShowSensorDebug] = useState(false);
     const [showSettings, setShowSettings] = useState(false); // NEW: Settings Modal State
+    const [showDevEditor, setShowDevEditor] = useState(false);
 
     // Shadow Refs for Loop Stability
     const jetpackModeRef = useRef<'IDLE' | 'BURST' | 'GLIDE'>('IDLE');
@@ -300,6 +302,23 @@ const GameCanvas: React.FC = () => {
                     />
                 )}
 
+                {showDevEditor && (
+                    <DevEditor
+                        onClose={() => {
+                            setShowDevEditor(false);
+                            setGameState(prev => ({ ...prev, isPaused: false }));
+                        }}
+                        controlLayout={controlLayout}
+                        setControlLayout={setControlLayout}
+                        platformsRef={platformsRef}
+                        config={configRef.current}
+                        onForceUpdate={() => setForceUpdate(p => p + 1)}
+                        gameState={gameState}
+                        setGameState={setGameState}
+                        cameraRef={cameraRef}
+                    />
+                )}
+
                 {showCalibration && (
                     <CalibrationModal
                         isOpen={showCalibration}
@@ -365,13 +384,23 @@ const GameCanvas: React.FC = () => {
                 {Constants.APP_VERSION}
             </div>
 
-            {/* DEV BUTTON - ALWAYS VISIBLE */}
-            <div className="absolute top-6 left-6 pointer-events-auto" style={{ zIndex: Constants.Z_LAYERS.MODAL }}>
+            {/* DEV & EDITOR BUTTONS - Centered at top for mobile */}
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 flex gap-3 z-50 pointer-events-auto">
                 <button
                     onClick={() => setShowSettings(true)}
                     className="px-3 py-2 bg-purple-900/70 border border-purple-500/60 rounded-lg backdrop-blur-md text-purple-300 font-bold text-xs uppercase tracking-widest hover:bg-purple-800/90 hover:shadow-[0_0_20px_rgba(168,85,247,0.5)] transition-all shadow-lg flex items-center gap-1.5"
                 >
                     <Settings size={14} /> DEV
+                </button>
+
+                <button
+                    onClick={() => {
+                        setShowDevEditor(true);
+                        // Don't pause - let user edit while seeing the game
+                    }}
+                    className="px-3 py-2 bg-red-900/70 border border-red-500/60 rounded-lg backdrop-blur-md text-red-300 font-bold text-xs uppercase tracking-widest hover:bg-red-800/90 hover:shadow-[0_0_20px_rgba(239,68,68,0.5)] transition-all shadow-lg flex items-center gap-1.5"
+                >
+                    <Edit size={14} /> EDITOR
                 </button>
             </div>
 

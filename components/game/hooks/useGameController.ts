@@ -98,11 +98,18 @@ export const useGameController = (props: GameControllerProps) => {
         saveNodesRef.current = [];
         platformGenCountRef.current = 0;
 
-        const savedLevel = Persistence.loadTestLevel();
-        if (stateRef.current.gameMode === 'TEST' && savedLevel) {
-            platformsRef.current = savedLevel;
+        // Try to load custom level saved from editor
+        const savedCustomLevel = Persistence.loadTestLevel();
+
+        if (savedCustomLevel && savedCustomLevel.length > 0) {
+            // Use custom level as the main level!
+            platformsRef.current = savedCustomLevel;
+            // Ensure ground platform exists
             if (!platformsRef.current.find(p => p.id === 999)) {
-                platformsRef.current.push({ id: 999, x: -initWidth, y: 100, initialX: -initWidth, width: initWidth * 3, height: 50, type: PlatformType.STATIC, color: '#4ade80' });
+                platformsRef.current.unshift({
+                    id: 999, x: -initWidth, y: 100, initialX: -initWidth, width: initWidth * 3, height: 50,
+                    type: PlatformType.STICKY, color: '#84cc16', broken: false, respawnTimer: 0
+                });
             }
             platformsRef.current.forEach(p => { p.broken = false; p.respawnTimer = 0; });
             lastPlatformYRef.current = platformsRef.current.reduce((min, p) => p.y < min ? p.y : min, 0);

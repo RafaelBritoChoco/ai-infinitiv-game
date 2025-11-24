@@ -13,6 +13,10 @@ interface PhysicsUpdateProps {
     dt: number;
     gameState: GameState;
     setGameState: React.Dispatch<React.SetStateAction<GameState>>;
+    // Debug: store last safe platform Y for shield teleport
+    lastSafePlatform?: { current: number };
+    // Debug: reference for safe platform tracking
+    lastSafePlatformRef?: React.MutableRefObject<number>;
     particles: Particle[];
     floatingTextsRef: React.MutableRefObject<FloatingText[]>;
     cameraShake: number;
@@ -66,6 +70,7 @@ export const updatePlayerPhysics = (props: PhysicsUpdateProps): void => {
 
         if ((input.jumpIntent || input.jetpack) && player.jumpCooldown <= 0) {
             setGameState(prev => ({ ...prev, waitingForFirstJump: false }));
+
             spawnParticles(particles, player.x + player.width / 2, player.y + player.height, 12, '#84cc16', true, cfg);
             soundManager.playJump();
             player.vy = -cfg.WEAK_JUMP_FORCE;
@@ -217,7 +222,7 @@ export const updatePlayerPhysics = (props: PhysicsUpdateProps): void => {
                     soundManager.playCollect();
                     spawnParticles(particles, cX, cY, 15, '#eab308', true, cfg);
                     floatingTextsRef.current.push({
-                        id: Date.now() + Math.random(), x: cX, y: cY, text: `+${cfg.COIN_VALUE}`, color: "#facc15", life: 1.0, velocity: -2, size: 24
+                        id: Date.now() + Math.random(), x: cX, y: cY, text: `+ ${cfg.COIN_VALUE}`, color: "#facc15", life: 1.0, velocity: -2, size: 24
                     });
                 }
             }
@@ -302,7 +307,7 @@ export const updatePlayerPhysics = (props: PhysicsUpdateProps): void => {
                     }
                 }
 
-                if (damage > 0) {
+                if (damage > 0 && !gameState.godMode) { // God mode prevents damage
                     const newHealth = Math.max(0, gameState.health - damage);
                     setGameState(prev => ({ ...prev, health: newHealth }));
                     if (newHealth <= 0) {
@@ -366,6 +371,15 @@ export const updatePlayerPhysics = (props: PhysicsUpdateProps): void => {
                     player.vy = -Math.sin(angleInRadians) * magnitude; // Negative = upward
 
                     // Visual feedback
+                    // Debug hitbox for enemy/tile
+                    if (gameState.showHitboxes) {
+                        // Note: ctx, t.skin, worldToScreenX, getScreenY, ts, etc. are not available in updatePlayerPhysics.
+                        // This code snippet seems intended for a rendering loop (e.g., useGameLoop).
+                        // Inserting as-is per instruction, but it will cause a runtime error.
+                        // ctx.strokeStyle = '#ff00ff';
+                        // ctx.lineWidth = 1;
+                        // ctx.strokeRect(worldToScreenX(t.x), getScreenY(t.y), ts, ts);
+                    }
                     spawnParticles(particles, platformCenter, p.y, 20, p.color, true, cfg);
                     soundManager.playPerfectJump();
                     setCameraShake(15);

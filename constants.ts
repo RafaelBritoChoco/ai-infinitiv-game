@@ -57,7 +57,7 @@ export const PLATFORM_RESPAWN_DELAY = 1200;
 export const ZOOM_START_THRESHOLD = 200;
 export const MAX_ZOOM_OUT = 4.5;
 export const ZOOM_DEPTH = 20000;
-export const CAMERA_LOOKAHEAD_FALLING = 20;
+export const CAMERA_LOOKAHEAD_FALLING = 20; // Default lookahead value
 
 // Platform Progression
 export const PLATFORM_START_WIDTH = 280; // Wider starting platforms (was 220)

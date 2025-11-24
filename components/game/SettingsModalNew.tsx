@@ -38,20 +38,68 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         setConfig({ ...localConfig, [key]: value });
     };
 
-    const ConfigSlider = ({ label, configKey, min, max, step, format = (v: number) => v.toFixed(2) }: { label: string, configKey: keyof GameConfig, min: number, max: number, step: number, format?: (v: number) => string }) => (
-        <div>
-            <div className="flex justify-between mb-1">
-                <label className="text-slate-400 font-bold text-[10px] uppercase tracking-wider">{label}</label>
-                <span className="text-cyan-400 font-mono text-xs">{format(localConfig[configKey] as number || 0)}</span>
+    const [editingKey, setEditingKey] = useState<string | null>(null);
+    const [tempValue, setTempValue] = useState<string>('');
+
+    const ConfigSlider = ({ label, configKey, min, max, step, format = (v: number) => v.toFixed(2) }: { label: string, configKey: keyof GameConfig, min: number, max: number, step: number, format?: (v: number) => string }) => {
+        const isEditing = editingKey === configKey;
+        const currentValue = localConfig[configKey] as number || 0;
+
+        const handleValueClick = () => {
+            setEditingKey(configKey);
+            setTempValue(currentValue.toString());
+        };
+
+        const handleValueBlur = () => {
+            const parsed = parseFloat(tempValue);
+            if (!isNaN(parsed)) {
+                const clamped = Math.max(min, Math.min(max, parsed));
+                updateConfig(configKey, clamped);
+            }
+            setEditingKey(null);
+        };
+
+        const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+            if (e.key === 'Enter') {
+                handleValueBlur();
+            } else if (e.key === 'Escape') {
+                setEditingKey(null);
+            }
+        };
+
+        return (
+            <div>
+                <div className="flex justify-between mb-1">
+                    <label className="text-slate-400 font-bold text-[10px] uppercase tracking-wider">{label}</label>
+                    {isEditing ? (
+                        <input
+                            type="text"
+                            value={tempValue}
+                            onChange={(e) => setTempValue(e.target.value)}
+                            onBlur={handleValueBlur}
+                            onKeyDown={handleKeyDown}
+                            autoFocus
+                            className="w-16 px-1 text-cyan-400 font-mono text-xs bg-slate-800 border border-cyan-500 rounded text-right focus:outline-none focus:ring-1 focus:ring-cyan-400"
+                        />
+                    ) : (
+                        <span
+                            onClick={handleValueClick}
+                            className="text-cyan-400 font-mono text-xs cursor-pointer hover:text-cyan-300 hover:underline transition-colors"
+                            title="Click to edit"
+                        >
+                            {format(currentValue)}
+                        </span>
+                    )}
+                </div>
+                <input
+                    type="range" min={min} max={max} step={step}
+                    value={currentValue}
+                    onChange={(e) => updateConfig(configKey, parseFloat(e.target.value))}
+                    className="w-full accent-cyan-500 h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer hover:bg-slate-700 transition-colors"
+                />
             </div>
-            <input
-                type="range" min={min} max={max} step={step}
-                value={localConfig[configKey] as number || 0}
-                onChange={(e) => updateConfig(configKey, parseFloat(e.target.value))}
-                className="w-full accent-cyan-500 h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer hover:bg-slate-700 transition-colors"
-            />
-        </div>
-    );
+        );
+    };
 
     const handleExport = () => {
         const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(localConfig, null, 2));
@@ -366,17 +414,22 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                                 <div className="bg-slate-950/50 p-3 rounded-lg border border-slate-800 space-y-2">
                                     <div className="flex items-center justify-between p-2 bg-slate-900 rounded text-xs">
                                         <span className="text-slate-400 font-bold">Show Hitboxes</span>
-                                        <div className="w-10 h-5 bg-slate-800 rounded-full relative cursor-not-allowed opacity-50">
-                                            <div className="w-3 h-3 bg-slate-600 rounded-full absolute top-1 left-1" />
-                                        </div>
+                                        <button
+                                            onClick={() => setGameState((p: any) => ({ ...p, showHitboxes: !p?.showHitboxes }))}
+                                            className={`w-10 h-5 rounded-full relative transition-all ${gameState?.showHitboxes ? 'bg-green-600' : 'bg-slate-800'}`}
+                                        >
+                                            <div className={`w-3 h-3 bg-white rounded-full absolute top-1 transition-all ${gameState?.showHitboxes ? 'left-6' : 'left-1'}`} />
+                                        </button>
                                     </div>
                                     <div className="flex items-center justify-between p-2 bg-slate-900 rounded text-xs">
-                                        <span className="text-slate-400 font-bold">Invincibility</span>
-                                        <div className="w-10 h-5 bg-slate-800 rounded-full relative cursor-not-allowed opacity-50">
-                                            <div className="w-3 h-3 bg-slate-600 rounded-full absolute top-1 left-1" />
-                                        </div>
+                                        <span className="text-slate-400 font-bold">God Mode</span>
+                                        <button
+                                            onClick={() => setGameState((p: any) => ({ ...p, godMode: !p?.godMode }))}
+                                            className={`w-10 h-5 rounded-full relative transition-all ${gameState?.godMode ? 'bg-purple-600' : 'bg-slate-800'}`}
+                                        >
+                                            <div className={`w-3 h-3 bg-white rounded-full absolute top-1 transition-all ${gameState?.godMode ? 'left-6' : 'left-1'}`} />
+                                        </button>
                                     </div>
-                                    <p className="text-[9px] text-slate-600 mt-2">Not implemented yet</p>
                                 </div>
                             </section>
                         </div>

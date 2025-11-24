@@ -140,6 +140,8 @@ export interface GameState {
   selectedSkin: CharacterSkin; // Selected animal skin
   upgrades: ShopUpgrades; // Persistent Upgrades
   hitStop: number; // Frame freeze counter
+  showHitboxes?: boolean; // Debug: Show hitboxes
+  godMode?: boolean; // Debug: Invincibility
 }
 
 export interface Player {

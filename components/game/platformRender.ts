@@ -238,4 +238,21 @@ export const drawPlatformTexture = (
         ctx.strokeRect(drawX - 4, drawY - 4, pw + 8, ph + 8);
         ctx.setLineDash([]);
     }
+
+    // DEBUG: Show hitboxes
+    if (gameState.showHitboxes) {
+        ctx.strokeStyle = '#00ff00';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(px, py, pw, ph);
+
+        // Draw center crosshair
+        ctx.strokeStyle = '#ffff00';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(px + pw / 2, py);
+        ctx.lineTo(px + pw / 2, py + ph);
+        ctx.moveTo(px, py + ph / 2);
+        ctx.lineTo(px + pw, py + ph / 2);
+        ctx.stroke();
+    }
 };

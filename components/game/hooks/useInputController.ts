@@ -81,7 +81,11 @@ export const useInputController = (props: InputControllerProps) => {
         if (stateRef.current.isEditing) {
             const { width, height } = canvasRef.current!;
             const wPos = getWorldPos(x, y, width, height, playerRef.current.y, cameraRef.current.y, zoomRef.current, configRef.current, false);
-            if (editorTool === 'ADD') {
+
+            // Check if Ctrl key is pressed (for quick platform creation)
+            const isCtrlPressed = (e as React.MouseEvent).ctrlKey || (e as React.MouseEvent).metaKey;
+
+            if (isCtrlPressed || editorTool === 'ADD') {
                 const newP: Platform = {
                     id: Date.now(), x: wPos.x - 60, y: wPos.y, initialX: wPos.x - 60, width: 120, height: 34,
                     type: PlatformType.STATIC, color: '#ef4444', broken: false, respawnTimer: 0
