@@ -497,115 +497,110 @@ export const TouchControls = ({ inputRef, mode, layout = { scale: 1, x: 0, y: 0 
         );
     }
 
-    // --- ARROWS MODE: Only arrow buttons - tap=jump, hold=jetpack ---
+    // --- ARROWS MODE: Only 2 big arrows - tap=jump, hold=jetpack ---
     if (mode === 'ARROWS') {
-        const holdTimerRef = React.useRef<NodeJS.Timeout | null>(null);
-        const [isHolding, setIsHolding] = React.useState(false);
+        const [leftHolding, setLeftHolding] = React.useState(false);
+        const [rightHolding, setRightHolding] = React.useState(false);
+        const leftTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+        const rightTimerRef = React.useRef<NodeJS.Timeout | null>(null);
         
-        const handleArrowPress = (direction: 'left' | 'right' | 'up') => {
+        const handlePress = (side: 'left' | 'right') => {
             // Set direction
-            if (direction === 'left') inputRef.current.left = true;
-            if (direction === 'right') inputRef.current.right = true;
+            if (side === 'left') inputRef.current.left = true;
+            if (side === 'right') inputRef.current.right = true;
             
-            // Start jump
+            // Trigger jump immediately
             inputRef.current.jumpIntent = true;
             inputRef.current.jumpPressedTime = Date.now();
             
-            // Start hold timer for jetpack (200ms)
-            holdTimerRef.current = setTimeout(() => {
+            // Start hold timer for jetpack (250ms)
+            const timerRef = side === 'left' ? leftTimerRef : rightTimerRef;
+            const setHolding = side === 'left' ? setLeftHolding : setRightHolding;
+            
+            timerRef.current = setTimeout(() => {
                 inputRef.current.jetpack = true;
-                setIsHolding(true);
-            }, 200);
+                setHolding(true);
+            }, 250);
         };
         
-        const handleArrowRelease = (direction: 'left' | 'right' | 'up') => {
+        const handleRelease = (side: 'left' | 'right') => {
             // Clear direction
-            if (direction === 'left') inputRef.current.left = false;
-            if (direction === 'right') inputRef.current.right = false;
+            if (side === 'left') inputRef.current.left = false;
+            if (side === 'right') inputRef.current.right = false;
             
             // Clear jump
             inputRef.current.jumpIntent = false;
             
             // Clear hold timer and jetpack
-            if (holdTimerRef.current) {
-                clearTimeout(holdTimerRef.current);
-                holdTimerRef.current = null;
+            const timerRef = side === 'left' ? leftTimerRef : rightTimerRef;
+            const setHolding = side === 'left' ? setLeftHolding : setRightHolding;
+            
+            if (timerRef.current) {
+                clearTimeout(timerRef.current);
+                timerRef.current = null;
             }
             inputRef.current.jetpack = false;
-            setIsHolding(false);
+            setHolding(false);
         };
+        
+        const buttonSize = 120 * globalScale;
         
         return (
             <div className="absolute inset-0 pointer-events-none z-[100]">
-                {/* Left Arrow */}
+                {/* LEFT ARROW - Big button on left side */}
                 <button
-                    className={`pointer-events-auto rounded-full flex items-center justify-center transition-all backdrop-blur-sm absolute ${
-                        isHolding ? 'bg-purple-600/60 border-purple-400' : 'bg-slate-900/60 border-slate-500/50'
-                    } border-2 active:scale-95`}
+                    className={`pointer-events-auto rounded-2xl flex flex-col items-center justify-center transition-all backdrop-blur-sm absolute ${
+                        leftHolding 
+                            ? 'bg-purple-600/70 border-purple-400 shadow-[0_0_30px_rgba(168,85,247,0.5)]' 
+                            : 'bg-slate-900/70 border-slate-500/50'
+                    } border-3 active:scale-95`}
                     style={{
-                        width: `${80 * globalScale}px`,
-                        height: `${80 * globalScale}px`,
-                        bottom: '24px',
-                        left: '24px',
+                        width: `${buttonSize}px`,
+                        height: `${buttonSize}px`,
+                        bottom: '30px',
+                        left: '20px',
                     }}
-                    onTouchStart={(e) => { e.preventDefault(); handleArrowPress('left'); }}
-                    onTouchEnd={(e) => { e.preventDefault(); handleArrowRelease('left'); }}
-                    onMouseDown={() => handleArrowPress('left')}
-                    onMouseUp={() => handleArrowRelease('left')}
-                    onMouseLeave={() => handleArrowRelease('left')}
+                    onTouchStart={(e) => { e.preventDefault(); handlePress('left'); }}
+                    onTouchEnd={(e) => { e.preventDefault(); handleRelease('left'); }}
+                    onMouseDown={() => handlePress('left')}
+                    onMouseUp={() => handleRelease('left')}
+                    onMouseLeave={() => handleRelease('left')}
                 >
-                    <ChevronLeft size={36 * globalScale} className={isHolding ? 'text-purple-200' : 'text-white'} />
+                    <ChevronLeft size={60 * globalScale} className={leftHolding ? 'text-purple-200' : 'text-white'} strokeWidth={3} />
+                    <span className={`text-[10px] font-black uppercase mt-1 ${leftHolding ? 'text-purple-300' : 'text-slate-400'}`}>
+                        {leftHolding ? '🚀 FLY' : '← LEFT'}
+                    </span>
                 </button>
                 
-                {/* Right Arrow */}
+                {/* RIGHT ARROW - Big button on right side */}
                 <button
-                    className={`pointer-events-auto rounded-full flex items-center justify-center transition-all backdrop-blur-sm absolute ${
-                        isHolding ? 'bg-purple-600/60 border-purple-400' : 'bg-slate-900/60 border-slate-500/50'
-                    } border-2 active:scale-95`}
+                    className={`pointer-events-auto rounded-2xl flex flex-col items-center justify-center transition-all backdrop-blur-sm absolute ${
+                        rightHolding 
+                            ? 'bg-purple-600/70 border-purple-400 shadow-[0_0_30px_rgba(168,85,247,0.5)]' 
+                            : 'bg-slate-900/70 border-slate-500/50'
+                    } border-3 active:scale-95`}
                     style={{
-                        width: `${80 * globalScale}px`,
-                        height: `${80 * globalScale}px`,
-                        bottom: '24px',
-                        left: '120px',
+                        width: `${buttonSize}px`,
+                        height: `${buttonSize}px`,
+                        bottom: '30px',
+                        right: '20px',
                     }}
-                    onTouchStart={(e) => { e.preventDefault(); handleArrowPress('right'); }}
-                    onTouchEnd={(e) => { e.preventDefault(); handleArrowRelease('right'); }}
-                    onMouseDown={() => handleArrowPress('right')}
-                    onMouseUp={() => handleArrowRelease('right')}
-                    onMouseLeave={() => handleArrowRelease('right')}
+                    onTouchStart={(e) => { e.preventDefault(); handlePress('right'); }}
+                    onTouchEnd={(e) => { e.preventDefault(); handleRelease('right'); }}
+                    onMouseDown={() => handlePress('right')}
+                    onMouseUp={() => handleRelease('right')}
+                    onMouseLeave={() => handleRelease('right')}
                 >
-                    <ChevronRight size={36 * globalScale} className={isHolding ? 'text-purple-200' : 'text-white'} />
+                    <ChevronRight size={60 * globalScale} className={rightHolding ? 'text-purple-200' : 'text-white'} strokeWidth={3} />
+                    <span className={`text-[10px] font-black uppercase mt-1 ${rightHolding ? 'text-purple-300' : 'text-slate-400'}`}>
+                        {rightHolding ? '🚀 FLY' : 'RIGHT →'}
+                    </span>
                 </button>
                 
-                {/* Up Arrow (Jump/Jetpack) */}
-                <button
-                    className={`pointer-events-auto rounded-full flex items-center justify-center transition-all backdrop-blur-sm absolute ${
-                        isHolding ? 'bg-purple-600/60 border-purple-400' : 'bg-cyan-900/60 border-cyan-500/50'
-                    } border-2 active:scale-95`}
-                    style={{
-                        width: `${90 * globalScale}px`,
-                        height: `${90 * globalScale}px`,
-                        bottom: '24px',
-                        right: '24px',
-                    }}
-                    onTouchStart={(e) => { e.preventDefault(); handleArrowPress('up'); }}
-                    onTouchEnd={(e) => { e.preventDefault(); handleArrowRelease('up'); }}
-                    onMouseDown={() => handleArrowPress('up')}
-                    onMouseUp={() => handleArrowRelease('up')}
-                    onMouseLeave={() => handleArrowRelease('up')}
-                >
-                    <div className="flex flex-col items-center">
-                        <ArrowUp size={32 * globalScale} className={isHolding ? 'text-purple-200' : 'text-cyan-200'} />
-                        <span className={`text-[8px] font-bold uppercase ${isHolding ? 'text-purple-300' : 'text-cyan-300'}`}>
-                            {isHolding ? 'FLY' : 'JUMP'}
-                        </span>
-                    </div>
-                </button>
-                
-                {/* Instructions */}
-                <div className="absolute bottom-28 left-1/2 -translate-x-1/2 text-center">
-                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
-                        Toque = Pular • Segurar = Jetpack
+                {/* Instructions - centered at bottom */}
+                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-center bg-black/50 px-3 py-1 rounded-full">
+                    <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">
+                        Toque = Pular + Mover • Segurar = Jetpack
                     </p>
                 </div>
             </div>
