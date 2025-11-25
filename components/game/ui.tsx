@@ -304,13 +304,14 @@ export const TouchControls = ({ inputRef, mode, layout = { scale: 1, x: 0, y: 0 
 
     // COMMON DEV BUTTON (Safe Zone - Top Left)
     const DevButton = () => (
+        // DEV BUTTON REMOVED - Using the one at top of GameCanvas instead
         <div className="absolute top-6 left-6 pointer-events-auto" style={{ zIndex: Constants.Z_LAYERS.MODAL }}>
-            <button
+            {/* <button
                 onClick={onOpenSettings}
                 className="px-3 py-2 bg-purple-900/70 border border-purple-500/60 rounded-lg backdrop-blur-md text-purple-300 font-bold text-xs uppercase tracking-widest hover:bg-purple-800/90 hover:shadow-[0_0_20px_rgba(168,85,247,0.5)] transition-all shadow-lg flex items-center gap-1.5"
             >
                 <Settings size={14} /> DEV
-            </button>
+            </button> */}
         </div>
     );
 
@@ -1259,15 +1260,12 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
                     </div>
 
                     {/* UTILS ROW */}
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-2 gap-2">
                         <button onClick={() => setLang(lang === 'EN' ? 'PT' : 'EN')} className="py-3 bg-slate-900/80 border border-slate-700 rounded-lg text-xs font-bold text-slate-300 hover:text-white hover:border-slate-500 transition-all">
                             {lang === 'EN' ? '🇺🇸 EN' : '🇧🇷 PT'}
                         </button>
                         <button onClick={toggleFullscreen} className="py-3 bg-slate-900/80 border border-slate-700 rounded-lg text-xs font-bold text-slate-300 hover:text-white hover:border-slate-500 transition-all flex items-center justify-center gap-1">
                             <Maximize size={14} /> {t[lang].fullscreen}
-                        </button>
-                        <button onClick={onOpenSettings} className="py-3 bg-slate-900/80 border border-slate-700 rounded-lg text-xs font-bold text-slate-300 hover:text-white hover:border-cyan-500 transition-all flex items-center justify-center gap-1">
-                            <Settings size={14} /> DEV
                         </button>
                     </div>
                 </div>
