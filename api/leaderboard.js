@@ -1,12 +1,7 @@
 // Leaderboard API - Funciona com ou sem Redis
 // Se Redis não estiver configurado, retorna dados vazios mas não quebra
 
-let Redis;
-try {
-    Redis = require('@upstash/redis').Redis;
-} catch (e) {
-    Redis = null;
-}
+import { Redis } from '@upstash/redis';
 
 const LEADERBOARD_KEY = 'leaderboard:global';
 const MAX_ENTRIES = 100; // Máximo de entradas no ranking
@@ -20,8 +15,6 @@ const EMPTY_LEADERBOARD = [
 
 // Tenta criar conexão Redis
 function createRedisClient() {
-    if (!Redis) return null;
-    
     try {
         if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
             return new Redis({
@@ -54,7 +47,7 @@ export default async function handler(request, response) {
     // DEBUG endpoint - para verificar se variáveis estão configuradas
     if (request.query.debug === 'true') {
         return response.status(200).json({
-            hasRedisLib: !!Redis,
+            hasRedisLib: true,
             hasUpstashUrl: !!process.env.UPSTASH_REDIS_REST_URL,
             hasUpstashToken: !!process.env.UPSTASH_REDIS_REST_TOKEN,
             hasKvUrl: !!process.env.KV_REST_API_URL,
