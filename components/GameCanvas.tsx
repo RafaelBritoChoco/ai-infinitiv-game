@@ -485,6 +485,11 @@ const GameCanvas: React.FC = () => {
                     setShowVisualEditor(false);
                 }}
                 initialLayout={controlsLayout || undefined}
+                currentMode={gameState.mobileControlMode}
+                onModeChange={(mode) => {
+                    Persistence.saveControlMode(mode);
+                    setGameState(prev => ({ ...prev, mobileControlMode: mode }));
+                }}
             />
         </div>
     );

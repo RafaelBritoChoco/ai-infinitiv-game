@@ -28,14 +28,18 @@ const DEFAULT_LAYOUT: ControlsLayout = {
     globalScale: 1,
 };
 
+type ControlMode = 'BUTTONS' | 'TILT' | 'JOYSTICK' | 'ARROWS';
+
 interface Props {
     isOpen: boolean;
     onClose: () => void;
     onSave: (layout: ControlsLayout) => void;
     initialLayout?: ControlsLayout;
+    currentMode?: ControlMode;
+    onModeChange?: (mode: ControlMode) => void;
 }
 
-export const VisualControlEditor: React.FC<Props> = ({ isOpen, onClose, onSave, initialLayout }) => {
+export const VisualControlEditor: React.FC<Props> = ({ isOpen, onClose, onSave, initialLayout, currentMode = 'ARROWS', onModeChange }) => {
     const [layout, setLayout] = useState<ControlsLayout>(() => {
         const saved = localStorage.getItem('CONTROLS_LAYOUT');
         if (saved) {
@@ -43,6 +47,9 @@ export const VisualControlEditor: React.FC<Props> = ({ isOpen, onClose, onSave, 
         }
         return initialLayout || DEFAULT_LAYOUT;
     });
+
+    // Control mode for preview
+    const [previewMode, setPreviewMode] = useState<ControlMode>(currentMode);
 
     const [selectedBtn, setSelectedBtn] = useState<string | null>(null);
     const [isDragging, setIsDragging] = useState(false);
@@ -118,6 +125,11 @@ export const VisualControlEditor: React.FC<Props> = ({ isOpen, onClose, onSave, 
 
     const handleSave = () => {
         localStorage.setItem('CONTROLS_LAYOUT', JSON.stringify(layout));
+        // Also save selected control mode
+        if (onModeChange) {
+            localStorage.setItem('CONTROL_MODE', previewMode);
+            onModeChange(previewMode);
+        }
         onSave(layout);
         onClose();
     };
@@ -149,6 +161,32 @@ export const VisualControlEditor: React.FC<Props> = ({ isOpen, onClose, onSave, 
                     <button onClick={onClose} className="p-2 bg-red-900/50 hover:bg-red-800 rounded-lg text-red-400">
                         <X size={20} />
                     </button>
+                </div>
+            </div>
+
+            {/* CONTROL MODE SELECTOR */}
+            <div className="flex-shrink-0 p-3 bg-slate-800/80 border-b border-slate-700">
+                <p className="text-xs text-slate-400 mb-2 uppercase font-bold">Tipo de Controle:</p>
+                <div className="flex gap-2 flex-wrap">
+                    {[
+                        { mode: 'ARROWS' as ControlMode, label: '◀ ▶ Setas', desc: 'Toque = pulo' },
+                        { mode: 'BUTTONS' as ControlMode, label: '🎮 Botões', desc: '4 botões' },
+                        { mode: 'TILT' as ControlMode, label: '📱 Inclinar', desc: 'Giroscópio' },
+                        { mode: 'JOYSTICK' as ControlMode, label: '🕹️ Joystick', desc: 'Analógico' },
+                    ].map(({ mode, label, desc }) => (
+                        <button
+                            key={mode}
+                            onClick={() => setPreviewMode(mode)}
+                            className={`px-3 py-2 rounded-lg text-xs font-bold transition-all ${
+                                previewMode === mode 
+                                    ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-500/30' 
+                                    : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                            }`}
+                        >
+                            <div>{label}</div>
+                            <div className="text-[10px] opacity-70">{desc}</div>
+                        </button>
+                    ))}
                 </div>
             </div>
 

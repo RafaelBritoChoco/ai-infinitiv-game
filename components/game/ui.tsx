@@ -438,8 +438,8 @@ export const TouchControls = ({ inputRef, mode, layout = { scale: 1, x: 0, y: 0 
 
     const globalScale = savedLayout.globalScale || 1;
     
-    // Perfect indicator style - PINK when player is on ground (can perfect jump)
-    const perfectStyle = showPerfectIndicator ? 'bg-pink-500/80 border-pink-400 shadow-[0_0_30px_rgba(236,72,153,0.8)] animate-pulse' : '';
+    // Perfect indicator style - PINK SUAVE when player is on ground (can perfect jump)
+    const perfectStyle = showPerfectIndicator ? 'bg-pink-400/30 border-pink-300/50 shadow-[0_0_12px_rgba(236,72,153,0.3)]' : '';
 
     // Helper to render a button with custom layout
     const renderButton = (id: 'leftArrow' | 'rightArrow' | 'jumpBtn' | 'jetpackBtn', touchKey: string, icon: React.ReactNode, baseSize: number, colorClass: string) => {
@@ -566,9 +566,9 @@ export const TouchControls = ({ inputRef, mode, layout = { scale: 1, x: 0, y: 0 
         
         const buttonSize = 85 * globalScale; // Smaller size
         
-        // Get button style based on state - PINK when can perfect jump!
+        // Get button style based on state - PINK SUAVE when can perfect jump!
         const getButtonStyle = (isHolding: boolean) => {
-            if (showPerfectIndicator) return 'bg-pink-500/70 border-pink-400 shadow-[0_0_25px_rgba(236,72,153,0.7)] animate-pulse';
+            if (showPerfectIndicator) return 'bg-pink-400/30 border-pink-300/50 shadow-[0_0_12px_rgba(236,72,153,0.3)]';
             if (isHolding) return 'bg-purple-500/60 border-purple-400 shadow-[0_0_20px_rgba(168,85,247,0.5)]';
             return 'bg-slate-700/50 border-slate-400/40';
         };
@@ -610,13 +610,6 @@ export const TouchControls = ({ inputRef, mode, layout = { scale: 1, x: 0, y: 0 
                 >
                     <ChevronRight size={44 * globalScale} className={showPerfectIndicator ? 'text-pink-100' : rightHolding ? 'text-purple-100' : 'text-white'} strokeWidth={2.5} />
                 </button>
-                
-                {/* Perfect Jump Indicator */}
-                {showPerfectIndicator && (
-                    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-pink-600/90 px-4 py-1.5 rounded-full animate-pulse shadow-[0_0_20px_rgba(236,72,153,0.6)]">
-                        <p className="text-xs text-white font-bold">✨ PULA AGORA!</p>
-                    </div>
-                )}
                 
                 {/* Jetpack indicator */}
                 {(leftHolding || rightHolding) && !showPerfectIndicator && (
