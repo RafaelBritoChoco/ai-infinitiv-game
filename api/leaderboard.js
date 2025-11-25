@@ -1,30 +1,38 @@
 import { Redis } from '@upstash/redis';
 
-// Inicializa conexão com Redis
-// Suporta tanto UPSTASH_REDIS_REST_URL/TOKEN quanto REDIS_URL
-let redis;
-if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
-    redis = new Redis({
-        url: process.env.UPSTASH_REDIS_REST_URL,
-        token: process.env.UPSTASH_REDIS_REST_TOKEN,
-    });
-} else if (process.env.REDIS_URL) {
-    // Parse REDIS_URL format: redis://default:TOKEN@HOST:PORT
-    const redisUrl = process.env.REDIS_URL;
-    // Extrair host para formar a REST URL
-    const match = redisUrl.match(/redis:\/\/[^:]+:([^@]+)@([^:]+):(\d+)/);
-    if (match) {
-        const [, token, host] = match;
-        redis = new Redis({
-            url: `https://${host}`,
-            token: token,
+// Inicializa conexão com Redis usando variáveis do Upstash/Vercel
+// Tenta várias combinações de nomes de variáveis
+let redis = null;
+
+function initRedis() {
+    // Opção 1: Variáveis padrão do Upstash
+    if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+        return new Redis({
+            url: process.env.UPSTASH_REDIS_REST_URL,
+            token: process.env.UPSTASH_REDIS_REST_TOKEN,
         });
     }
-}
-
-// Fallback se nenhuma variável estiver configurada
-if (!redis) {
-    console.error('Redis não configurado! Verifique as variáveis de ambiente.');
+    
+    // Opção 2: Variáveis KV_ (Vercel KV style)
+    if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
+        return new Redis({
+            url: process.env.KV_REST_API_URL,
+            token: process.env.KV_REST_API_TOKEN,
+        });
+    }
+    
+    // Opção 3: REDIS_URL no formato Upstash REST (https://...)
+    if (process.env.REDIS_URL && process.env.REDIS_URL.startsWith('https://')) {
+        // Se REDIS_URL é uma URL REST, tentar usar com REDIS_TOKEN
+        if (process.env.REDIS_TOKEN) {
+            return new Redis({
+                url: process.env.REDIS_URL,
+                token: process.env.REDIS_TOKEN,
+            });
+        }
+    }
+    
+    return null;
 }
 
 const LEADERBOARD_KEY = 'leaderboard:global';
@@ -38,6 +46,18 @@ export default async function handler(request, response) {
 
     if (request.method === 'OPTIONS') {
         return response.status(200).end();
+    }
+
+    // Inicializar Redis
+    const redis = initRedis();
+    
+    if (!redis) {
+        console.error('Redis não configurado! Variáveis disponíveis:', Object.keys(process.env).filter(k => k.includes('REDIS') || k.includes('KV') || k.includes('UPSTASH')));
+        return response.status(500).json({ 
+            success: false, 
+            error: 'Banco de dados não configurado',
+            debug: 'Redis connection failed - check environment variables'
+        });
     }
 
     try {
