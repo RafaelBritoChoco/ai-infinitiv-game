@@ -1,4 +1,3 @@
-
 import * as Constants from './constants';
 
 export type GameConfig = {
@@ -170,6 +169,11 @@ export interface CharacterSkin {
   name: string;
   color: string;
   pixels: number[][]; // 8x8 grid representation (1 = color, 0 = transparent)
+  lore?: {
+    EN: string;
+    PT: string;
+    IT: string;
+  };
 }
 
 export interface SaveNode {
@@ -233,6 +237,7 @@ export interface GameState {
   activeTrophyPowers?: TrophyPowers | null; // Trophy powers for current run
   coinValueMultiplier?: number; // Active coin value multiplier
   coinSpawnMultiplier?: number; // Active coin spawn multiplier
+  notification?: { message: string, type: 'info' | 'success' | 'warning' } | null; // Global notification
 }
 
 export interface Player {
@@ -244,4 +249,14 @@ export interface Player {
   vy: number;
   isGrounded: boolean;
   jumpCooldown: number; // Anti-Spam Timer
+}
+
+export interface PlayerStats {
+  gamesPlayed: number;
+  totalCoinsCollected: number;
+  totalJetpackTime: number;
+  totalPerfectJumps: number;
+  maxCombo: number;
+  noDamageDistance: number;
+  fastest1500m: number; // in seconds, 0 if not achieved
 }

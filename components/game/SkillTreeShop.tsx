@@ -4,11 +4,12 @@ import {
 } from 'lucide-react';
 import * as Constants from '../../constants';
 import { ShopUpgrades } from '../../types';
-import { soundManager } from './audioManager';
+import { TRANSLATIONS } from './translations';
 
 interface SkillTreeShopProps {
     gameState: any;
     setGameState: (state: any) => void;
+    lang: 'EN' | 'PT' | 'IT';
 }
 
 interface SkillNode {
@@ -109,8 +110,9 @@ const SKILL_TREE: SkillNode[] = [
     }
 ];
 
-export const SkillTreeShop: React.FC<SkillTreeShopProps> = ({ gameState, setGameState }) => {
+export const SkillTreeShop: React.FC<SkillTreeShopProps> = ({ gameState, setGameState, lang = 'EN' }) => {
     const [selectedSkill, setSelectedSkill] = useState<SkillNode | null>(null);
+    const t = TRANSLATIONS[lang];
 
     const isUnlocked = (skill: SkillNode): boolean => {
         // Check altitude requirement
@@ -177,10 +179,10 @@ export const SkillTreeShop: React.FC<SkillTreeShopProps> = ({ gameState, setGame
                         <div>
                             <h2 className="text-2xl md:text-4xl font-black text-white italic tracking-tighter flex items-center gap-2">
                                 <Star className="text-cyan-400 icon-md" />
-                                SKILL TREE
+                                {t.shop.title}
                             </h2>
                             <p className="text-slate-400 text-[10px] md:text-sm uppercase tracking-widest font-bold">
-                                Unlock by reaching altitudes
+                                {lang === 'PT' ? 'Desbloqueie alcançando altitudes' : lang === 'IT' ? 'Sblocca raggiungendo altitudini' : 'Unlock by reaching altitudes'}
                             </p>
                         </div>
                     </div>
@@ -195,13 +197,13 @@ export const SkillTreeShop: React.FC<SkillTreeShopProps> = ({ gameState, setGame
                     <div className="max-w-4xl mx-auto space-y-8 md:space-y-16">
 
                         {/* TIER 1 */}
-                        <TierRow tier={1} skills={tier1} gameState={gameState} isUnlocked={isUnlocked} getCost={getCost} buySkill={buySkill} selectedSkill={selectedSkill} setSelectedSkill={setSelectedSkill} />
+                        <TierRow tier={1} skills={tier1} gameState={gameState} isUnlocked={isUnlocked} getCost={getCost} buySkill={buySkill} selectedSkill={selectedSkill} setSelectedSkill={setSelectedSkill} lang={lang} />
 
                         {/* TIER 2 */}
-                        <TierRow tier={2} skills={tier2} gameState={gameState} isUnlocked={isUnlocked} getCost={getCost} buySkill={buySkill} selectedSkill={selectedSkill} setSelectedSkill={setSelectedSkill} />
+                        <TierRow tier={2} skills={tier2} gameState={gameState} isUnlocked={isUnlocked} getCost={getCost} buySkill={buySkill} selectedSkill={selectedSkill} setSelectedSkill={setSelectedSkill} lang={lang} />
 
                         {/* TIER 3 */}
-                        <TierRow tier={3} skills={tier3} gameState={gameState} isUnlocked={isUnlocked} getCost={getCost} buySkill={buySkill} selectedSkill={selectedSkill} setSelectedSkill={setSelectedSkill} />
+                        <TierRow tier={3} skills={tier3} gameState={gameState} isUnlocked={isUnlocked} getCost={getCost} buySkill={buySkill} selectedSkill={selectedSkill} setSelectedSkill={setSelectedSkill} lang={lang} />
 
                     </div>
                 </div>
@@ -211,7 +213,7 @@ export const SkillTreeShop: React.FC<SkillTreeShopProps> = ({ gameState, setGame
 };
 
 // Helper component for each tier row
-const TierRow = ({ tier, skills, gameState, isUnlocked, getCost, buySkill, selectedSkill, setSelectedSkill }: any) => {
+const TierRow = ({ tier, skills, gameState, isUnlocked, getCost, buySkill, selectedSkill, setSelectedSkill, lang }: any) => {
     return (
         <div>
             <div className="text-center mb-4 md:mb-6">
@@ -226,7 +228,7 @@ const TierRow = ({ tier, skills, gameState, isUnlocked, getCost, buySkill, selec
                     return (
                         <div key={col} className="flex justify-center">
                             {skill ? (
-                                <SkillCard skill={skill} gameState={gameState} isUnlocked={isUnlocked} getCost={getCost} buySkill={buySkill} selectedSkill={selectedSkill} setSelectedSkill={setSelectedSkill} />
+                                <SkillCard skill={skill} gameState={gameState} isUnlocked={isUnlocked} getCost={getCost} buySkill={buySkill} selectedSkill={selectedSkill} setSelectedSkill={setSelectedSkill} lang={lang} />
                             ) : (
                                 <div className="w-full aspect-square max-w-[150px] bg-slate-900/20 border border-dashed border-slate-800 rounded-xl"></div>
                             )}
@@ -239,13 +241,16 @@ const TierRow = ({ tier, skills, gameState, isUnlocked, getCost, buySkill, selec
 };
 
 // Skill Card Component
-const SkillCard = ({ skill, gameState, isUnlocked, getCost, buySkill, selectedSkill, setSelectedSkill }: any) => {
+const SkillCard = ({ skill, gameState, isUnlocked, getCost, buySkill, selectedSkill, setSelectedSkill, lang }: any) => {
     const currentLevel = gameState.upgrades[skill.id];
     const cost = getCost(skill, currentLevel);
     const unlocked = isUnlocked(skill);
     const canAfford = gameState.totalCoins >= cost;
     const isMaxed = currentLevel >= skill.maxLevel;
     const isSelected = selectedSkill?.id === skill.id;
+    const t = TRANSLATIONS[lang];
+    const itemT = t.shop.items[skill.id];
+    const name = itemT?.name || skill.name;
 
     return (
         <div
@@ -277,7 +282,7 @@ const SkillCard = ({ skill, gameState, isUnlocked, getCost, buySkill, selectedSk
 
             {/* Name */}
             <h3 className="text-white font-bold text-[10px] md:text-sm uppercase tracking-tight text-center mb-1 md:mb-2 leading-tight">
-                {skill.name}
+                {name}
             </h3>
 
             {/* Level Dots */}
@@ -297,7 +302,7 @@ const SkillCard = ({ skill, gameState, isUnlocked, getCost, buySkill, selectedSk
                         'bg-slate-900/50 text-slate-500'
                 }`}>
                 {!unlocked ? `${skill.requirements.altitude}m` :
-                    isMaxed ? 'MAXED' :
+                    isMaxed ? t.shop.max :
                         `${cost} 🪙`}
             </div>
         </div>

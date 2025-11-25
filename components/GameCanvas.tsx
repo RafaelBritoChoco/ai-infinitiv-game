@@ -1,8 +1,7 @@
-
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import * as Constants from '../constants';
 import { Player, Platform, PlatformType, Particle, GameConfig, SaveNode, CharacterSkin, GameState, detectPerformanceMode } from '../types';
-import { Play, Move, Trash2, PlusSquare, Save, AlertTriangle, Pause, Settings, Edit, Volume2, VolumeX } from 'lucide-react';
+import { Play, Move, Trash2, PlusSquare, Save, AlertTriangle, Pause, Settings, Edit, Volume2, VolumeX, Crown } from 'lucide-react';
 import './game/responsiveUI.css';
 
 // --- Sub-Module Imports ---
@@ -21,7 +20,8 @@ import { useGameController } from './game/hooks/useGameController';
 import { useInputController } from './game/hooks/useInputController';
 
 // --- UI Components ---
-import { CalibrationModal, GameOverMenu, StartScreen, PauseMenu, ControlsModal, LeftSidebar, RightSidebar, ShopModal, TouchControls, PortraitLock, LayoutEditorModal, SensorDebugModal } from './game/ui';
+import { CalibrationModal, GameOverMenu, StartScreen, PauseMenu, ControlsModal, LeftSidebar, RightSidebar, ShopModal, TouchControls, PortraitLock, LayoutEditorModal, SensorDebugModal, GameUI } from './game/ui';
+import { LoginScreen } from './game/ui_parts/LoginScreen';
 import { DevEditor } from './game/DevEditor';
 import { UserSettingsModal } from './game/UserSettingsModal';
 import { VisualControlEditor, ControlsLayout } from './game/VisualControlEditor';
@@ -44,6 +44,7 @@ const GameCanvas: React.FC = () => {
 
     // --- UI Local State ---
     const [availableSkins, setAvailableSkins] = useState<CharacterSkin[]>(SKINS);
+    const [lang, setLang] = useState<'EN' | 'PT' | 'IT'>('PT'); // Default to PT
     const [gamepadConnected, setGamepadConnected] = useState(false);
     const [gyroEnabled, setGyroEnabled] = useState(false);
     const [damageFlash, setDamageFlash] = useState(0);
@@ -62,6 +63,7 @@ const GameCanvas: React.FC = () => {
     const [showSettings, setShowSettings] = useState(false);
     const [showDevEditor, setShowDevEditor] = useState(false);
     const [weedMode, setWeedMode] = useState(() => localStorage.getItem('WEED_MODE') === 'true');
+    const [showLogin, setShowLogin] = useState(true);
 
     // Shadow Refs for Loop Stability
     const jetpackModeRef = useRef<'IDLE' | 'BURST' | 'GLIDE'>('IDLE');
@@ -283,7 +285,8 @@ const GameCanvas: React.FC = () => {
                                 onClick={() => {
                                     const currentVol = configRef.current.VOLUME_MASTER || 0.5;
                                     const newVol = currentVol > 0 ? 0 : 0.5;
-                                    setConfig({ ...configRef.current, VOLUME_MASTER: newVol });
+                                    configRef.current = { ...configRef.current, VOLUME_MASTER: newVol };
+                                    setForceUpdate(p => p + 1);
                                     soundManager.setVolumes(newVol, configRef.current.VOLUME_MUSIC || 0.4, configRef.current.VOLUME_SFX || 0.6);
                                 }}
                                 className={`p-3 backdrop-blur rounded-full border transition-all ${
@@ -319,7 +322,11 @@ const GameCanvas: React.FC = () => {
                     />
                 )}
 
-                {!gameState.isPlaying && !gameState.isGameOver && !showCalibration && (
+                {showLogin && (
+                    <LoginScreen onLogin={() => setShowLogin(false)} />
+                )}
+
+                {!showLogin && !gameState.isPlaying && !gameState.isGameOver && !showCalibration && (
                     <StartScreen
                         gameState={gameState} setGameState={setGameState} availableSkins={SKINS}
                         showAiInput={showAiInput} setShowAiInput={setShowAiInput} aiPrompt={aiPrompt}
@@ -333,6 +340,14 @@ const GameCanvas: React.FC = () => {
                         setGyroEnabled={setGyroEnabled}
                         weedMode={weedMode}
                         setWeedMode={setWeedMode}
+                        leaderboard={leaderboard}
+                        setLeaderboard={setLeaderboard}
+                        lang={lang}
+                        setLang={setLang}
+                        onLogout={() => {
+                            Persistence.setProfile('guest');
+                            setShowLogin(true);
+                        }}
                     />
                 )}
 
@@ -375,7 +390,7 @@ const GameCanvas: React.FC = () => {
                 {showLayoutEditor && (
                     <LayoutEditorModal
                         onClose={() => setShowLayoutEditor(false)}
-                        layout={controlLayout}
+                        initialLayout={controlLayout}
                         onSave={(newLayout: any) => {
                             setControlLayout(newLayout);
                             // Persistence.saveControlLayout(newLayout); // TODO: Implement persistence
@@ -419,12 +434,39 @@ const GameCanvas: React.FC = () => {
                         selectedIndex={menuIndex}
                     />
                 )}
-                {gameState.isShopOpen && (
-                    <SkillTreeShop gameState={gameState} setGameState={setGameState} />
+
+                {/* Notification Overlay */}
+                {gameState.notification && (
+                    <div className="absolute top-24 left-1/2 transform -translate-x-1/2 z-50 animate-bounce pointer-events-none">
+                        <div className="bg-yellow-500/90 text-black px-6 py-3 rounded-full border-4 border-white shadow-[0_0_30px_rgba(234,179,8,0.6)] flex items-center gap-3 backdrop-blur-md">
+                            <Crown size={24} className="animate-pulse" />
+                            <div className="flex flex-col items-center">
+                                <span className="text-xs font-bold uppercase tracking-widest opacity-80">NOVO RECORDE!</span>
+                                <span className="text-xl font-black italic">{gameState.notification.message}</span>
+                            </div>
+                        </div>
+                    </div>
                 )}
 
-
             </div>
+
+            {/* HUD */}
+            {gameState.isPlaying && !gameState.isGameOver && (
+                <GameUI 
+                    gameState={gameState} 
+                    config={configRef.current} 
+                    setConfig={(newConfig: any) => {
+                        configRef.current = { ...configRef.current, ...newConfig };
+                        setForceUpdate(p => p + 1);
+                    }} 
+                    weedMode={weedMode}
+                />
+            )}
+
+            {/* Skill Tree Shop - Moved to Root Level */}
+            {gameState.isShopOpen && (
+                <SkillTreeShop gameState={gameState} setGameState={setGameState} lang={lang} />
+            )}
 
             <RightSidebar gameState={gameState} config={configRef.current} jetpackMode={jetpackMode} setShowDebug={setShowDebug} tiltDebug={tiltDebug} gyroEnabled={gyroEnabled} />
 

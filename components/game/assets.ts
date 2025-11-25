@@ -73,6 +73,11 @@ export const SKINS: CharacterSkin[] = [
   
   {
     id: 'cat', name: 'GINGER', color: '#f97316',
+    lore: {
+      EN: "Just a regular orange cat. Hates Mondays. Loves lasagna.",
+      PT: "Gato laranja padrão. Só quer lasanha e dormir. Se pudesse, dominava o mundo.",
+      IT: "Gatto arancione. Mangia solo pasta. Odia i lunedì."
+    },
     pixels: [
         [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
         [0,0,0,1,1,0,0,0,0,0,0,1,1,0,0,0],
@@ -95,6 +100,11 @@ export const SKINS: CharacterSkin[] = [
   // ===== KERO - Sapo feliz com bochechas =====
   {
     id: 'frog', name: 'KERO', color: '#22c55e',
+    lore: {
+      EN: "Happy frog. Ribbit. Not a prince, don't kiss.",
+      PT: "Sapo cururu da beira do rio. Não lava o pé porque não quer.",
+      IT: "Rana felice. Canta 'O Sole Mio tutto il giorno."
+    },
     pixels: [
         [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
         [0,0,1,1,1,1,0,0,0,0,1,1,1,1,0,0],
@@ -117,6 +127,11 @@ export const SKINS: CharacterSkin[] = [
   // ===== LUNA - Coelha rosa fofa com orelhas longas =====
   {
     id: 'bunny', name: 'LUNA', color: '#ec4899',
+    lore: {
+      EN: "Pink bunny. High energy. Probably ate too much sugar.",
+      PT: "Coelha ligada no 220v. Comeu cenoura com energético.",
+      IT: "Coniglietta rosa. Troppo caffè. Salta dappertutto."
+    },
     pixels: [
         [0,0,1,1,1,0,0,0,0,0,0,1,1,1,0,0],
         [0,1,2,3,2,1,0,0,0,0,1,2,3,2,1,0],
@@ -139,6 +154,11 @@ export const SKINS: CharacterSkin[] = [
   // ===== BAMBOO - Panda preto e branco =====
   {
     id: 'panda', name: 'BAMBOO', color: '#f1f5f9',
+    lore: {
+      EN: "Chill panda. Kung Fu master in training. Mostly sleeps.",
+      PT: "Panda de boa. Diz que sabe Kung Fu, mas só sabe comer e dormir.",
+      IT: "Panda rilassato. Maestro di Kung Fu... nel sonno."
+    },
     pixels: [
         [0,0,0,1,1,1,0,0,0,0,1,1,1,0,0,0],
         [0,0,1,1,1,1,1,1,1,1,1,1,1,1,0,0],
@@ -161,6 +181,11 @@ export const SKINS: CharacterSkin[] = [
   // ===== CHOKITO - Barra de chocolate (24x24) =====
   {
     id: 'chocolate', name: 'CHOKITO', color: '#92400e',
+    lore: {
+      EN: "Literal chocolate bar. Don't eat him. He's sweet but tough.",
+      PT: "Barra de chocolate crocante. O sonho da dieta. Cuidado com o sol.",
+      IT: "Barretta di cioccolato. Dolce ma tosto. Non mangiarlo!"
+    },
     pixels: [
         [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
         [0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0],
@@ -191,6 +216,11 @@ export const SKINS: CharacterSkin[] = [
   // ===== TAKESHI - Samurai (24x24) =====
   {
     id: 'samurai', name: 'TAKESHI', color: '#fbbf24',
+    lore: {
+      EN: "Honorable warrior. Lost his sword, uses jump kicks now.",
+      PT: "Samurai honrado. Perdeu a espada no churrasco, agora resolve na voadora.",
+      IT: "Guerriero onorevole. Ha perso la spada, ora usa i calci volanti."
+    },
     pixels: [
         [0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0],
         [0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0],
@@ -221,6 +251,11 @@ export const SKINS: CharacterSkin[] = [
   // ===== DUSTY - Terra/Lama (24x24) =====
   {
     id: 'dirt', name: 'DUSTY', color: '#78716c',
+    lore: {
+      EN: "Just a clump of dirt. But a fast one. Don't judge.",
+      PT: "Um torrão de terra. Sim, é isso. Mas corre que é uma beleza.",
+      IT: "Un pezzo di terra. Veloce. Non giudicare."
+    },
     pixels: [
         [0,0,0,0,0,0,0,0,0,6,6,6,6,6,6,0,0,0,0,0,0,0,0,0],
         [0,0,0,0,0,0,0,0,6,6,3,3,3,3,6,6,0,0,0,0,0,0,0,0],
@@ -251,6 +286,11 @@ export const SKINS: CharacterSkin[] = [
   // ===== ACRE - Menino floresta (24x24) =====
   {
     id: 'acre', name: 'ACRE', color: '#22c55e',
+    lore: {
+      EN: "From a mysterious land. Does it even exist? Dinosaur rider.",
+      PT: "Veio do Acre. Ninguém sabe se existe mesmo. Dizem que monta em dinossauro.",
+      IT: "Viene da una terra misteriosa. Cavalca dinosauri. Esiste davvero?"
+    },
     pixels: [
         [0,0,0,0,0,0,0,0,0,0,6,6,6,6,0,0,0,0,0,0,0,0,0,0],
         [0,0,0,0,0,0,0,0,0,6,6,6,6,6,6,0,0,0,0,0,0,0,0,0],
@@ -281,6 +321,11 @@ export const SKINS: CharacterSkin[] = [
   // ===== RIZZINI - Ciclista (24x24) =====
   {
     id: 'biker', name: 'RIZZINI', color: '#3b82f6',
+    lore: {
+      EN: "Radical biker. Helmet hair. Born to ride.",
+      PT: "Ciclista radical. Capacete não sai nem pro banho. Nasceu pra pedalar.",
+      IT: "Ciclista pazzo. Casco sempre in testa. Nato per correre."
+    },
     pixels: [
         [0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0],
         [0,0,0,0,0,0,0,1,6,6,6,6,6,6,6,6,1,0,0,0,0,0,0,0],
@@ -311,6 +356,11 @@ export const SKINS: CharacterSkin[] = [
   // ===== CORINGA - Joker (24x24) =====
   {
     id: 'joker', name: 'CORINGA', color: '#a855f7',
+    lore: {
+      EN: "Why so serious? Just here for the chaos.",
+      PT: "Tá rindo do quê? Veio só pra causar o caos. O palhaço do crime.",
+      IT: "Perché così serio? È qui solo per il caos."
+    },
     pixels: [
         [0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0],
         [0,0,0,0,0,0,1,6,6,6,6,6,6,6,6,6,6,1,0,0,0,0,0,0],
@@ -341,6 +391,11 @@ export const SKINS: CharacterSkin[] = [
   // ===== KONG - Gorila branco (24x24) =====
   {
     id: 'gorilla', name: 'KONG', color: '#e2e8f0',
+    lore: {
+      EN: "Big ape. Strong. Likes bananas. Hates barrels.",
+      PT: "Gorila monstro. Forte pra burro. Gosta de banana e de jogar barril.",
+      IT: "Grande scimmia. Forte. Ama le banane. Odia i barili."
+    },
     pixels: [
         [0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0],
         [0,0,0,0,0,0,1,2,2,2,2,2,2,2,2,2,2,1,0,0,0,0,0,0],
@@ -371,6 +426,11 @@ export const SKINS: CharacterSkin[] = [
   // ===== YURI - Alfinete prateado com cabeça redonda e ponta afinando =====
   {
     id: 'pin', name: 'YURI', color: '#94a3b8',
+    lore: {
+      EN: "Sharp guy. Literally. Don't sit on him.",
+      PT: "O cara é afiado. Literalmente. Cuidado onde senta.",
+      IT: "Tipo pungente. Letteralmente. Non sederti su di lui."
+    },
     pixels: [
         [0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0],
         [0,0,0,0,0,1,2,2,2,2,1,0,0,0,0,0],
@@ -415,6 +475,11 @@ export const SKINS: CharacterSkin[] = [
   // ===== CANTOR - Microfone com rosto (24x24) =====
   {
     id: 'singer', name: 'CANTOR', color: '#64748b',
+    lore: {
+      EN: "Loves karaoke. Neighbors hate him. Mic drop.",
+      PT: "Rei do karaokê. Os vizinhos chamam a polícia. Solta o som, DJ!",
+      IT: "Ama il karaoke. I vicini lo odiano. Mic drop."
+    },
     pixels: [
         [0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0],
         [0,0,0,0,0,0,0,1,2,2,2,2,2,2,2,2,1,0,0,0,0,0,0,0],
@@ -445,6 +510,11 @@ export const SKINS: CharacterSkin[] = [
   // ===== TERRA - Planeta Terra com Brasil em verde =====
   {
     id: 'earth', name: 'TERRA', color: '#3b82f6',
+    lore: {
+      EN: "Our home. Round (mostly). Don't pollute.",
+      PT: "O planeta azul. Redondo (chora terraplanista). Cuida bem dele, tá?",
+      IT: "La nostra casa. Rotonda. Non inquinare."
+    },
     pixels: [
         [0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0],
         [0,0,0,0,1,1,2,2,2,2,1,1,0,0,0,0],

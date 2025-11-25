@@ -74,8 +74,9 @@ export const updatePlayerPhysics = (props: PhysicsUpdateProps): void => {
         player.vy = 0;
         player.y = 100 - player.height; // Lock to ground level
         player.isGrounded = true;
-        player.squashX = 1.0 + Math.sin(timeElapsed * 5) * 0.05; // Idle breathe
-        player.squashY = 1.0 - Math.sin(timeElapsed * 5) * 0.05;
+        // Removed breathing animation as per user feedback
+        player.squashX = 1.0;
+        player.squashY = 1.0;
 
         const center = (cfg.VIEWPORT_WIDTH || 1200) / 2 - player.width / 2;
         player.x = center;
@@ -383,7 +384,8 @@ export const updatePlayerPhysics = (props: PhysicsUpdateProps): void => {
                 setDangerWarning(false);
                 const canJump = player.jumpCooldown <= 0;
                 const timeSincePress = Date.now() - input.jumpPressedTime;
-                const perfectTiming = timeSincePress < (cfg.PARRY_WINDOW_MS || 135);
+                // Increased window to 160ms for better feel
+                const perfectTiming = timeSincePress < (cfg.PARRY_WINDOW_MS || 160);
                 const perfect = canJump && perfectTiming;
 
                 const jumpBonus = gameState.upgrades.jump * cfg.UPGRADE_JUMP_BONUS;

@@ -1,4 +1,3 @@
-
 import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { GameState, Player, Platform, PlatformType, Particle, GameConfig, CharacterSkin, LeaderboardEntry, ShopUpgrades, SaveNode, TROPHY_POWERS, TrophyPowers } from '../../../types';
 import * as Constants from '../../../constants';
@@ -70,7 +69,8 @@ export const useGameController = (props: GameControllerProps) => {
         upgrades: { maxFuel: 0, efficiency: 0, luck: 0, jump: 0, shield: 0, aerodynamics: 0 },
         hitStop: 0,
         hideMotionDebug: false, // Hide motion level bar and RAW debug
-        invertMotion: false // Invert motion controls
+        invertMotion: false, // Invert motion controls
+        notification: null
     });
 
     const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
@@ -81,6 +81,7 @@ export const useGameController = (props: GameControllerProps) => {
     const menuIndexRef = useRef(0);
     const stateRef = useRef(gameState);
 
+    // Sync Refs
     // Sync Refs
     useEffect(() => { stateRef.current = gameState; }, [gameState]);
     useEffect(() => { menuIndexRef.current = menuIndex; }, [menuIndex]);
@@ -478,11 +479,26 @@ export const useGameController = (props: GameControllerProps) => {
         }
     }, [handleMenuAction, showGameOverMenu, showCalibration]);
 
-    // Fetch Global Leaderboard on Mount & Poll every 5 minutes
+    // Fetch Global Leaderboard on Mount & Poll every 15 seconds (Real-time ish)
     useEffect(() => {
         const fetchLeaderboard = () => {
             Persistence.fetchGlobalLeaderboard().then(globalScores => {
                 if (globalScores && globalScores.length > 0) {
+                    const oldTop = leaderboardRef.current[0];
+                    const newTop = globalScores[0];
+                    
+                    // Check for new #1 (if we had a previous top and it changed)
+                    if (oldTop && newTop && newTop.score > oldTop.score && newTop.id !== oldTop.id) {
+                        setGameState(prev => ({
+                            ...prev,
+                            notification: {
+                                message: `👑 NEW RECORD: ${newTop.name} - ${newTop.score}m!`,
+                                type: 'success'
+                            }
+                        }));
+                        try { soundManager.playCollect(); } catch {} 
+                    }
+
                     setLeaderboard(globalScores);
                     leaderboardRef.current = globalScores;
                 } else {
@@ -495,10 +511,20 @@ export const useGameController = (props: GameControllerProps) => {
         };
 
         fetchLeaderboard(); // Initial fetch
-        const interval = setInterval(fetchLeaderboard, 5 * 60 * 1000); // 5 minutes
+        const interval = setInterval(fetchLeaderboard, 15 * 1000); // 15 seconds
 
         return () => clearInterval(interval);
     }, []);
+
+    // Clear notification after 5s
+    useEffect(() => {
+        if (gameState.notification) {
+            const timer = setTimeout(() => {
+                setGameState(prev => ({ ...prev, notification: null }));
+            }, 5000);
+            return () => clearTimeout(timer);
+        }
+    }, [gameState.notification]);
 
     const handleSaveLeaderboardScore = (name: string) => {
         if (highScoreEntryStatusRef.current === 'SUBMITTED') return;

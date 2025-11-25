@@ -45,7 +45,7 @@ export const getScaleAndOffset = (
     const isMobilePortrait = typeof window !== 'undefined' && window.innerWidth < 768 && window.innerHeight > window.innerWidth;
     
     // No modo portrait, dá mais zoom out para ver melhor a altura
-    const portraitZoomBonus = isMobilePortrait ? 0.85 : 1.0;
+    const portraitZoomBonus = isMobilePortrait ? 1.0 : 1.0;
     const effectiveZoom = zoom * portraitZoomBonus;
 
     const effectiveWidth = currentWorldWidth / effectiveZoom;

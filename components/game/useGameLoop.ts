@@ -917,5 +917,5 @@ export const useGameLoop = (props: GameLoopProps) => {
         };
         rAF = requestAnimationFrame(loop);
         return () => cancelAnimationFrame(rAF);
-    }, [gameState.isEditing, editorTool, selectedPlatformId, gamepadConnected, gameState.isPaused, gameState.selectedSkin, showGameOverMenu, gameState.isFreefallMode, leaderboard, gameState.isShopOpen, gameState.upgrades.shield]);
+    }, [gameState.isEditing, editorTool, selectedPlatformId, gamepadConnected, gameState.isPaused, gameState.selectedSkin, showGameOverMenu, gameState.isFreefallMode, leaderboard, gameState.isShopOpen, gameState.upgrades.shield, weedMode]);
 };

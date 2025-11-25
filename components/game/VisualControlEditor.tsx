@@ -82,7 +82,10 @@ export const VisualControlEditor: React.FC<Props> = ({ isOpen, onClose, onSave, 
     const [editingMode, setEditingMode] = useState<ControlMode>(currentMode);
     
     // Layout para o modo sendo editado
-    const [layout, setLayout] = useState<ControlsLayout>(() => loadLayoutForMode(currentMode));
+    const [layout, setLayout] = useState<ControlsLayout>(() => {
+        if (initialLayout && currentMode === editingMode) return initialLayout;
+        return loadLayoutForMode(currentMode);
+    });
 
     const [selectedBtn, setSelectedBtn] = useState<string | null>(null);
     const [isDragging, setIsDragging] = useState(false);
@@ -266,7 +269,7 @@ export const VisualControlEditor: React.FC<Props> = ({ isOpen, onClose, onSave, 
             </div>
 
             {/* MAIN AREA - Simulated Game Screen */}
-            <div ref={containerRef} className="flex-1 relative overflow-hidden bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
+            <div ref={containerRef} className="flex-1 relative overflow-hidden bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900" style={{ touchAction: 'none' }}>
                 {/* Grid Background */}
                 <div className="absolute inset-0 opacity-20" style={{
                     backgroundImage: 'linear-gradient(rgba(6,182,212,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(6,182,212,0.3) 1px, transparent 1px)',
