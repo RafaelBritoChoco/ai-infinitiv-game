@@ -1624,15 +1624,19 @@ export const GameOverMenu = ({ gameState, handleStart, setGameState, leaderboard
     const [playerName, setPlayerName] = useState(() => localStorage.getItem('PLAYER_NAME') || '');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitted, setSubmitted] = useState(false);
+    const [submittedRank, setSubmittedRank] = useState<number | null>(null);
     
     const isNewHighScore = gameState.score > gameState.highScore;
+    const currentScore = Math.floor(gameState.score); // Ensure integer
 
     const handleSubmitScore = async () => {
-        if (!playerName.trim() || playerName.length < 2) {
+        const trimmedName = playerName.trim();
+        
+        if (!trimmedName || trimmedName.length < 2) {
             alert('Digite um nome com pelo menos 2 caracteres!');
             return;
         }
-        if (playerName.length > 15) {
+        if (trimmedName.length > 15) {
             alert('Nome muito longo! Máximo 15 caracteres.');
             return;
         }
@@ -1640,12 +1644,20 @@ export const GameOverMenu = ({ gameState, handleStart, setGameState, leaderboard
         setIsSubmitting(true);
         try {
             // Save name for future use
-            localStorage.setItem('PLAYER_NAME', playerName.trim());
+            localStorage.setItem('PLAYER_NAME', trimmedName);
             
-            // Submit to global leaderboard
-            await Persistence.submitGlobalScore(playerName.trim(), gameState.score);
-            setSubmitted(true);
-            soundManager.playPerfectJump();
+            // Submit to global leaderboard with integer score
+            const result = await Persistence.submitGlobalScore(trimmedName, currentScore);
+            
+            if (result.success) {
+                setSubmitted(true);
+                setSubmittedRank(result.rank || null);
+                soundManager.playPerfectJump();
+            } else {
+                // Still mark as submitted if saved locally
+                setSubmitted(true);
+                alert('Score salvo localmente. Erro ao enviar online: ' + (result.error || 'desconhecido'));
+            }
         } catch (e) {
             console.error('Failed to submit score', e);
             alert('Erro ao enviar score. Tente novamente.');
@@ -1671,7 +1683,7 @@ export const GameOverMenu = ({ gameState, handleStart, setGameState, leaderboard
                 <div className="grid grid-cols-2 gap-3 w-full">
                     <div className="bg-slate-900/50 border border-slate-800 p-3 rounded-xl text-center">
                         <div className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-1">Altitude</div>
-                        <div className="text-2xl font-black text-white">{gameState.score}m</div>
+                        <div className="text-2xl font-black text-white">{currentScore}m</div>
                     </div>
                     <div className="bg-slate-900/50 border border-slate-800 p-3 rounded-xl text-center">
                         <div className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-1">Coins</div>
@@ -1719,10 +1731,15 @@ export const GameOverMenu = ({ gameState, handleStart, setGameState, leaderboard
                         <p className="text-slate-600 text-[10px] text-center">Máximo 15 caracteres</p>
                     </div>
                 ) : (
-                    <div className="w-full bg-green-900/20 border border-green-500/50 p-4 rounded-xl text-center">
+                    <div className="w-full bg-green-900/20 border border-green-500/50 p-4 rounded-xl text-center space-y-1">
                         <div className="flex items-center justify-center gap-2 text-green-400 font-bold">
                             <Check size={20} /> Score enviado com sucesso!
                         </div>
+                        {submittedRank && submittedRank <= 10 && (
+                            <p className="text-yellow-400 text-sm font-bold animate-pulse">
+                                🏆 Você está no Top {submittedRank}!
+                            </p>
+                        )}
                     </div>
                 )}
 

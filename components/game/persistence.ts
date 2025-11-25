@@ -80,12 +80,20 @@ export const Persistence = {
             const res = await fetch('/api/leaderboard');
             if (!res.ok) throw new Error('API Error');
             const data = await res.json();
+            
+            // Handle new API format { success: true, leaderboard: [...] }
+            const entries = data.leaderboard || data;
+            
+            if (!Array.isArray(entries)) {
+                throw new Error('Invalid response format');
+            }
+            
             // Map API format to LeaderboardEntry
-            return data.map((item: any, index: number) => ({
-                id: index,
-                name: item.name,
-                score: item.score,
-                date: new Date().toISOString()
+            return entries.map((item: any, index: number) => ({
+                id: item.id || `global-${index}`,
+                name: item.name || 'Unknown',
+                score: typeof item.score === 'number' ? item.score : parseInt(item.score) || 0,
+                date: item.date || new Date().toISOString()
             }));
         } catch (e) {
             console.warn("Global leaderboard fetch failed, using local.", e);
@@ -93,18 +101,29 @@ export const Persistence = {
         }
     },
 
-    submitGlobalScore: async (name: string, score: number) => {
+    submitGlobalScore: async (name: string, score: number): Promise<{ success: boolean; rank?: number; error?: string }> => {
         try {
-            await fetch('/api/leaderboard', {
+            const res = await fetch('/api/leaderboard', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, score })
+                body: JSON.stringify({ name, score: Number(score) })
             });
+            const data = await res.json();
+            
+            if (!res.ok || !data.success) {
+                throw new Error(data.error || 'Failed to submit');
+            }
+            
+            // Also save locally
+            Persistence.saveScoreToLeaderboard(name, score);
+            
+            return { success: true, rank: data.rank };
         } catch (e) {
             console.error("Failed to submit global score", e);
+            // Save locally as fallback
+            Persistence.saveScoreToLeaderboard(name, score);
+            return { success: false, error: (e as Error).message };
         }
-        // Always save locally too
-        Persistence.saveScoreToLeaderboard(name, score);
     },
 
     loadLeaderboard: (): LeaderboardEntry[] => {
