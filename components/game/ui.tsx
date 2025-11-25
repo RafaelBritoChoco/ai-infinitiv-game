@@ -566,17 +566,18 @@ export const TouchControls = ({ inputRef, mode, layout = { scale: 1, x: 0, y: 0 
             return 'bg-slate-800/70 border-slate-500/50';
         };
         
-        // Barra de controle fixa na parte inferior - NÃO COBRE O JOGO
+        // Barra de controle fixa na parte inferior - TRANSPARENTE
         return (
             <div className="fixed bottom-0 left-0 right-0 z-[100] pointer-events-none">
-                {/* Barra de fundo semi-transparente */}
-                <div className="bg-slate-900/90 backdrop-blur-md border-t border-slate-700/50 h-[100px] flex items-center justify-between px-4 pointer-events-auto">
+                {/* Barra TRANSPARENTE - não cobre o jogo */}
+                <div className="h-[100px] flex items-center justify-between px-4 pointer-events-auto">
                     {/* LEFT ARROW */}
                     <button
                         className={`rounded-2xl flex items-center justify-center transition-all border-2 active:scale-95 ${getButtonStyle(leftHolding)}`}
                         style={{
                             width: `${buttonSize}px`,
                             height: `${buttonSize}px`,
+                            backgroundColor: showPerfectIndicator ? 'rgba(236, 72, 153, 0.5)' : leftHolding ? 'rgba(168, 85, 247, 0.6)' : 'rgba(30, 41, 59, 0.5)',
                         }}
                         onTouchStart={(e) => { e.preventDefault(); handlePress('left'); }}
                         onTouchEnd={(e) => { e.preventDefault(); handleRelease('left'); }}
@@ -584,14 +585,11 @@ export const TouchControls = ({ inputRef, mode, layout = { scale: 1, x: 0, y: 0 
                         onMouseUp={() => handleRelease('left')}
                         onMouseLeave={() => handleRelease('left')}
                     >
-                        <ChevronLeft size={48 * globalScale} className={showPerfectIndicator ? 'text-pink-200' : leftHolding ? 'text-purple-100' : 'text-white'} strokeWidth={2.5} />
+                        <ChevronLeft size={48 * globalScale} className={showPerfectIndicator ? 'text-pink-200' : leftHolding ? 'text-purple-100' : 'text-white/80'} strokeWidth={2.5} />
                     </button>
                     
-                    {/* Centro - Dica de controle */}
-                    <div className="flex flex-col items-center gap-1 opacity-60">
-                        <span className="text-[10px] text-slate-400 uppercase tracking-wider">Toque = Pulo</span>
-                        <span className="text-[10px] text-purple-400 uppercase tracking-wider">Segure = Jetpack</span>
-                    </div>
+                    {/* Centro - Vazio para não cobrir */}
+                    <div className="flex-1" />
                     
                     {/* RIGHT ARROW */}
                     <button
@@ -599,6 +597,7 @@ export const TouchControls = ({ inputRef, mode, layout = { scale: 1, x: 0, y: 0 
                         style={{
                             width: `${buttonSize}px`,
                             height: `${buttonSize}px`,
+                            backgroundColor: showPerfectIndicator ? 'rgba(236, 72, 153, 0.5)' : rightHolding ? 'rgba(168, 85, 247, 0.6)' : 'rgba(30, 41, 59, 0.5)',
                         }}
                         onTouchStart={(e) => { e.preventDefault(); handlePress('right'); }}
                         onTouchEnd={(e) => { e.preventDefault(); handleRelease('right'); }}
@@ -606,7 +605,7 @@ export const TouchControls = ({ inputRef, mode, layout = { scale: 1, x: 0, y: 0 
                         onMouseUp={() => handleRelease('right')}
                         onMouseLeave={() => handleRelease('right')}
                     >
-                        <ChevronRight size={48 * globalScale} className={showPerfectIndicator ? 'text-pink-200' : rightHolding ? 'text-purple-100' : 'text-white'} strokeWidth={2.5} />
+                        <ChevronRight size={48 * globalScale} className={showPerfectIndicator ? 'text-pink-200' : rightHolding ? 'text-purple-100' : 'text-white/80'} strokeWidth={2.5} />
                     </button>
                 </div>
             </div>
@@ -1476,6 +1475,16 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
                 <p className="text-slate-600 text-[10px] mt-1 font-mono">Criado por <span className="text-cyan-400">AI</span> & <span className="text-purple-400">ChocoPro</span></p>
             </div>
 
+            {/* RANKING BUTTON - PRINCIPAL - Antes de tudo */}
+            <div className="w-full max-w-4xl px-4 md:px-8 mb-4 relative z-10">
+                <button 
+                    onClick={() => setShowRanking(true)} 
+                    className={`w-full py-4 rounded-2xl text-lg font-black transition-all flex items-center justify-center gap-3 border-2 ${weedMode ? 'bg-gradient-to-r from-green-800 to-lime-700 border-green-500 text-white shadow-[0_0_30px_rgba(34,197,94,0.5)] hover:shadow-[0_0_50px_rgba(34,197,94,0.7)]' : 'bg-gradient-to-r from-yellow-700 via-amber-600 to-yellow-700 border-yellow-400 text-white shadow-[0_0_30px_rgba(234,179,8,0.5)] hover:shadow-[0_0_50px_rgba(234,179,8,0.7)]'} animate-pulse hover:animate-none`}
+                >
+                    <Trophy size={24} className="text-yellow-300" /> {weedT.ranking} <Crown size={20} className="text-yellow-300" />
+                </button>
+            </div>
+
             {/* MAIN MENU GRID */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 w-full max-w-4xl px-4 md:px-8 relative z-10 pb-32">
 
@@ -1660,14 +1669,6 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
                             <Settings size={14} /> SET
                         </button>
                     </div>
-
-                    {/* RANKING BUTTON */}
-                    <button 
-                        onClick={() => setShowRanking(true)} 
-                        className={`w-full py-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 ${weedMode ? 'bg-gradient-to-r from-green-900/50 to-lime-900/50 border border-green-600/50 text-green-400 hover:text-white hover:border-green-400' : 'bg-gradient-to-r from-yellow-900/50 to-amber-900/50 border border-yellow-600/50 text-yellow-400 hover:text-white hover:border-yellow-400'}`}
-                    >
-                        <Trophy size={16} /> {weedT.ranking}
-                    </button>
                 </div>
             </div>
 
@@ -1877,13 +1878,146 @@ export const PortraitLock = ({ locked = true }: { locked?: boolean }) => {
     );
 };
 
+// ====================================================================================
+// FIREWORKS CELEBRATION COMPONENT
+// ====================================================================================
+const FireworksCelebration = ({ rank }: { rank: number }) => {
+    const [particles, setParticles] = useState<any[]>([]);
+    
+    useEffect(() => {
+        const colors = rank === 1 
+            ? ['#ffd700', '#ffed4a', '#fff', '#fbbf24'] // Gold for 1st
+            : rank === 2 
+                ? ['#c0c0c0', '#e5e5e5', '#94a3b8', '#cbd5e1'] // Silver for 2nd
+                : ['#cd7f32', '#d97706', '#f59e0b', '#fbbf24']; // Bronze for 3rd
+        
+        const createFirework = () => {
+            const centerX = Math.random() * 80 + 10; // 10-90%
+            const centerY = Math.random() * 40 + 10; // 10-50%
+            const newParticles: any[] = [];
+            
+            for (let i = 0; i < 30; i++) {
+                const angle = (Math.PI * 2 * i) / 30;
+                const speed = Math.random() * 3 + 2;
+                newParticles.push({
+                    id: Math.random(),
+                    x: centerX,
+                    y: centerY,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    life: 1,
+                    size: Math.random() * 4 + 2
+                });
+            }
+            setParticles(prev => [...prev, ...newParticles]);
+        };
+        
+        // Create initial fireworks
+        createFirework();
+        const interval = setInterval(createFirework, 800);
+        
+        // Animate particles
+        const animate = setInterval(() => {
+            setParticles(prev => prev
+                .map(p => ({
+                    ...p,
+                    x: p.x + p.vx * 0.3,
+                    y: p.y + p.vy * 0.3 + 0.1,
+                    vy: p.vy + 0.05,
+                    life: p.life - 0.02
+                }))
+                .filter(p => p.life > 0)
+            );
+        }, 30);
+        
+        return () => {
+            clearInterval(interval);
+            clearInterval(animate);
+        };
+    }, [rank]);
+    
+    return (
+        <div className="absolute inset-0 pointer-events-none z-[60] overflow-hidden">
+            {particles.map(p => (
+                <div
+                    key={p.id}
+                    className="absolute rounded-full"
+                    style={{
+                        left: `${p.x}%`,
+                        top: `${p.y}%`,
+                        width: p.size,
+                        height: p.size,
+                        backgroundColor: p.color,
+                        opacity: p.life,
+                        boxShadow: `0 0 ${p.size * 2}px ${p.color}`
+                    }}
+                />
+            ))}
+        </div>
+    );
+};
+
+// Golden Trophy Character (special skin for top 3)
+const TROPHY_SKIN = {
+    id: 'trophy_champion',
+    name: 'CHAMPION',
+    color: '#ffd700',
+    pixels: [
+        [0,0,0,0,0,2,2,2,2,2,2,0,0,0,0,0],
+        [0,0,0,2,2,2,2,2,2,2,2,2,2,0,0,0],
+        [0,0,2,2,6,6,6,6,6,6,6,6,2,2,0,0],
+        [0,2,2,6,6,6,6,6,6,6,6,6,6,2,2,0],
+        [0,2,6,6,6,3,3,6,6,3,3,6,6,6,2,0],
+        [2,2,6,6,6,3,3,6,6,3,3,6,6,6,2,2],
+        [2,6,6,6,6,6,6,6,6,6,6,6,6,6,6,2],
+        [2,6,6,6,6,6,6,6,6,6,6,6,6,6,6,2],
+        [2,6,6,6,6,6,1,1,1,1,6,6,6,6,6,2],
+        [2,2,6,6,6,6,6,6,6,6,6,6,6,6,2,2],
+        [0,2,6,6,6,6,6,6,6,6,6,6,6,6,2,0],
+        [0,2,2,6,6,6,6,6,6,6,6,6,6,2,2,0],
+        [0,0,2,2,6,6,6,6,6,6,6,6,2,2,0,0],
+        [0,0,0,2,2,2,6,6,6,6,2,2,2,0,0,0],
+        [0,0,0,0,0,2,2,2,2,2,2,0,0,0,0,0],
+        [0,0,0,0,2,2,2,2,2,2,2,2,0,0,0,0],
+    ]
+};
+
 export const GameOverMenu = ({ gameState, handleStart, setGameState, leaderboard, onSaveScore, selectedIndex }: any) => {
     const [playerName, setPlayerName] = useState(() => localStorage.getItem('PLAYER_NAME') || '');
     const [submitted, setSubmitted] = useState(false);
     const [submittedRank, setSubmittedRank] = useState<number | null>(null);
+    const [showCelebration, setShowCelebration] = useState(false);
+    const [bonusGiven, setBonusGiven] = useState(false);
     
     const isNewHighScore = gameState.score > gameState.highScore;
     const currentScore = Math.floor(gameState.score); // Ensure integer
+
+    // Handle Top 3 celebration and rewards
+    useEffect(() => {
+        if (submittedRank && submittedRank <= 3 && !bonusGiven) {
+            setShowCelebration(true);
+            setBonusGiven(true);
+            
+            // Give 200 gold bonus
+            const currentCoins = gameState.totalCoins || 0;
+            setGameState((prev: any) => ({ ...prev, totalCoins: currentCoins + 200 }));
+            Persistence.saveCoins(currentCoins + 200);
+            
+            // Save trophy skin unlock (3 games)
+            const trophyData = {
+                rank: submittedRank,
+                gamesRemaining: 3,
+                unlockedAt: Date.now()
+            };
+            localStorage.setItem('TROPHY_CHAMPION', JSON.stringify(trophyData));
+            
+            // Play celebration sound
+            soundManager.playPerfectJump();
+            setTimeout(() => soundManager.playPerfectJump(), 300);
+            setTimeout(() => soundManager.playPerfectJump(), 600);
+        }
+    }, [submittedRank, bonusGiven, gameState.totalCoins, setGameState]);
 
     const handleSubmitScore = async () => {
         const trimmedName = playerName.trim();
@@ -1923,9 +2057,21 @@ export const GameOverMenu = ({ gameState, handleStart, setGameState, leaderboard
         { label: 'MAIN MENU', action: () => setGameState((p: any) => ({ ...p, isGameOver: false, isPlaying: false })), icon: Home, color: 'slate' }
     ];
 
+    const getRankColor = (rank: number) => {
+        if (rank === 1) return 'from-yellow-500 to-amber-600 text-yellow-200';
+        if (rank === 2) return 'from-slate-300 to-slate-500 text-slate-100';
+        if (rank === 3) return 'from-amber-600 to-orange-700 text-amber-200';
+        return 'from-cyan-600 to-cyan-800 text-cyan-200';
+    };
+
     return (
         <div className="absolute inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-            <div className="bg-[#020617] border border-red-900/50 p-6 rounded-2xl shadow-[0_0_50px_rgba(220,38,38,0.2)] max-w-md w-full flex flex-col items-center gap-4 animate-in zoom-in-95 duration-300">
+            {/* Fireworks for Top 3 */}
+            {showCelebration && submittedRank && submittedRank <= 3 && (
+                <FireworksCelebration rank={submittedRank} />
+            )}
+            
+            <div className="bg-[#020617] border border-red-900/50 p-6 rounded-2xl shadow-[0_0_50px_rgba(220,38,38,0.2)] max-w-md w-full flex flex-col items-center gap-4 animate-in zoom-in-95 duration-300 relative z-10">
                 <div className="text-center">
                     <div className="text-red-500 text-sm font-bold tracking-[0.5em] uppercase mb-2">Signal Lost</div>
                     <h2 className="text-4xl font-black text-white italic tracking-tighter">GAME OVER</h2>
@@ -1948,6 +2094,23 @@ export const GameOverMenu = ({ gameState, handleStart, setGameState, leaderboard
                     <div className="w-full bg-gradient-to-r from-yellow-900/30 to-yellow-600/30 border border-yellow-500/50 p-3 rounded-xl text-center animate-pulse">
                         <div className="flex items-center justify-center gap-2 text-yellow-400 font-black uppercase tracking-widest">
                             <Trophy size={20} /> NOVO RECORDE!
+                        </div>
+                    </div>
+                )}
+
+                {/* TOP 3 CELEBRATION */}
+                {showCelebration && submittedRank && submittedRank <= 3 && (
+                    <div className={`w-full bg-gradient-to-r ${getRankColor(submittedRank)} p-4 rounded-xl text-center animate-pulse border-2 border-yellow-400/50`}>
+                        <div className="flex items-center justify-center gap-2 font-black uppercase tracking-widest text-lg">
+                            <Crown size={24} className="text-yellow-300" />
+                            TOP {submittedRank} GLOBAL!
+                            <Crown size={24} className="text-yellow-300" />
+                        </div>
+                        <div className="mt-2 text-sm font-bold flex items-center justify-center gap-2">
+                            <Coins size={16} /> +200 GOLD BONUS!
+                        </div>
+                        <div className="mt-1 text-xs opacity-80">
+                            TROPHY SKIN desbloqueado por 3 partidas!
                         </div>
                     </div>
                 )}

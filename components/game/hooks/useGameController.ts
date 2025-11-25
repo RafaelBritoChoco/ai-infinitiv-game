@@ -145,6 +145,31 @@ export const useGameController = (props: GameControllerProps) => {
         jetpackModeRef.current = 'IDLE';
     };
 
+    // Golden Trophy Skin for Champions
+    const TROPHY_SKIN = {
+        id: 'trophy_champion',
+        name: 'CHAMPION',
+        color: '#ffd700',
+        pixels: [
+            [0,0,0,0,0,2,2,2,2,2,2,0,0,0,0,0],
+            [0,0,0,2,2,2,2,2,2,2,2,2,2,0,0,0],
+            [0,0,2,2,6,6,6,6,6,6,6,6,2,2,0,0],
+            [0,2,2,6,6,6,6,6,6,6,6,6,6,2,2,0],
+            [0,2,6,6,6,3,3,6,6,3,3,6,6,6,2,0],
+            [2,2,6,6,6,3,3,6,6,3,3,6,6,6,2,2],
+            [2,6,6,6,6,6,6,6,6,6,6,6,6,6,6,2],
+            [2,6,6,6,6,6,6,6,6,6,6,6,6,6,6,2],
+            [2,6,6,6,6,6,1,1,1,1,6,6,6,6,6,2],
+            [2,2,6,6,6,6,6,6,6,6,6,6,6,6,2,2],
+            [0,2,6,6,6,6,6,6,6,6,6,6,6,6,2,0],
+            [0,2,2,6,6,6,6,6,6,6,6,6,6,2,2,0],
+            [0,0,2,2,6,6,6,6,6,6,6,6,2,2,0,0],
+            [0,0,0,2,2,2,6,6,6,6,2,2,2,0,0,0],
+            [0,0,0,0,0,2,2,2,2,2,2,0,0,0,0,0],
+            [0,0,0,0,2,2,2,2,2,2,2,2,0,0,0,0],
+        ]
+    };
+
     // --- GAME ACTIONS ---
     const handleStart = async (mode: 'NORMAL' | 'TEST' = 'NORMAL') => {
         soundManager.init();
@@ -160,6 +185,28 @@ export const useGameController = (props: GameControllerProps) => {
         // Init Logic
         const currentState = stateRef.current;
         initGameWorld(currentState.levelIndex, currentState.levelType);
+
+        // Check Trophy Champion skin
+        let activeSkin = currentState.selectedSkin;
+        try {
+            const trophyData = localStorage.getItem('TROPHY_CHAMPION');
+            if (trophyData) {
+                const trophy = JSON.parse(trophyData);
+                if (trophy.gamesRemaining > 0) {
+                    // Use trophy skin and decrement games
+                    activeSkin = TROPHY_SKIN;
+                    trophy.gamesRemaining -= 1;
+                    
+                    if (trophy.gamesRemaining <= 0) {
+                        localStorage.removeItem('TROPHY_CHAMPION');
+                    } else {
+                        localStorage.setItem('TROPHY_CHAMPION', JSON.stringify(trophy));
+                    }
+                }
+            }
+        } catch (e) {
+            console.error('Error checking trophy skin:', e);
+        }
 
         const newRunId = `run-${Date.now()}-${Math.random()}`;
         const newState: GameState = {
@@ -179,7 +226,8 @@ export const useGameController = (props: GameControllerProps) => {
             health: cfg.MAX_HEALTH,
             maxHealth: cfg.MAX_HEALTH,
             combo: 0,
-            hitStop: 0
+            hitStop: 0,
+            selectedSkin: activeSkin
         };
         setGameState(newState);
         stateRef.current = newState;

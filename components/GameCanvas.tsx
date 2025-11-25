@@ -165,12 +165,16 @@ const GameCanvas: React.FC = () => {
 
         if (savedCal) calibrationRef.current = savedCal;
 
+        // Detectar se é PC ou mobile para default
+        const isMobile = typeof window !== 'undefined' && (window.innerWidth < 768 || 'ontouchstart' in window);
+        const defaultMode = isMobile ? 'ARROWS' : 'JOYSTICK';
+
         setGameState(prev => ({
             ...prev,
             highScore: savedHighScore,
             maxAltitude: savedMaxAlt,
             totalCoins: savedCoins,
-            mobileControlMode: savedControlMode || 'ARROWS',
+            mobileControlMode: savedControlMode || defaultMode,
             upgrades: { ...prev.upgrades, ...savedUpgrades },
             hideMotionDebug: savedHideMotionDebug,
             invertMotion: savedInvertMotion
@@ -235,10 +239,6 @@ const GameCanvas: React.FC = () => {
                 <div
                     ref={containerRef}
                     className="relative w-full h-full max-w-4xl shadow-2xl"
-                    style={{ 
-                        // No modo ARROWS mobile, deixa espaço para a barra de controle fixa (100px)
-                        paddingBottom: gameState.isPlaying && gameState.mobileControlMode === 'ARROWS' && typeof window !== 'undefined' && window.innerWidth < 768 ? '100px' : '0' 
-                    }}
                 >
                     <div className="absolute inset-0 bg-red-600 pointer-events-none z-20 mix-blend-overlay transition-opacity duration-100" style={{ opacity: damageFlash * 0.5 }} />
 

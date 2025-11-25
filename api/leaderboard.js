@@ -215,11 +215,16 @@ export default async function handler(request, response) {
 
             // Buscar rank
             const rank = await redis.zrevrank(LEADERBOARD_KEY, entry);
+            const finalRank = rank !== null ? rank + 1 : null;
+
+            // Se entrou no top 3, retorna flag para celebração
+            const isTop3 = finalRank !== null && finalRank <= 3;
 
             return response.status(200).json({ 
                 success: true, 
-                rank: rank !== null ? rank + 1 : null,
-                message: `Score salvo! ${rank !== null ? `Posição #${rank + 1}` : ''}`
+                rank: finalRank,
+                isTop3: isTop3,
+                message: `Score salvo! ${finalRank !== null ? `Posição #${finalRank}` : ''}`
             });
         }
 
