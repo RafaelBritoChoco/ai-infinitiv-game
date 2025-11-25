@@ -1662,18 +1662,16 @@ const CharacterPreviewModal = ({ skin, onClose, onSelectSkin, allSkins }: {
     
     const currentSkin = allSkins[currentSkinIndex] || skin;
     
-    // Animation state
+    // Animation state - platforms can dissolve like in game
     const stateRef = useRef({
-        x: 150,
+        x: 140,
         y: 250,
         vx: 0,
         vy: 0,
         frame: 0,
         isGrounded: true,
         direction: 1,
-        platforms: [
-            { x: 110, y: 320, w: 80 }, // Ground platform (always visible)
-        ],
+        platforms: [] as { x: number; y: number; w: number; dissolve?: number; dissolving?: boolean }[],
         particles: [] as { x: number; y: number; vx: number; vy: number; life: number; color: string }[],
         jetpackActive: false,
         jetpackTimer: 0,
@@ -1681,10 +1679,10 @@ const CharacterPreviewModal = ({ skin, onClose, onSelectSkin, allSkins }: {
         tutorialPhase: 0,
     });
     
-    // Reset state when tab changes
+    // Reset state when tab OR skin changes
     useEffect(() => {
         const state = stateRef.current;
-        state.x = 150;
+        state.x = 140;
         state.y = 250;
         state.vx = 0;
         state.vy = 0;
@@ -1723,7 +1721,7 @@ const CharacterPreviewModal = ({ skin, onClose, onSelectSkin, allSkins }: {
                 { x: -50, y: 340, w: 400 }, // Extra wide ground to prevent falling
             ];
         }
-    }, [activeTab]);
+    }, [activeTab, currentSkinIndex]); // Reset when changing skin too!
     
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -1929,18 +1927,46 @@ const CharacterPreviewModal = ({ skin, onClose, onSelectSkin, allSkins }: {
                 if (state.x > canvas.width - 20) state.x = canvas.width - 20;
             }
             
-            // Platform collision
+            // Platform collision + dissolve like game
             state.isGrounded = false;
             const playerBottom = state.y + 24;
             for (const plat of state.platforms) {
+                // Skip fully dissolved platforms
+                if (plat.dissolve !== undefined && plat.dissolve <= 0) continue;
+                
                 if (state.vy >= 0 && 
                     playerBottom >= plat.y && playerBottom <= plat.y + 15 &&
                     state.x >= plat.x - 10 && state.x <= plat.x + plat.w + 10) {
                     state.y = plat.y - 24;
                     state.vy = 0;
                     state.isGrounded = true;
+                    
+                    // Start dissolving when player lands (except ground platforms)
+                    if (plat.y < 300 && plat.dissolve === undefined) {
+                        plat.dissolving = true;
+                        plat.dissolve = 1.0;
+                    }
                 }
             }
+            
+            // Update dissolving platforms
+            state.platforms = state.platforms.map(plat => {
+                if (plat.dissolving && plat.dissolve !== undefined) {
+                    plat.dissolve -= 0.015; // Dissolve speed
+                    // Create dissolve particles
+                    if (Math.random() < 0.3 && plat.dissolve > 0) {
+                        state.particles.push({
+                            x: plat.x + Math.random() * plat.w,
+                            y: plat.y,
+                            vx: (Math.random() - 0.5) * 2,
+                            vy: Math.random() * 2 + 1,
+                            life: 15,
+                            color: '#22d3ee'
+                        });
+                    }
+                }
+                return plat;
+            }).filter(plat => plat.dissolve === undefined || plat.dissolve > 0);
             
             // Safety: don't fall below screen
             if (state.y > canvas.height - 30) {
@@ -1951,20 +1977,30 @@ const CharacterPreviewModal = ({ skin, onClose, onSelectSkin, allSkins }: {
             
             // ========== DRAWING ==========
             
-            // Draw platforms
+            // Draw platforms with dissolve effect
             for (const plat of state.platforms) {
+                const dissolveAlpha = plat.dissolve !== undefined ? plat.dissolve : 1;
+                if (dissolveAlpha <= 0) continue;
+                
+                ctx.globalAlpha = dissolveAlpha;
+                
                 // Platform shadow
                 ctx.fillStyle = 'rgba(0,0,0,0.3)';
                 ctx.fillRect(plat.x + 4, plat.y + 4, plat.w, 10);
-                // Platform body
-                ctx.shadowColor = '#06b6d4';
-                ctx.shadowBlur = 8;
-                ctx.fillStyle = '#0891b2';
+                
+                // Platform body - color changes when dissolving
+                const isDissolving = plat.dissolving && dissolveAlpha < 1;
+                ctx.shadowColor = isDissolving ? '#ef4444' : '#06b6d4';
+                ctx.shadowBlur = isDissolving ? 12 : 8;
+                ctx.fillStyle = isDissolving ? '#dc2626' : '#0891b2';
                 ctx.fillRect(plat.x, plat.y, plat.w, 10);
                 ctx.shadowBlur = 0;
+                
                 // Platform top
-                ctx.fillStyle = '#22d3ee';
+                ctx.fillStyle = isDissolving ? '#f87171' : '#22d3ee';
                 ctx.fillRect(plat.x, plat.y, plat.w, 3);
+                
+                ctx.globalAlpha = 1;
             }
             
             // Draw particles
@@ -3241,6 +3277,9 @@ export const GameOverMenu = ({ gameState, handleStart, setGameState, leaderboard
             setShowCelebration(true);
             setBonusGiven(true);
             
+            // Hide celebration after 2 seconds (was staying forever)
+            setTimeout(() => setShowCelebration(false), 2000);
+            
             // Different gold bonus per rank: 1st=300, 2nd=200, 3rd=100
             const goldBonus = submittedRank === 1 ? 300 : submittedRank === 2 ? 200 : 100;
             const currentCoins = gameState.totalCoins || 0;
@@ -3343,20 +3382,15 @@ export const GameOverMenu = ({ gameState, handleStart, setGameState, leaderboard
                     </div>
                 )}
 
-                {/* TOP 3 CELEBRATION */}
+                {/* TOP 3 CELEBRATION - Quick trophy flash */}
                 {showCelebration && submittedRank && submittedRank <= 3 && (
-                    <div className={`w-full bg-gradient-to-r ${getRankColor(submittedRank)} p-4 rounded-xl text-center animate-pulse border-2 border-yellow-400/50`}>
-                        <div className="flex items-center justify-center gap-2 font-black uppercase tracking-widest text-lg">
-                            <Crown size={24} className="text-yellow-300" />
-                            TOP {submittedRank} GLOBAL!
-                            <Crown size={24} className="text-yellow-300" />
-                        </div>
-                        <div className="mt-2 text-sm font-bold flex items-center justify-center gap-2">
-                            <Coins size={16} /> +200 GOLD BONUS!
-                        </div>
-                        <div className="mt-1 text-xs opacity-80">
-                            TROPHY SKIN desbloqueado por 3 partidas!
-                        </div>
+                    <div className="flex items-center justify-center gap-3 animate-bounce" style={{ animationDuration: '0.5s' }}>
+                        <span className="text-4xl">
+                            {submittedRank === 1 ? '🏆' : submittedRank === 2 ? '🥈' : '🥉'}
+                        </span>
+                        <span className={`text-2xl font-black ${submittedRank === 1 ? 'text-yellow-400' : submittedRank === 2 ? 'text-slate-300' : 'text-amber-500'}`}>
+                            TOP {submittedRank}!
+                        </span>
                     </div>
                 )}
 
