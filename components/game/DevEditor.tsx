@@ -28,6 +28,7 @@ export const DevEditor: React.FC<DevEditorProps> = ({
     cameraRef
 }) => {
     const [activeTab, setActiveTab] = useState<'UI' | 'LEVEL'>('UI');
+    const [cameraY, setCameraY] = useState(0);
     const [saveStatus, setSaveStatus] = useState<'IDLE' | 'SAVED'>('IDLE');
     const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 
@@ -99,7 +100,10 @@ export const CUSTOM_UI_LAYOUT = {
         setCameraY(0);
     };
 
-    return (
+    // Use Portal to render at root level, avoiding overflow/z-index issues
+    if (typeof document === 'undefined') return null;
+
+    return React.createPortal(
         <div
             className="fixed inset-0 flex flex-col font-sans text-white select-none pointer-events-none"
             style={{ zIndex: Constants.Z_LAYERS.OVERLAY + 10 }}
@@ -219,6 +223,7 @@ export const CUSTOM_UI_LAYOUT = {
                     </>
                 )}
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };

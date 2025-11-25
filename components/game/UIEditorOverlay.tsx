@@ -33,8 +33,25 @@ export const UIEditorOverlay: React.FC<UIEditorOverlayProps> = ({ isActive }) =>
                 return;
             }
 
+            // Ignore elements marked as no-edit
+            if (target.closest('[data-no-edit]')) {
+                // Allow selecting children of no-edit, but not the no-edit container itself if it's the target
+                if (target.hasAttribute('data-no-edit')) return;
+            }
+
             let clickable = target;
-            while (clickable && !['BUTTON', 'A', 'DIV'].includes(clickable.tagName)) {
+            // Improved selection: Don't just stop at any DIV. 
+            // Stop at BUTTON, A, or specific interactive elements.
+            // If it's a DIV, only select if it has an ID or specific classes, or is a leaf node.
+            while (clickable && clickable.parentElement) {
+                const tag = clickable.tagName;
+                const isInteractive = ['BUTTON', 'A', 'INPUT', 'SELECT', 'TEXTAREA'].includes(tag);
+                const hasId = clickable.id && clickable.id !== 'root';
+                const isLeaf = clickable.children.length === 0;
+
+                if (isInteractive || hasId || (tag === 'DIV' && isLeaf)) {
+                    break;
+                }
                 clickable = clickable.parentElement as HTMLElement;
             }
 
