@@ -504,12 +504,13 @@ export const useGameController = (props: GameControllerProps) => {
         if (highScoreEntryStatusRef.current === 'SUBMITTED') return;
         const runId = gameState.runId;
         const currentScore = gameState.score;
+        const skinId = gameState.selectedSkin?.id || 'default';
 
         // Submit Global
-        Persistence.submitGlobalScore(name, currentScore);
+        Persistence.submitGlobalScore(name, currentScore, skinId);
 
         // Optimistic Update (Local)
-        const newEntry: LeaderboardEntry = { id: runId, name, score: currentScore, date: new Date().toISOString() };
+        const newEntry: LeaderboardEntry = { id: runId, name, score: currentScore, date: new Date().toISOString(), skinId };
         const newBoard = [...leaderboardRef.current, newEntry]
             .sort((a, b) => b.score - a.score)
             .slice(0, 10); // Keep top 10

@@ -132,6 +132,7 @@ export interface LeaderboardEntry {
   name: string;
   score: number;
   date: string;
+  skinId?: string; // Character skin used for this score
 }
 
 export interface ShopUpgrades {

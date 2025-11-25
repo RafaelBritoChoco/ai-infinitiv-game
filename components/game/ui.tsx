@@ -9,6 +9,7 @@ import { CharacterSkin, GameState, LeaderboardEntry, ShopUpgrades, TROPHY_POWERS
 import { soundManager } from './audioManager';
 import { Persistence } from './persistence';
 import * as Constants from '../../constants';
+import { SKINS } from './assets';
 
 export const SensorDebugModal = ({ onClose }: { onClose: () => void }) => {
     const [orientation, setOrientation] = useState<any>({});
@@ -534,12 +535,17 @@ export const TouchControls = ({ inputRef, mode, layout = { scale: 1, x: 0, y: 0 
         );
     }
 
-    // --- JOYSTICK MODE: Jump Button ONLY com opacidade baixa ---
+    // --- JOYSTICK MODE: Jump Button + Jetpack Button ---
     if (mode === 'JOYSTICK') {
         return (
             <div className="absolute inset-0 pointer-events-none z-[100]">
+                {/* Jump Button */}
                 {renderButton('jumpBtn', 'jump', <ArrowUp size={32 * globalScale} className="text-cyan-200/70" />, 80, 
                     'bg-cyan-900/30 border-2 border-cyan-500/40 active:bg-cyan-500/40')}
+                
+                {/* Jetpack Button - NEW */}
+                {renderButton('jetpackBtn', 'jetpack', <Rocket size={28 * globalScale} className="text-purple-200/70" />, 70, 
+                    'bg-purple-800/30 border-2 border-purple-500/40 active:bg-purple-500/40')}
             </div>
         );
     }
@@ -670,7 +676,7 @@ export const TouchControls = ({ inputRef, mode, layout = { scale: 1, x: 0, y: 0 
         );
     }
 
-    // --- BUTTONS MODE: Arrows + Jump com opacidade baixa ---
+    // --- BUTTONS MODE: Arrows + Jump + Jetpack ---
     return (
         <div className="absolute inset-0 pointer-events-none z-[100]">
             {/* Arrows */}
@@ -679,9 +685,13 @@ export const TouchControls = ({ inputRef, mode, layout = { scale: 1, x: 0, y: 0 
             {renderButton('rightArrow', 'right', <ChevronRight size={32 * globalScale} className="text-white/50" />, 80, 
                 'bg-slate-700/30 border-2 border-slate-400/30 active:bg-slate-600/40')}
             
-            {/* Jump Button - segura para jetpack */}
+            {/* Jump Button */}
             {renderButton('jumpBtn', 'jump', <ArrowUp size={32 * globalScale} className="text-cyan-200/70" />, 80, 
                 'bg-cyan-800/30 border-2 border-cyan-500/40 active:bg-cyan-500/40')}
+            
+            {/* Jetpack Button - NEW */}
+            {renderButton('jetpackBtn', 'jetpack', <Rocket size={28 * globalScale} className="text-purple-200/70" />, 70, 
+                'bg-purple-800/30 border-2 border-purple-500/40 active:bg-purple-500/40')}
         </div>
     );
 };
@@ -2052,6 +2062,44 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
 // ====================================================================================
 // RANKING MODAL - Global Leaderboard Display
 // ====================================================================================
+
+// Helper to get skin by ID
+const getSkinById = (skinId?: string): CharacterSkin | null => {
+    if (!skinId) return null;
+    // Check regular skins
+    const skin = SKINS.find(s => s.id === skinId);
+    if (skin) return skin;
+    // Check trophy skins
+    if (skinId === 'trophy_gold') return TROPHY_GOLD;
+    if (skinId === 'trophy_silver') return TROPHY_SILVER;
+    if (skinId === 'trophy_bronze') return TROPHY_BRONZE;
+    return null;
+};
+
+// Mini character renderer for leaderboard
+const MiniCharacter = ({ skinId, size = 24 }: { skinId?: string; size?: number }) => {
+    const skin = getSkinById(skinId);
+    if (!skin) return <User size={size} className="text-slate-500" />;
+    
+    const viewBoxSize = skin.pixels?.length > 16 ? 24 : 16;
+    return (
+        <svg viewBox={`0 0 ${viewBoxSize} ${viewBoxSize}`} width={size} height={size} shapeRendering="crispEdges">
+            {(skin.pixels || []).map((row: number[], y: number) =>
+                row.map((val: number, x: number) => {
+                    if (val === 0) return null;
+                    let color = skin.color || '#f97316';
+                    if (val === 1) color = '#0f172a';
+                    else if (val === 3) color = '#ffffff';
+                    else if (val === 4) color = '#ffffff';
+                    else if (val === 5) color = '#000000';
+                    else if (val === 6) color = '#facc15';
+                    return <rect key={`${x}-${y}`} x={x} y={y} width="1" height="1" fill={color} />;
+                })
+            )}
+        </svg>
+    );
+};
+
 export const RankingModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
     const [localLeaderboard, setLocalLeaderboard] = useState<LeaderboardEntry[]>([]);
     const [globalLeaderboard, setGlobalLeaderboard] = useState<LeaderboardEntry[]>([]);
@@ -2185,21 +2233,36 @@ export const RankingModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: ()
                             {currentList.slice(0, 10).map((entry, index) => (
                                 <div 
                                     key={entry.id || index}
-                                    className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${getMedalColor(index)} ${index < 3 ? 'shadow-lg' : ''}`}
+                                    className={`flex items-center gap-2 p-3 rounded-xl border transition-all ${getMedalColor(index)} ${index < 3 ? 'shadow-lg' : ''}`}
                                 >
-                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-lg ${
+                                    {/* Rank Badge */}
+                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-sm flex-shrink-0 ${
                                         index === 0 ? 'bg-yellow-500 text-black' :
                                         index === 1 ? 'bg-slate-400 text-black' :
                                         index === 2 ? 'bg-amber-600 text-black' :
                                         'bg-slate-800 text-slate-400'
                                     }`}>
-                                        {index < 3 ? <Medal size={20} /> : `#${index + 1}`}
+                                        {index < 3 ? <Medal size={16} /> : `#${index + 1}`}
                                     </div>
+                                    
+                                    {/* Character Mini */}
+                                    <div className={`w-8 h-8 flex-shrink-0 rounded-lg p-0.5 ${
+                                        index === 0 ? 'bg-yellow-900/50 border border-yellow-500/50' :
+                                        index === 1 ? 'bg-slate-700/50 border border-slate-400/50' :
+                                        index === 2 ? 'bg-amber-900/50 border border-amber-600/50' :
+                                        'bg-slate-800/50 border border-slate-700/50'
+                                    }`}>
+                                        <MiniCharacter skinId={entry.skinId} size={28} />
+                                    </div>
+                                    
+                                    {/* Name & Date */}
                                     <div className="flex-1 min-w-0">
-                                        <p className={`font-bold truncate ${index < 3 ? 'text-white' : 'text-slate-300'}`}>{entry.name}</p>
-                                        {entry.date && <p className="text-[10px] text-slate-600">{new Date(entry.date).toLocaleDateString('pt-BR')}</p>}
+                                        <p className={`font-bold truncate text-sm ${index < 3 ? 'text-white' : 'text-slate-300'}`}>{entry.name}</p>
+                                        {entry.date && <p className="text-[9px] text-slate-600">{new Date(entry.date).toLocaleDateString('pt-BR')}</p>}
                                     </div>
-                                    <div className="text-right">
+                                    
+                                    {/* Score */}
+                                    <div className="text-right flex-shrink-0">
                                         <p className={`font-mono font-black text-lg ${index === 0 ? 'text-yellow-400' : index === 1 ? 'text-slate-300' : index === 2 ? 'text-amber-500' : 'text-cyan-400'}`}>
                                             {entry.score}m
                                         </p>

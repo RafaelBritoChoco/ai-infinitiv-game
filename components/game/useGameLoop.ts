@@ -76,6 +76,10 @@ export const useGameLoop = (props: GameLoopProps) => {
     const scoreRef = useRef<number>(0);
 
     const floatingTextsRef = useRef<FloatingText[]>([]);
+    
+    // Track which records have been passed (to show celebration effect once)
+    const passedRecordsRef = useRef<Set<string>>(new Set());
+    const recordCelebrationRef = useRef<{ active: boolean; rank: number; timer: number; position: number }>({ active: false, rank: 0, timer: 0, position: 0 });
 
     const onMenuUpdateRef = useRef(onMenuUpdate);
     useEffect(() => { onMenuUpdateRef.current = onMenuUpdate; }, [onMenuUpdate]);
@@ -86,6 +90,10 @@ export const useGameLoop = (props: GameLoopProps) => {
         scoreRef.current = gameState.score;
         jetpackAllowedRef.current = true;
         floatingTextsRef.current = [];
+        
+        // Reset passed records when starting a new game
+        passedRecordsRef.current = new Set();
+        recordCelebrationRef.current = { active: false, rank: 0, timer: 0, position: 0 };
 
         // TUTORIAL PHASE TEXT - Clearer Instructions
         if (gameState.isPlaying && gameState.score === 0) {
@@ -352,6 +360,48 @@ export const useGameLoop = (props: GameLoopProps) => {
 
         const currentAltitude = Math.floor(Math.abs(Math.min(0, player.y)) / 10);
         if (currentAltitude > scoreRef.current) scoreRef.current = currentAltitude;
+        
+        // Check if player passed a leaderboard record - trigger celebration
+        if (leaderboardRef.current && leaderboardRef.current.length > 0 && state.isPlaying && !state.isGameOver) {
+            leaderboardRef.current.forEach((entry, index) => {
+                if (index >= 3) return; // Only celebrate TOP 3
+                const recordKey = `${entry.id}-${entry.score}`;
+                if (!passedRecordsRef.current.has(recordKey) && currentAltitude > entry.score) {
+                    passedRecordsRef.current.add(recordKey);
+                    recordCelebrationRef.current = { 
+                        active: true, 
+                        rank: index + 1, 
+                        timer: 180, // 3 seconds at 60fps
+                        position: entry.score
+                    };
+                    // Camera shake and particles
+                    cameraRef.current.shake = 20;
+                    soundManager.playPerfectJump();
+                    // Spawn celebration particles
+                    const colors = index === 0 ? ['#ffd700', '#ffed4a'] : index === 1 ? ['#c0c0c0', '#e5e5e5'] : ['#cd7f32', '#f59e0b'];
+                    for (let i = 0; i < 50; i++) {
+                        particlesRef.current.push({
+                            x: player.x + player.width / 2 + (Math.random() - 0.5) * 300,
+                            y: player.y,
+                            vx: (Math.random() - 0.5) * 15,
+                            vy: (Math.random() - 0.5) * 15,
+                            life: 2,
+                            color: colors[Math.floor(Math.random() * colors.length)],
+                            size: 5 + Math.random() * 8,
+                            isSpark: true
+                        });
+                    }
+                }
+            });
+        }
+        
+        // Update record celebration timer
+        if (recordCelebrationRef.current.active) {
+            recordCelebrationRef.current.timer -= 1;
+            if (recordCelebrationRef.current.timer <= 0) {
+                recordCelebrationRef.current.active = false;
+            }
+        }
 
         particlesRef.current.forEach(p => {
             p.vy += cfg.GRAVITY; p.x += p.vx; p.y += p.vy;
@@ -408,31 +458,108 @@ export const useGameLoop = (props: GameLoopProps) => {
         }
 
         if (leaderboard && leaderboard.length > 0) {
+            const playerAltitude = Math.abs(Math.min(0, playerRef.current.y));
+            
             leaderboard.forEach((entry, index) => {
                 const entryWorldY = -(entry.score * 10);
                 const screenEntryY = getScreenY(entryWorldY);
 
-                if (screenEntryY > -50 && screenEntryY < height + 50) {
-                    let color = '#fbbf24';
-                    let label = '👑';
-                    if (index === 1) { color = '#94a3b8'; label = '🥈'; }
-                    if (index === 2) { color = '#b45309'; label = '🥉'; }
+                if (screenEntryY > -100 && screenEntryY < height + 100) {
+                    // Colors and styles based on position
+                    let color = '#ffd700'; // Gold for 1st
+                    let bgColor = 'rgba(255, 215, 0, 0.15)';
+                    let label = '👑 CAMPEÃO';
+                    let lineWidth = 6;
+                    let glowIntensity = 40;
+                    
+                    if (index === 1) { 
+                        color = '#c0c0c0'; 
+                        bgColor = 'rgba(192, 192, 192, 0.1)';
+                        label = '🥈 2º LUGAR'; 
+                        lineWidth = 4;
+                        glowIntensity = 25;
+                    }
+                    if (index === 2) { 
+                        color = '#cd7f32'; 
+                        bgColor = 'rgba(205, 127, 50, 0.1)';
+                        label = '🥉 3º LUGAR'; 
+                        lineWidth = 3;
+                        glowIntensity = 20;
+                    }
+                    if (index > 2) {
+                        color = '#64748b';
+                        bgColor = 'rgba(100, 116, 139, 0.05)';
+                        label = `#${index + 1}`;
+                        lineWidth = 2;
+                        glowIntensity = 10;
+                    }
 
                     ctx.save();
+                    
+                    // Background zone for TOP 3
+                    if (index < 3) {
+                        const zoneHeight = 60 * scale;
+                        ctx.fillStyle = bgColor;
+                        ctx.fillRect(0, screenEntryY - zoneHeight / 2, width, zoneHeight);
+                        
+                        // Pulsing border effect
+                        const pulse = Math.sin(timeElapsedRef.current * 3) * 0.3 + 0.7;
+                        ctx.strokeStyle = color;
+                        ctx.globalAlpha = pulse;
+                        ctx.lineWidth = 2 * scale;
+                        ctx.setLineDash([]);
+                        ctx.strokeRect(0, screenEntryY - zoneHeight / 2, width, zoneHeight);
+                        ctx.globalAlpha = 1;
+                    }
+                    
+                    // Main record line - MUCH MORE VISIBLE
                     ctx.beginPath();
                     ctx.strokeStyle = color;
-                    ctx.lineWidth = 2 * scale;
-                    ctx.setLineDash([15 * scale, 10 * scale]);
+                    ctx.lineWidth = lineWidth * scale;
+                    ctx.shadowColor = color;
+                    ctx.shadowBlur = glowIntensity;
+                    ctx.setLineDash([]);
                     ctx.moveTo(0, screenEntryY);
                     ctx.lineTo(width, screenEntryY);
                     ctx.stroke();
+                    
+                    // Secondary dashed line
+                    ctx.shadowBlur = 0;
+                    ctx.lineWidth = 1 * scale;
+                    ctx.setLineDash([8 * scale, 4 * scale]);
+                    ctx.moveTo(0, screenEntryY - 3 * scale);
+                    ctx.lineTo(width, screenEntryY - 3 * scale);
+                    ctx.stroke();
+                    ctx.moveTo(0, screenEntryY + 3 * scale);
+                    ctx.lineTo(width, screenEntryY + 3 * scale);
+                    ctx.stroke();
 
+                    // Left side banner
+                    const bannerWidth = 220 * scale;
+                    const bannerHeight = 40 * scale;
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+                    ctx.fillRect(10 * scale, screenEntryY - bannerHeight / 2, bannerWidth, bannerHeight);
+                    ctx.strokeStyle = color;
+                    ctx.lineWidth = 2 * scale;
+                    ctx.setLineDash([]);
+                    ctx.shadowColor = color;
+                    ctx.shadowBlur = 15;
+                    ctx.strokeRect(10 * scale, screenEntryY - bannerHeight / 2, bannerWidth, bannerHeight);
+
+                    // Label text
+                    ctx.shadowBlur = 10;
                     ctx.fillStyle = color;
                     ctx.font = `900 ${16 * scale}px "Rajdhani", sans-serif`;
+                    ctx.textAlign = 'left';
+                    ctx.fillText(label, 20 * scale, screenEntryY + 5 * scale);
+                    
+                    // Right side - Name and Score
                     ctx.textAlign = 'right';
-                    ctx.shadowColor = color;
-                    ctx.shadowBlur = 10;
-                    ctx.fillText(`${label} ${entry.name}: ${entry.score}m`, width - (20 * scale), screenEntryY - (10 * scale));
+                    ctx.font = `700 ${14 * scale}px "Rajdhani", sans-serif`;
+                    ctx.fillStyle = '#ffffff';
+                    ctx.shadowBlur = 5;
+                    ctx.fillText(`${entry.name}: ${entry.score}m`, width - (20 * scale), screenEntryY + 5 * scale);
+                    
                     ctx.restore();
                 }
             });
@@ -694,6 +821,70 @@ export const useGameLoop = (props: GameLoopProps) => {
             ctx.fillText(`${currentAlt}m`, barX + barWidth - 20 * scale, barY + barHeight / 2);
 
             ctx.restore();
+            
+            // RECORD CELEBRATION EFFECT - Big banner when passing a record
+            if (recordCelebrationRef.current.active) {
+                const cel = recordCelebrationRef.current;
+                const fadeIn = Math.min(1, (180 - cel.timer) / 30); // Fade in over 0.5 seconds
+                const fadeOut = cel.timer < 60 ? cel.timer / 60 : 1; // Fade out last second
+                const alpha = fadeIn * fadeOut;
+                
+                ctx.save();
+                ctx.globalAlpha = alpha;
+                
+                // Full screen flash
+                const flashAlpha = Math.max(0, (180 - cel.timer) / 180) * 0.15;
+                const flashColor = cel.rank === 1 ? 'rgba(255, 215, 0,' : cel.rank === 2 ? 'rgba(192, 192, 192,' : 'rgba(205, 127, 50,';
+                ctx.fillStyle = flashColor + flashAlpha + ')';
+                ctx.fillRect(0, 0, width, height);
+                
+                // Big center banner
+                const bannerWidth = 400 * scale;
+                const bannerHeight = 100 * scale;
+                const bannerX = width / 2 - bannerWidth / 2;
+                const bannerY = height / 2 - bannerHeight / 2;
+                
+                // Banner background with gradient
+                const gradient = ctx.createLinearGradient(bannerX, bannerY, bannerX + bannerWidth, bannerY + bannerHeight);
+                if (cel.rank === 1) {
+                    gradient.addColorStop(0, 'rgba(234, 179, 8, 0.95)');
+                    gradient.addColorStop(0.5, 'rgba(255, 215, 0, 0.95)');
+                    gradient.addColorStop(1, 'rgba(234, 179, 8, 0.95)');
+                } else if (cel.rank === 2) {
+                    gradient.addColorStop(0, 'rgba(100, 116, 139, 0.95)');
+                    gradient.addColorStop(0.5, 'rgba(192, 192, 192, 0.95)');
+                    gradient.addColorStop(1, 'rgba(100, 116, 139, 0.95)');
+                } else {
+                    gradient.addColorStop(0, 'rgba(180, 83, 9, 0.95)');
+                    gradient.addColorStop(0.5, 'rgba(205, 127, 50, 0.95)');
+                    gradient.addColorStop(1, 'rgba(180, 83, 9, 0.95)');
+                }
+                ctx.fillStyle = gradient;
+                ctx.fillRect(bannerX, bannerY, bannerWidth, bannerHeight);
+                
+                // Border
+                ctx.strokeStyle = cel.rank === 1 ? '#ffd700' : cel.rank === 2 ? '#e5e5e5' : '#f59e0b';
+                ctx.lineWidth = 4 * scale;
+                ctx.shadowColor = ctx.strokeStyle;
+                ctx.shadowBlur = 20;
+                ctx.strokeRect(bannerX, bannerY, bannerWidth, bannerHeight);
+                
+                // Text
+                ctx.fillStyle = '#000000';
+                ctx.font = `900 ${36 * scale}px "Rajdhani", sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.shadowBlur = 0;
+                
+                const emoji = cel.rank === 1 ? '👑' : cel.rank === 2 ? '🥈' : '🥉';
+                const text = cel.rank === 1 ? 'NOVO CAMPEÃO!' : cel.rank === 2 ? 'TOP 2 MUNDIAL!' : 'TOP 3 MUNDIAL!';
+                ctx.fillText(`${emoji} ${text} ${emoji}`, width / 2, bannerY + 35 * scale);
+                
+                ctx.font = `700 ${24 * scale}px "Rajdhani", sans-serif`;
+                ctx.fillText(`Passou ${cel.position}m!`, width / 2, bannerY + 70 * scale);
+                
+                ctx.restore();
+            }
         }
     };
 

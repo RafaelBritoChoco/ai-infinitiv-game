@@ -70,6 +70,7 @@ export const COLLECTIBLE_SPRITES = {
 // Legend: 0=Trans, 1=Outline/Black, 2=Main, 3=Highlight/Light, 4=WhiteEye, 5=Pupil, 6=Accent/Detail
 export const SKINS: CharacterSkin[] = [
   // ===== GINGER - Gato Laranja com listras =====
+  
   {
     id: 'cat', name: 'GINGER', color: '#f97316',
     pixels: [

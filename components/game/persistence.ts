@@ -116,9 +116,9 @@ export const Persistence = {
         }
     },
 
-    submitGlobalScore: async (name: string, score: number): Promise<{ success: boolean; rank?: number; error?: string; offline?: boolean }> => {
+    submitGlobalScore: async (name: string, score: number, skinId?: string): Promise<{ success: boolean; rank?: number; error?: string; offline?: boolean }> => {
         // Sempre salva localmente primeiro
-        Persistence.saveScoreToLeaderboard(name, score);
+        Persistence.saveScoreToLeaderboard(name, score, skinId);
         
         try {
             // Timeout de 5 segundos
@@ -128,7 +128,7 @@ export const Persistence = {
             const res = await fetch('/api/leaderboard', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, score: Math.floor(Number(score)) }),
+                body: JSON.stringify({ name, score: Math.floor(Number(score)), skinId }),
                 signal: controller.signal
             });
             clearTimeout(timeout);
@@ -163,9 +163,9 @@ export const Persistence = {
         localStorage.setItem('NEON_LEADERBOARD', JSON.stringify(board));
     },
 
-    saveScoreToLeaderboard: (name: string, score: number) => {
+    saveScoreToLeaderboard: (name: string, score: number, skinId?: string) => {
         const leaderboard = Persistence.loadLeaderboard();
-        leaderboard.push({ id: Date.now().toString(), name, score, date: new Date().toISOString() });
+        leaderboard.push({ id: Date.now().toString(), name, score, date: new Date().toISOString(), skinId });
         leaderboard.sort((a, b) => b.score - a.score);
         const top10 = leaderboard.slice(0, 10);
         Persistence.saveLeaderboard(top10);
