@@ -3,7 +3,7 @@ import {
     Play, Move, Trash2, PlusSquare, Save, AlertTriangle, Pause, RefreshCw, Smartphone, Gamepad2, Rocket, Lock, Trophy, Coins, XOctagon,
     ToggleLeft, ToggleRight, X, Settings, Download, MapPin, Shuffle, Crown, Keyboard, Zap, Battery, ChevronsUp, Wind, TrendingUp,
     ArrowLeft, ShoppingBag, Home, Sparkles, Wand2, Maximize, RotateCcw, ChevronLeft, ChevronRight, ArrowUp, Shield, HelpCircle,
-    Layers, Globe, Check, MousePointer2, ArrowDown, Heart, Unlock, Loader2, Medal, Send, User
+    Layers, Globe, Check, MousePointer2, ArrowDown, Heart, Unlock, Loader2, Medal, Send, User, Eye
 } from 'lucide-react';
 import { CharacterSkin, GameState, LeaderboardEntry, ShopUpgrades, TROPHY_POWERS } from '../../types';
 import { soundManager } from './audioManager';
@@ -1495,6 +1495,332 @@ export const AdminPanel = ({ onClose }: { onClose: () => void }) => {
     );
 };
 
+// ============================================================================
+// CHARACTER PREVIEW MODAL - Animated character like in-game
+// ============================================================================
+const CharacterPreviewModal = ({ skin, onClose, onSelectSkin, allSkins }: { 
+    skin: CharacterSkin; 
+    onClose: () => void; 
+    onSelectSkin: (skin: CharacterSkin) => void;
+    allSkins: CharacterSkin[];
+}) => {
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const animationRef = useRef<number>(0);
+    const [currentSkinIndex, setCurrentSkinIndex] = useState(() => {
+        const idx = allSkins.findIndex(s => s.id === skin.id);
+        return idx >= 0 ? idx : 0;
+    });
+    
+    const currentSkin = allSkins[currentSkinIndex] || skin;
+    
+    // Animation state
+    const stateRef = useRef({
+        x: 150, // center X
+        y: 200, // initial Y
+        vx: 0,
+        vy: 0,
+        frame: 0,
+        isJumping: false,
+        jumpPhase: 0,
+        direction: 1, // 1 = right, -1 = left
+        platforms: [
+            { x: 50, y: 280, w: 80 },
+            { x: 170, y: 220, w: 80 },
+            { x: 80, y: 160, w: 80 },
+            { x: 200, y: 100, w: 80 },
+            { x: 60, y: 40, w: 80 },
+        ],
+        cameraY: 0,
+        particles: [] as { x: number; y: number; vx: number; vy: number; life: number; color: string }[],
+        jetpackActive: false,
+        jetpackTimer: 0,
+    });
+    
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+        
+        const state = stateRef.current;
+        const GRAVITY = 0.4;
+        const JUMP_FORCE = -10;
+        const MOVE_SPEED = 2;
+        
+        const animate = () => {
+            // Clear
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Stars background
+            ctx.fillStyle = 'rgba(255,255,255,0.3)';
+            for (let i = 0; i < 30; i++) {
+                const sx = (i * 73) % canvas.width;
+                const sy = ((i * 47) + state.cameraY * 0.1) % canvas.height;
+                ctx.fillRect(sx, sy, 1, 1);
+            }
+            
+            // Update frame
+            state.frame++;
+            
+            // Auto movement - horizontal zigzag
+            if (state.frame % 60 < 30) {
+                state.direction = 1;
+            } else {
+                state.direction = -1;
+            }
+            state.vx = state.direction * MOVE_SPEED;
+            
+            // Auto jump when on platform
+            if (!state.isJumping && state.frame % 40 === 0) {
+                state.vy = JUMP_FORCE;
+                state.isJumping = true;
+                
+                // Add jump particles
+                for (let i = 0; i < 5; i++) {
+                    state.particles.push({
+                        x: state.x,
+                        y: state.y + 16,
+                        vx: (Math.random() - 0.5) * 3,
+                        vy: Math.random() * 2,
+                        life: 20,
+                        color: currentSkin.color || '#06b6d4'
+                    });
+                }
+            }
+            
+            // Activate jetpack occasionally
+            if (state.frame % 120 === 60) {
+                state.jetpackActive = true;
+                state.jetpackTimer = 40;
+            }
+            
+            if (state.jetpackActive) {
+                state.jetpackTimer--;
+                state.vy = -3;
+                if (state.jetpackTimer <= 0) {
+                    state.jetpackActive = false;
+                }
+                
+                // Jetpack flame particles
+                if (state.frame % 2 === 0) {
+                    state.particles.push({
+                        x: state.x,
+                        y: state.y + 16,
+                        vx: (Math.random() - 0.5) * 2,
+                        vy: Math.random() * 4 + 2,
+                        life: 15,
+                        color: Math.random() > 0.5 ? '#f97316' : '#facc15'
+                    });
+                }
+            }
+            
+            // Apply gravity
+            state.vy += GRAVITY;
+            
+            // Apply velocity
+            state.x += state.vx;
+            state.y += state.vy;
+            
+            // Wrap horizontally
+            if (state.x < 0) state.x = canvas.width;
+            if (state.x > canvas.width) state.x = 0;
+            
+            // Platform collision
+            const playerBottom = state.y + 16;
+            for (const plat of state.platforms) {
+                const platY = plat.y - state.cameraY;
+                if (state.vy > 0 && 
+                    playerBottom >= platY && playerBottom <= platY + 10 &&
+                    state.x >= plat.x - 8 && state.x <= plat.x + plat.w + 8) {
+                    state.y = platY - 16;
+                    state.vy = 0;
+                    state.isJumping = false;
+                }
+            }
+            
+            // Camera follows player
+            const targetCameraY = state.y - canvas.height / 2;
+            state.cameraY += (targetCameraY - state.cameraY) * 0.1;
+            
+            // Reset if fallen too far
+            if (state.y > state.cameraY + canvas.height + 50) {
+                state.y = state.cameraY;
+                state.vy = 0;
+            }
+            
+            // Regenerate platforms above
+            const highestPlatY = Math.min(...state.platforms.map(p => p.y));
+            if (highestPlatY > state.cameraY - 100) {
+                state.platforms.push({
+                    x: Math.random() * (canvas.width - 80),
+                    y: highestPlatY - 60 - Math.random() * 40,
+                    w: 60 + Math.random() * 40
+                });
+                // Remove platforms below screen
+                state.platforms = state.platforms.filter(p => p.y < state.cameraY + canvas.height + 100);
+            }
+            
+            // Draw platforms
+            for (const plat of state.platforms) {
+                const platY = plat.y - state.cameraY;
+                // Platform glow
+                ctx.shadowColor = '#06b6d4';
+                ctx.shadowBlur = 10;
+                ctx.fillStyle = '#0891b2';
+                ctx.fillRect(plat.x, platY, plat.w, 8);
+                ctx.shadowBlur = 0;
+                // Platform top highlight
+                ctx.fillStyle = '#22d3ee';
+                ctx.fillRect(plat.x, platY, plat.w, 2);
+            }
+            
+            // Update and draw particles
+            state.particles = state.particles.filter(p => {
+                p.x += p.vx;
+                p.y += p.vy;
+                p.life--;
+                
+                const py = p.y - state.cameraY;
+                ctx.globalAlpha = p.life / 20;
+                ctx.fillStyle = p.color;
+                ctx.fillRect(p.x - 2, py - 2, 4, 4);
+                ctx.globalAlpha = 1;
+                
+                return p.life > 0;
+            });
+            
+            // Draw character
+            const charY = state.y - state.cameraY;
+            const pixels = currentSkin.pixels || [];
+            const pixelSize = 3;
+            const charWidth = (pixels[0]?.length || 16) * pixelSize;
+            const charHeight = pixels.length * pixelSize;
+            const startX = state.x - charWidth / 2;
+            const startY = charY - charHeight / 2;
+            
+            // Character glow
+            ctx.shadowColor = currentSkin.color || '#f97316';
+            ctx.shadowBlur = 15;
+            
+            // Draw character pixels
+            pixels.forEach((row: number[], y: number) => {
+                row.forEach((val: number, x: number) => {
+                    if (val === 0) return;
+                    let color = currentSkin.color || '#f97316';
+                    if (val === 1) color = '#0f172a';
+                    else if (val === 3) color = '#ffffff';
+                    else if (val === 4) color = '#ffffff';
+                    else if (val === 5) color = '#000000';
+                    else if (val === 6) color = '#facc15';
+                    
+                    ctx.fillStyle = color;
+                    const drawX = state.direction === -1 
+                        ? startX + (pixels[0].length - 1 - x) * pixelSize 
+                        : startX + x * pixelSize;
+                    ctx.fillRect(drawX, startY + y * pixelSize, pixelSize, pixelSize);
+                });
+            });
+            
+            ctx.shadowBlur = 0;
+            
+            // Jetpack flame
+            if (state.jetpackActive) {
+                ctx.fillStyle = '#f97316';
+                ctx.fillRect(state.x - 4, charY + charHeight/2, 8, 8 + Math.random() * 8);
+                ctx.fillStyle = '#facc15';
+                ctx.fillRect(state.x - 2, charY + charHeight/2 + 4, 4, 4 + Math.random() * 8);
+            }
+            
+            // Height indicator
+            const height = Math.floor(-state.cameraY / 10);
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = 'bold 12px monospace';
+            ctx.fillText(`${height}m`, 10, 20);
+            
+            animationRef.current = requestAnimationFrame(animate);
+        };
+        
+        animate();
+        
+        return () => {
+            cancelAnimationFrame(animationRef.current);
+        };
+    }, [currentSkin]);
+    
+    const nextSkin = () => {
+        setCurrentSkinIndex((prev) => (prev + 1) % allSkins.length);
+    };
+    
+    const prevSkin = () => {
+        setCurrentSkinIndex((prev) => (prev - 1 + allSkins.length) % allSkins.length);
+    };
+    
+    return (
+        <div className="fixed inset-0 z-[200] bg-black/95 flex flex-col items-center justify-center p-4">
+            {/* Close button */}
+            <button onClick={onClose} className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white">
+                <X size={24} />
+            </button>
+            
+            {/* Title */}
+            <h2 className="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500 mb-2">
+                AGENT PREVIEW
+            </h2>
+            <p className="text-sm text-slate-500 mb-4">{currentSkin.name || currentSkin.id}</p>
+            
+            {/* Canvas container with navigation arrows */}
+            <div className="relative">
+                <button 
+                    onClick={prevSkin}
+                    className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-12 p-2 bg-slate-800 rounded-full text-white hover:bg-slate-700"
+                >
+                    <ChevronLeft size={24} />
+                </button>
+                
+                <canvas 
+                    ref={canvasRef} 
+                    width={300} 
+                    height={400} 
+                    className="rounded-xl border-2 border-slate-700 shadow-[0_0_30px_rgba(6,182,212,0.3)]"
+                />
+                
+                <button 
+                    onClick={nextSkin}
+                    className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-12 p-2 bg-slate-800 rounded-full text-white hover:bg-slate-700"
+                >
+                    <ChevronRight size={24} />
+                </button>
+            </div>
+            
+            {/* Skin counter */}
+            <p className="text-sm text-slate-500 mt-2">{currentSkinIndex + 1} / {allSkins.length}</p>
+            
+            {/* Select button */}
+            <button
+                onClick={() => {
+                    onSelectSkin(currentSkin);
+                    onClose();
+                }}
+                className="mt-4 px-8 py-3 bg-gradient-to-r from-cyan-600 to-purple-600 text-white font-bold rounded-xl text-sm uppercase tracking-widest hover:from-cyan-500 hover:to-purple-500 transition-all"
+            >
+                <Check size={18} className="inline mr-2" />
+                SELECT {currentSkin.name || currentSkin.id}
+            </button>
+            
+            {/* Create AI skin button */}
+            <button
+                onClick={onClose}
+                className="mt-2 px-6 py-2 bg-purple-900/50 border border-purple-600/50 text-purple-400 font-bold rounded-xl text-xs uppercase tracking-widest hover:bg-purple-900/80 transition-all"
+            >
+                <Sparkles size={14} className="inline mr-2" />
+                CREATE AI SKIN
+            </button>
+        </div>
+    );
+};
+
 export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInput, setShowAiInput, aiPrompt, setAiPrompt, isGeneratingSkin, handleGenerateSkin, handleStart, onOpenControls, onOpenCalibration, onOpenSettings, selectedIndex, gyroEnabled, setGyroEnabled }: any) => {
     // SAFETY: Ensure availableSkins is always an array
     const safeSkins = Array.isArray(availableSkins) ? availableSkins : [];
@@ -1504,6 +1830,7 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
     const [showRanking, setShowRanking] = useState(false);
     const [showAdminPanel, setShowAdminPanel] = useState(false);
     const [secretCode, setSecretCode] = useState('');
+    const [showCharacterPreview, setShowCharacterPreview] = useState(false);
     const [weedMode, setWeedMode] = useState(() => {
         try { return localStorage.getItem('WEED_MODE') === 'true'; } catch { return false; }
     });
@@ -1651,7 +1978,7 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
                 <div className={`border rounded-2xl p-6 backdrop-blur-sm flex flex-col items-center ${weedMode ? 'bg-green-900/30 border-green-700' : 'bg-slate-900/50 border-slate-800'}`}>
                     <h3 className={`text-xs font-bold tracking-[0.2em] mb-4 uppercase ${weedMode ? 'text-green-400' : 'text-slate-400'}`}>{weedT.skin}</h3>
 
-                    <div className="relative w-32 h-32 mb-4 group cursor-pointer" onClick={() => setShowAiInput(!showAiInput)}>
+                    <div className="relative w-32 h-32 mb-4 group cursor-pointer" onClick={() => setShowCharacterPreview(true)}>
                         <div className="absolute inset-0 bg-gradient-to-br from-cyan-500 to-purple-600 rounded-xl opacity-20 group-hover:opacity-40 transition-opacity"></div>
                         <div className="w-full h-full p-2">
                             <svg viewBox={`0 0 ${gameState.selectedSkin?.pixels?.length > 16 ? 24 : 16} ${gameState.selectedSkin?.pixels?.length > 16 ? 24 : 16}`} className="w-full h-full drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]" shapeRendering="crispEdges">
@@ -1671,7 +1998,7 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
                         </div>
                         <p className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-xs font-bold text-cyan-400 uppercase tracking-wider whitespace-nowrap">{gameState.selectedSkin?.name || ''}</p>
                         <div className="absolute bottom-2 right-2 bg-black/80 p-1.5 rounded-lg border border-white/10">
-                            <Wand2 size={14} className="text-purple-400" />
+                            <Eye size={14} className="text-cyan-400" />
                         </div>
                     </div>
 
@@ -2055,6 +2382,16 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
             
             {/* RANKING MODAL */}
             <RankingModal isOpen={showRanking} onClose={() => setShowRanking(false)} />
+            
+            {/* CHARACTER PREVIEW MODAL */}
+            {showCharacterPreview && (
+                <CharacterPreviewModal 
+                    skin={gameState.selectedSkin} 
+                    onClose={() => setShowCharacterPreview(false)} 
+                    onSelectSkin={(skin) => setGameState((prev: any) => ({ ...prev, selectedSkin: skin }))}
+                    allSkins={safeSkins}
+                />
+            )}
         </div>
     );
 };
