@@ -313,51 +313,138 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
                             {/* Control Mode */}
                             <section className="bg-slate-900/50 p-4 rounded-xl border border-slate-800">
                                 <h3 className="text-green-400 font-bold text-xs uppercase mb-3">Modo de Controle</h3>
-                                <div className="grid grid-cols-3 gap-2">
-                                    {['BUTTONS', 'JOYSTICK', 'TILT'].map((mode) => (
+                                <div className="grid grid-cols-4 gap-2">
+                                    {['BUTTONS', 'ARROWS', 'JOYSTICK', 'TILT'].map((mode) => (
                                         <button key={mode}
                                             onClick={() => setGameState((p: any) => ({ ...p, mobileControlMode: mode }))}
-                                            className={`p-3 rounded-lg border flex flex-col items-center gap-1 text-xs transition-all ${
+                                            className={`p-3 rounded-lg border flex flex-col items-center gap-1 text-[10px] transition-all ${
                                                 gameState?.mobileControlMode === mode 
                                                     ? 'bg-green-900/50 border-green-500 text-green-400' 
                                                     : 'bg-slate-800 border-slate-700 text-slate-500'}`}>
-                                            {mode === 'BUTTONS' && <Gamepad2 size={18} />}
-                                            {mode === 'JOYSTICK' && <Move size={18} />}
-                                            {mode === 'TILT' && <Smartphone size={18} />}
+                                            {mode === 'BUTTONS' && <Gamepad2 size={16} />}
+                                            {mode === 'ARROWS' && <ChevronRight size={16} className="rotate-180" />}
+                                            {mode === 'JOYSTICK' && <Move size={16} />}
+                                            {mode === 'TILT' && <Smartphone size={16} />}
                                             {mode === 'TILT' ? 'MOTION' : mode}
                                         </button>
                                     ))}
                                 </div>
+                                <p className="text-[10px] text-slate-500 mt-2">
+                                    {gameState?.mobileControlMode === 'BUTTONS' && '🎮 Setas + Pulo + Jetpack separados'}
+                                    {gameState?.mobileControlMode === 'ARROWS' && '⬅️➡️ Apenas setas! Toque=Pular, Ambos=Jetpack'}
+                                    {gameState?.mobileControlMode === 'JOYSTICK' && '🕹️ Joystick virtual + Pulo + Jetpack'}
+                                    {gameState?.mobileControlMode === 'TILT' && '📱 Incline o celular para mover'}
+                                </p>
                             </section>
 
-                            {/* Sensitivity */}
+                            {/* Sensitivity - DYNAMIC based on mode */}
                             <section className="bg-slate-900/50 p-4 rounded-xl border border-slate-800 space-y-4">
                                 <h3 className="text-green-400 font-bold text-xs uppercase flex items-center gap-2">
-                                    <Sliders size={14} /> Sensibilidade
+                                    <Sliders size={14} /> Sensibilidade - {gameState?.mobileControlMode || 'BUTTONS'}
                                 </h3>
-                                <Slider label="Motion (Gyro)" value={localConfig.GYRO_SENSITIVITY || 35}
-                                    onChange={(v: number) => updateConfig('GYRO_SENSITIVITY', v)}
-                                    min={10} max={100} step={5} format={(v: number) => v.toFixed(0)} />
-                                <Slider label="Mobile Multiplier" value={localConfig.MOBILE_SENSITIVITY_MULTIPLIER || 2.5}
-                                    onChange={(v: number) => updateConfig('MOBILE_SENSITIVITY_MULTIPLIER', v)}
-                                    min={0.5} max={5} step={0.1} format={(v: number) => `${v.toFixed(1)}x`} />
+                                
+                                {/* MOTION/TILT mode settings */}
+                                {gameState?.mobileControlMode === 'TILT' && (
+                                    <>
+                                        <Slider label="Motion (Gyro)" value={localConfig.GYRO_SENSITIVITY || 35}
+                                            onChange={(v: number) => updateConfig('GYRO_SENSITIVITY', v)}
+                                            min={10} max={100} step={5} format={(v: number) => v.toFixed(0)} />
+                                        <Slider label="Mobile Multiplier" value={localConfig.MOBILE_SENSITIVITY_MULTIPLIER || 2.5}
+                                            onChange={(v: number) => updateConfig('MOBILE_SENSITIVITY_MULTIPLIER', v)}
+                                            min={0.5} max={5} step={0.1} format={(v: number) => `${v.toFixed(1)}x`} />
+                                    </>
+                                )}
+                                
+                                {/* JOYSTICK mode settings */}
+                                {gameState?.mobileControlMode === 'JOYSTICK' && (
+                                    <>
+                                        <Slider label="Joystick Sensibilidade" value={localConfig.JOYSTICK_SENSITIVITY || 1.0}
+                                            onChange={(v: number) => updateConfig('JOYSTICK_SENSITIVITY', v)}
+                                            min={0.3} max={2.0} step={0.1} format={(v: number) => `${v.toFixed(1)}x`} />
+                                        <Slider label="Zona Morta" value={localConfig.JOYSTICK_DEADZONE || 0.15}
+                                            onChange={(v: number) => updateConfig('JOYSTICK_DEADZONE', v)}
+                                            min={0.05} max={0.4} step={0.05} format={(v: number) => `${Math.round(v * 100)}%`} />
+                                    </>
+                                )}
+                                
+                                {/* BUTTONS mode settings */}
+                                {gameState?.mobileControlMode === 'BUTTONS' && (
+                                    <>
+                                        <Slider label="Velocidade Movimento" value={localConfig.BUTTON_MOVE_SPEED || 1.0}
+                                            onChange={(v: number) => updateConfig('BUTTON_MOVE_SPEED', v)}
+                                            min={0.5} max={2.0} step={0.1} format={(v: number) => `${v.toFixed(1)}x`} />
+                                        <Slider label="Tamanho Botões" value={localConfig.BUTTON_SIZE_SCALE || 1.0}
+                                            onChange={(v: number) => updateConfig('BUTTON_SIZE_SCALE', v)}
+                                            min={0.7} max={1.5} step={0.1} format={(v: number) => `${Math.round(v * 100)}%`} />
+                                    </>
+                                )}
+                                
+                                {/* ARROWS mode settings */}
+                                {gameState?.mobileControlMode === 'ARROWS' && (
+                                    <>
+                                        <Slider label="Velocidade Movimento" value={localConfig.ARROW_MOVE_SPEED || 1.0}
+                                            onChange={(v: number) => updateConfig('ARROW_MOVE_SPEED', v)}
+                                            min={0.5} max={2.0} step={0.1} format={(v: number) => `${v.toFixed(1)}x`} />
+                                        <Slider label="Tamanho Setas" value={localConfig.ARROW_SIZE_SCALE || 1.0}
+                                            onChange={(v: number) => updateConfig('ARROW_SIZE_SCALE', v)}
+                                            min={0.7} max={1.5} step={0.1} format={(v: number) => `${Math.round(v * 100)}%`} />
+                                        <Slider label="Tempo para Jetpack" value={localConfig.ARROW_JETPACK_DELAY || 200}
+                                            onChange={(v: number) => updateConfig('ARROW_JETPACK_DELAY', v)}
+                                            min={100} max={500} step={50} format={(v: number) => `${v.toFixed(0)}ms`} />
+                                    </>
+                                )}
                             </section>
 
-                            {/* Toggles */}
-                            <section className="bg-slate-900/50 p-4 rounded-xl border border-slate-800 space-y-3">
-                                <Toggle label="Ocultar Indicador Motion" value={gameState?.hideMotionDebug}
-                                    onChange={(v: boolean) => { setGameState((p: any) => ({ ...p, hideMotionDebug: v })); localStorage.setItem('HIDE_MOTION_DEBUG', v.toString()); }} />
-                                <Toggle label="Inverter Motion (Esq↔Dir)" value={gameState?.invertMotion}
-                                    onChange={(v: boolean) => { setGameState((p: any) => ({ ...p, invertMotion: v })); localStorage.setItem('INVERT_MOTION', v.toString()); }} />
-                            </section>
+                            {/* Toggles - Only for TILT/MOTION */}
+                            {gameState?.mobileControlMode === 'TILT' && (
+                                <section className="bg-slate-900/50 p-4 rounded-xl border border-slate-800 space-y-3">
+                                    <Toggle label="Ocultar Indicador Motion" value={gameState?.hideMotionDebug}
+                                        onChange={(v: boolean) => { setGameState((p: any) => ({ ...p, hideMotionDebug: v })); localStorage.setItem('HIDE_MOTION_DEBUG', v.toString()); }} />
+                                    <Toggle label="Inverter Motion (Esq↔Dir)" value={gameState?.invertMotion}
+                                        onChange={(v: boolean) => { setGameState((p: any) => ({ ...p, invertMotion: v })); localStorage.setItem('INVERT_MOTION', v.toString()); }} />
+                                </section>
+                            )}
 
-                            {/* Presets */}
+                            {/* Presets - Dynamic based on mode */}
                             <div className="grid grid-cols-3 gap-2">
-                                <button onClick={() => { updateConfig('GYRO_SENSITIVITY', 25); updateConfig('MOBILE_SENSITIVITY_MULTIPLIER', 1.5); }}
+                                <button onClick={() => { 
+                                    if (gameState?.mobileControlMode === 'TILT') {
+                                        updateConfig('GYRO_SENSITIVITY', 25); 
+                                        updateConfig('MOBILE_SENSITIVITY_MULTIPLIER', 1.5);
+                                    } else if (gameState?.mobileControlMode === 'JOYSTICK') {
+                                        updateConfig('JOYSTICK_SENSITIVITY', 0.6);
+                                        updateConfig('JOYSTICK_DEADZONE', 0.2);
+                                    } else {
+                                        updateConfig('BUTTON_MOVE_SPEED', 0.7);
+                                        updateConfig('ARROW_MOVE_SPEED', 0.7);
+                                    }
+                                }}
                                     className="p-2 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-400 hover:border-slate-600">LENTO</button>
-                                <button onClick={() => { updateConfig('GYRO_SENSITIVITY', 40); updateConfig('MOBILE_SENSITIVITY_MULTIPLIER', 2.5); }}
+                                <button onClick={() => { 
+                                    if (gameState?.mobileControlMode === 'TILT') {
+                                        updateConfig('GYRO_SENSITIVITY', 40); 
+                                        updateConfig('MOBILE_SENSITIVITY_MULTIPLIER', 2.5);
+                                    } else if (gameState?.mobileControlMode === 'JOYSTICK') {
+                                        updateConfig('JOYSTICK_SENSITIVITY', 1.0);
+                                        updateConfig('JOYSTICK_DEADZONE', 0.15);
+                                    } else {
+                                        updateConfig('BUTTON_MOVE_SPEED', 1.0);
+                                        updateConfig('ARROW_MOVE_SPEED', 1.0);
+                                    }
+                                }}
                                     className="p-2 bg-green-900/30 border border-green-700 rounded-lg text-xs text-green-400">NORMAL</button>
-                                <button onClick={() => { updateConfig('GYRO_SENSITIVITY', 70); updateConfig('MOBILE_SENSITIVITY_MULTIPLIER', 4); }}
+                                <button onClick={() => { 
+                                    if (gameState?.mobileControlMode === 'TILT') {
+                                        updateConfig('GYRO_SENSITIVITY', 70); 
+                                        updateConfig('MOBILE_SENSITIVITY_MULTIPLIER', 4);
+                                    } else if (gameState?.mobileControlMode === 'JOYSTICK') {
+                                        updateConfig('JOYSTICK_SENSITIVITY', 1.5);
+                                        updateConfig('JOYSTICK_DEADZONE', 0.1);
+                                    } else {
+                                        updateConfig('BUTTON_MOVE_SPEED', 1.5);
+                                        updateConfig('ARROW_MOVE_SPEED', 1.5);
+                                    }
+                                }}
                                     className="p-2 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-400 hover:border-slate-600">RAPIDO</button>
                             </div>
                         </div>
