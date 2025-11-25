@@ -1513,38 +1513,59 @@ export const RankingModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: ()
     const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
     const [loading, setLoading] = useState(false);
     const [isOnline, setIsOnline] = useState(false);
+    const [lastError, setLastError] = useState<string | null>(null);
+
+    const fetchLeaderboard = async () => {
+        // INSTANT: Show local data first
+        const localData = Persistence.loadLeaderboard();
+        if (localData.length > 0) {
+            setLeaderboard(localData);
+        } else {
+            setLeaderboard([
+                { id: '1', name: '- - -', score: 0, date: '' },
+                { id: '2', name: '- - -', score: 0, date: '' },
+                { id: '3', name: '- - -', score: 0, date: '' },
+            ]);
+        }
+        
+        setLoading(true);
+        setLastError(null);
+        setIsOnline(false);
+        
+        try {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 5000);
+            
+            const res = await fetch('/api/leaderboard', { 
+                signal: controller.signal,
+                cache: 'no-store'
+            });
+            clearTimeout(timeout);
+            
+            const data = await res.json();
+            
+            if (data.offline) {
+                setLastError('Servidor offline');
+            } else if (data.success && data.leaderboard?.length > 0) {
+                // Só atualiza se tiver dados reais (não placeholder)
+                const hasRealData = data.leaderboard.some((e: any) => e.name !== '- - -' && e.score > 0);
+                if (hasRealData) {
+                    setLeaderboard(data.leaderboard);
+                    setIsOnline(true);
+                } else {
+                    setLastError('Nenhum score global ainda');
+                }
+            }
+        } catch (e: any) {
+            setLastError('Erro de conexão');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
         if (isOpen) {
-            // INSTANT: Show local data first
-            const localData = Persistence.loadLeaderboard();
-            if (localData.length > 0) {
-                setLeaderboard(localData);
-            } else {
-                // Show placeholder
-                setLeaderboard([
-                    { id: '1', name: '- - -', score: 0, date: '' },
-                    { id: '2', name: '- - -', score: 0, date: '' },
-                    { id: '3', name: '- - -', score: 0, date: '' },
-                ]);
-            }
-            setLoading(true);
-            
-            // Background: Try to fetch global (with 3s timeout)
-            const controller = new AbortController();
-            const timeout = setTimeout(() => controller.abort(), 3000);
-            
-            fetch('/api/leaderboard', { signal: controller.signal })
-                .then(res => res.json())
-                .then(data => {
-                    clearTimeout(timeout);
-                    if (data.success && data.leaderboard?.length > 0) {
-                        setLeaderboard(data.leaderboard);
-                        setIsOnline(true);
-                    }
-                })
-                .catch(() => {})
-                .finally(() => setLoading(false));
+            fetchLeaderboard();
         }
     }, [isOpen]);
 
@@ -1565,11 +1586,19 @@ export const RankingModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: ()
                     <h2 className="text-xl font-black text-white flex items-center gap-3">
                         <Trophy size={24} className="text-yellow-400" />
                         RANKING {isOnline ? 'GLOBAL' : 'LOCAL'}
-                        {loading && <Loader2 size={16} className="animate-spin text-slate-500" />}
                     </h2>
-                    <button onClick={onClose} className="p-2 hover:bg-red-900/30 rounded-lg text-slate-400 hover:text-red-400">
-                        <X size={22} />
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <button 
+                            onClick={fetchLeaderboard}
+                            disabled={loading}
+                            className="p-2 hover:bg-cyan-900/30 rounded-lg text-cyan-400 hover:text-cyan-300 disabled:opacity-50"
+                        >
+                            <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
+                        </button>
+                        <button onClick={onClose} className="p-2 hover:bg-red-900/30 rounded-lg text-slate-400 hover:text-red-400">
+                            <X size={22} />
+                        </button>
+                    </div>
                 </div>
 
                 {/* Content - Always show immediately */}
@@ -1603,7 +1632,9 @@ export const RankingModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: ()
                 </div>
                 <div className="p-3 border-t border-slate-800 bg-slate-900/50 text-center">
                     <p className="text-slate-600 text-[10px]">
-                        {isOnline ? '🌐 Ranking global atualizado' : '📱 Ranking local (servidor offline)'}
+                        {loading ? '⏳ Carregando...' : 
+                         isOnline ? '🌐 Ranking global sincronizado' : 
+                         lastError ? `⚠️ ${lastError}` : '📱 Ranking local'}
                     </p>
                 </div>
             </div>
