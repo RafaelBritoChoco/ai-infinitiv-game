@@ -10,7 +10,14 @@ export const generateSkin = async (
     setGameState: any,
     setShowAiInput: (v: boolean) => void
 ) => {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      // Get API key from parameter, localStorage, or env
+      const key = apiKey || localStorage.getItem('GEMINI_API_KEY') || process.env.API_KEY;
+      
+      if (!key) {
+          throw new Error('No API Key configured. Go to Settings > API Key to add your Gemini API Key.');
+      }
+      
+      const ai = new GoogleGenAI({ apiKey: key });
       
       const schema = {
         type: Type.OBJECT,

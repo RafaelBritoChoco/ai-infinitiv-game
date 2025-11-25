@@ -189,17 +189,26 @@ const GameCanvas: React.FC = () => {
 
     // --- Helpers ---
     const handleGenerateSkinWrapper = async () => {
-        if (!aiPrompt.trim()) return;
-        const hasKey = await (window as any).aistudio.hasSelectedApiKey();
-        if (!hasKey) { await (window as any).aistudio.openSelectKey(); }
+        if (!aiPrompt.trim()) {
+            alert('Digite uma descrição para o personagem!');
+            return;
+        }
+        
+        // Get API key from localStorage
+        const apiKey = localStorage.getItem('GEMINI_API_KEY');
+        if (!apiKey) {
+            alert('⚠️ Configure sua API Key primeiro!\n\nVá em: SET → API Key (Gemini)');
+            return;
+        }
 
         soundManager.playClick();
         setIsGeneratingSkin(true);
         try {
-            await generateSkin(aiPrompt, process.env.API_KEY, setAvailableSkins, setGameState, setShowAiInput);
-        } catch (e) {
+            await generateSkin(aiPrompt, apiKey, setAvailableSkins, setGameState, setShowAiInput);
+            setAiPrompt(''); // Clear prompt on success
+        } catch (e: any) {
             console.error("AI Gen Error", e);
-            alert("Error generating character. Try again.");
+            alert(`❌ Erro ao gerar personagem:\n${e.message || 'Tente novamente.'}`);
         } finally {
             setIsGeneratingSkin(false);
         }
