@@ -5,7 +5,7 @@ import {
     ArrowLeft, ShoppingBag, Home, Sparkles, Wand2, Maximize, RotateCcw, ChevronLeft, ChevronRight, ArrowUp, Shield, HelpCircle,
     Layers, Globe, Check, MousePointer2, ArrowDown, Heart, Unlock, Loader2, Medal, Send, User, Eye
 } from 'lucide-react';
-import { CharacterSkin, GameState, LeaderboardEntry, ShopUpgrades, TROPHY_POWERS, CHARACTER_CHALLENGES, CharacterChallenge } from '../../types';
+import { CharacterSkin, GameState, LeaderboardEntry, ShopUpgrades, TROPHY_POWERS, CHARACTER_CHALLENGES, CharacterChallenge, PlatformType } from '../../types';
 import { soundManager } from './audioManager';
 import { Persistence } from './persistence';
 import * as Constants from '../../constants';
@@ -1660,6 +1660,7 @@ const CharacterPreviewModal = ({ skin, onClose, onSelectSkin, allSkins }: {
     const animationRef = useRef<number>(0);
     const listRef = useRef<HTMLDivElement>(null);
     const [currentSkinIndex, setCurrentSkinIndex] = useState(() => {
+        if (!skin) return 0;
         const idx = allSkins.findIndex(s => s.id === skin.id);
         return idx >= 0 ? idx : 0;
     });
@@ -1675,7 +1676,9 @@ const CharacterPreviewModal = ({ skin, onClose, onSelectSkin, allSkins }: {
         }
     }, [currentSkinIndex]);
     
-    const currentSkin = allSkins[currentSkinIndex] || skin;
+    const currentSkin = allSkins[currentSkinIndex] || skin || allSkins[0];
+
+    if (!currentSkin) return null;
     
     // Animation state - platforms can dissolve like in game
     const stateRef = useRef({
