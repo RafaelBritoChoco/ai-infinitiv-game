@@ -172,11 +172,11 @@ export const SkillTreeShop: React.FC<SkillTreeShopProps> = ({ gameState, setGame
                             onClick={() => setGameState((prev: any) => ({ ...prev, isShopOpen: false }))}
                             className="p-2 md:p-3 bg-slate-800 hover:bg-red-900/50 text-slate-400 hover:text-white rounded-full transition-all"
                         >
-                            <X size={20} className="md:w-7 md:h-7" />
+                            <X className="icon-md" />
                         </button>
                         <div>
                             <h2 className="text-2xl md:text-4xl font-black text-white italic tracking-tighter flex items-center gap-2">
-                                <Star className="text-cyan-400" size={24} />
+                                <Star className="text-cyan-400 icon-md" />
                                 SKILL TREE
                             </h2>
                             <p className="text-slate-400 text-[10px] md:text-sm uppercase tracking-widest font-bold">
@@ -185,7 +185,7 @@ export const SkillTreeShop: React.FC<SkillTreeShopProps> = ({ gameState, setGame
                         </div>
                     </div>
                     <div className="bg-black border border-yellow-500/50 px-3 md:px-6 py-2 md:py-3 rounded-full flex items-center gap-2 shadow-[0_0_15px_rgba(234,179,8,0.2)]">
-                        <Coins className="text-yellow-400" size={16} />
+                        <Coins className="text-yellow-400 icon-sm" />
                         <span className="text-xl md:text-3xl font-black text-white">{gameState.totalCoins}</span>
                     </div>
                 </div>
@@ -260,17 +260,17 @@ const SkillCard = ({ skill, gameState, isUnlocked, getCost, buySkill, selectedSk
         >
             {/* Icon & Lock */}
             <div className="relative mb-2 md:mb-3">
-                <div className={`w-12 h-12 md:w-16 md:h-16 mx-auto rounded-xl bg-${skill.color}-900/20 flex items-center justify-center text-${skill.color}-400 border border-${skill.color}-500/30`}>
-                    <skill.icon size={24} className="md:w-8 md:h-8" />
+                <div className={`w-14 h-14 md:w-20 md:h-20 mx-auto rounded-xl bg-${skill.color}-900/20 flex items-center justify-center text-${skill.color}-400 border border-${skill.color}-500/30 touch-target`}>
+                    <skill.icon className="icon-md md:icon-lg" />
                 </div>
                 {!unlocked && (
                     <div className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-xl backdrop-blur-sm">
-                        <Lock className="text-red-400" size={20} />
+                        <Lock className="text-red-400 icon-md" />
                     </div>
                 )}
                 {isMaxed && unlocked && (
                     <div className="absolute -top-1 -right-1 bg-yellow-500 rounded-full p-1">
-                        <Check size={12} className="text-black" />
+                        <Check className="text-black icon-sm" />
                     </div>
                 )}
             </div>

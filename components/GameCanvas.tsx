@@ -3,6 +3,7 @@ import React, { useRef, useEffect, useState, useCallback } from 'react';
 import * as Constants from '../constants';
 import { Player, Platform, PlatformType, Particle, GameConfig, SaveNode, CharacterSkin, GameState, detectPerformanceMode } from '../types';
 import { Play, Move, Trash2, PlusSquare, Save, AlertTriangle, Pause, Settings, Edit } from 'lucide-react';
+import './game/responsiveUI.css';
 
 // --- Sub-Module Imports ---
 import { SKINS, SETTINGS_GROUPS } from './game/assets';
