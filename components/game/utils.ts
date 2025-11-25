@@ -40,12 +40,28 @@ export const getScaleAndOffset = (
     isFreefall: boolean = false
 ) => {
     const currentWorldWidth = getWorldWidthAtHeight(playerY, config);
+    
+    // Detecta modo vertical mobile (portrait)
+    const isMobilePortrait = typeof window !== 'undefined' && window.innerWidth < 768 && window.innerHeight > window.innerWidth;
+    
+    // No modo portrait, dá mais zoom out para ver melhor a altura
+    const portraitZoomBonus = isMobilePortrait ? 0.85 : 1.0;
+    const effectiveZoom = zoom * portraitZoomBonus;
 
-    const effectiveWidth = currentWorldWidth / zoom;
+    const effectiveWidth = currentWorldWidth / effectiveZoom;
     const scale = width / effectiveWidth;
 
-    // In normal mode, player is at bottom (0.7). In freefall, player is at top (0.2) looking down.
-    const centerOffsetY = height * (isFreefall ? 0.2 : 0.7);
+    // No modo portrait mobile, jogador fica mais embaixo (0.8) para ver mais plataformas acima
+    // Em freefall, player is at top (0.2) looking down.
+    // Modo normal: 0.7 (desktop) ou 0.75 (mobile portrait para ver mais acima)
+    let playerScreenPosition = 0.7;
+    if (isFreefall) {
+        playerScreenPosition = 0.2;
+    } else if (isMobilePortrait) {
+        playerScreenPosition = 0.78; // Jogador mais embaixo no mobile = vê mais do que vem acima
+    }
+    
+    const centerOffsetY = height * playerScreenPosition;
     const offsetX = (width - (currentWorldWidth * scale)) / 2;
 
     return { scale, centerOffsetY, currentWorldWidth, offsetX };

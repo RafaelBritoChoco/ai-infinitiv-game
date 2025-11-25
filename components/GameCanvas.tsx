@@ -170,7 +170,7 @@ const GameCanvas: React.FC = () => {
             highScore: savedHighScore,
             maxAltitude: savedMaxAlt,
             totalCoins: savedCoins,
-            mobileControlMode: savedControlMode || 'BUTTONS',
+            mobileControlMode: savedControlMode || 'ARROWS',
             upgrades: { ...prev.upgrades, ...savedUpgrades },
             hideMotionDebug: savedHideMotionDebug,
             invertMotion: savedInvertMotion
@@ -235,7 +235,10 @@ const GameCanvas: React.FC = () => {
                 <div
                     ref={containerRef}
                     className="relative w-full h-full max-w-4xl shadow-2xl"
-                    style={{ paddingBottom: gameState.isPlaying && typeof window !== 'undefined' && window.innerWidth < 768 ? '120px' : '0' }}
+                    style={{ 
+                        // No modo ARROWS mobile, deixa espaço para a barra de controle fixa (100px)
+                        paddingBottom: gameState.isPlaying && gameState.mobileControlMode === 'ARROWS' && typeof window !== 'undefined' && window.innerWidth < 768 ? '100px' : '0' 
+                    }}
                 >
                     <div className="absolute inset-0 bg-red-600 pointer-events-none z-20 mix-blend-overlay transition-opacity duration-100" style={{ opacity: damageFlash * 0.5 }} />
 

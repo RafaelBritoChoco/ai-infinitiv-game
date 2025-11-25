@@ -469,7 +469,7 @@ export const TouchControls = ({ inputRef, mode, layout = { scale: 1, x: 0, y: 0 
         );
     };
 
-    // --- TILT MODE: Bubble Level + Action Buttons ---
+    // --- TILT MODE: Bubble Level + Jump Button ONLY ---
     if (mode === 'TILT') {
         const tiltX = inputRef.current?.tiltX || 0;
         const bubblePos = Math.max(-50, Math.min(50, tiltX * 50));
@@ -493,32 +493,25 @@ export const TouchControls = ({ inputRef, mode, layout = { scale: 1, x: 0, y: 0 
                     </div>
                 )}
 
-                {/* Action Buttons with Custom Layout */}
+                {/* Jump Button ONLY - segura = jetpack */}
                 {renderButton('jumpBtn', 'jump', <ArrowUp size={32 * globalScale} className="text-cyan-200" />, 80, 
                     'bg-cyan-900/40 border-2 border-cyan-500/50 active:bg-cyan-500/50')}
-                {renderButton('jetpackBtn', 'jetpack', 
-                    <div className="flex flex-col items-center">
-                        <Rocket size={32 * globalScale} className="text-purple-200" />
-                        <span className="text-[10px] font-bold text-purple-300 uppercase">FLY</span>
-                    </div>, 
-                    96, 'bg-purple-900/40 border-2 border-purple-500/50 active:bg-purple-500/50 shadow-[0_0_20px_rgba(168,85,247,0.2)]')}
             </div>
         );
     }
 
-    // --- JOYSTICK MODE: Action Buttons ONLY (Joystick is separate) ---
+    // --- JOYSTICK MODE: Jump Button ONLY (Joystick is separate) ---
     if (mode === 'JOYSTICK') {
         return (
             <div className="absolute inset-0 pointer-events-none z-[100]">
                 {renderButton('jumpBtn', 'jump', <ArrowUp size={32 * globalScale} className="text-cyan-200" />, 80, 
                     'bg-cyan-900/40 border-2 border-cyan-500/50 active:bg-cyan-500/50')}
-                {renderButton('jetpackBtn', 'jetpack', <Rocket size={24 * globalScale} className="text-purple-200" />, 64, 
-                    'bg-purple-900/40 border-2 border-purple-500/50 active:bg-purple-500/50 shadow-[0_0_20px_rgba(168,85,247,0.2)]')}
             </div>
         );
     }
 
     // --- ARROWS MODE: Only 2 arrows - tap=jump, hold=jetpack ---
+    // Controles em uma BARRA FIXA na parte de baixo para não atrapalhar visão
     if (mode === 'ARROWS') {
         const [leftHolding, setLeftHolding] = React.useState(false);
         const [rightHolding, setRightHolding] = React.useState(false);
@@ -564,64 +557,63 @@ export const TouchControls = ({ inputRef, mode, layout = { scale: 1, x: 0, y: 0 
             setHolding(false);
         };
         
-        const buttonSize = 85 * globalScale; // Smaller size
+        const buttonSize = 80 * globalScale;
         
-        // Get button style based on state - PINK SUAVE when can perfect jump!
+        // Get button style based on state - ROSA quando pode pular perfeito!
         const getButtonStyle = (isHolding: boolean) => {
-            if (showPerfectIndicator) return 'bg-pink-400/30 border-pink-300/50 shadow-[0_0_12px_rgba(236,72,153,0.3)]';
+            if (showPerfectIndicator) return 'bg-pink-500/50 border-pink-400 shadow-[0_0_20px_rgba(236,72,153,0.6)]';
             if (isHolding) return 'bg-purple-500/60 border-purple-400 shadow-[0_0_20px_rgba(168,85,247,0.5)]';
-            return 'bg-slate-700/50 border-slate-400/40';
+            return 'bg-slate-800/70 border-slate-500/50';
         };
         
+        // Barra de controle fixa na parte inferior - NÃO COBRE O JOGO
         return (
-            <div className="absolute inset-0 pointer-events-none z-[100]">
-                {/* LEFT ARROW */}
-                <button
-                    className={`pointer-events-auto rounded-2xl flex flex-col items-center justify-center transition-all backdrop-blur-sm absolute border-2 active:scale-95 ${getButtonStyle(leftHolding)}`}
-                    style={{
-                        width: `${buttonSize}px`,
-                        height: `${buttonSize}px`,
-                        bottom: '24px',
-                        left: '16px',
-                    }}
-                    onTouchStart={(e) => { e.preventDefault(); handlePress('left'); }}
-                    onTouchEnd={(e) => { e.preventDefault(); handleRelease('left'); }}
-                    onMouseDown={() => handlePress('left')}
-                    onMouseUp={() => handleRelease('left')}
-                    onMouseLeave={() => handleRelease('left')}
-                >
-                    <ChevronLeft size={44 * globalScale} className={showPerfectIndicator ? 'text-pink-100' : leftHolding ? 'text-purple-100' : 'text-white'} strokeWidth={2.5} />
-                </button>
-                
-                {/* RIGHT ARROW */}
-                <button
-                    className={`pointer-events-auto rounded-2xl flex flex-col items-center justify-center transition-all backdrop-blur-sm absolute border-2 active:scale-95 ${getButtonStyle(rightHolding)}`}
-                    style={{
-                        width: `${buttonSize}px`,
-                        height: `${buttonSize}px`,
-                        bottom: '24px',
-                        right: '16px',
-                    }}
-                    onTouchStart={(e) => { e.preventDefault(); handlePress('right'); }}
-                    onTouchEnd={(e) => { e.preventDefault(); handleRelease('right'); }}
-                    onMouseDown={() => handlePress('right')}
-                    onMouseUp={() => handleRelease('right')}
-                    onMouseLeave={() => handleRelease('right')}
-                >
-                    <ChevronRight size={44 * globalScale} className={showPerfectIndicator ? 'text-pink-100' : rightHolding ? 'text-purple-100' : 'text-white'} strokeWidth={2.5} />
-                </button>
-                
-                {/* Jetpack indicator */}
-                {(leftHolding || rightHolding) && !showPerfectIndicator && (
-                    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-purple-600/80 px-3 py-1 rounded-full">
-                        <p className="text-[10px] text-white font-bold">🚀 JETPACK</p>
+            <div className="fixed bottom-0 left-0 right-0 z-[100] pointer-events-none">
+                {/* Barra de fundo semi-transparente */}
+                <div className="bg-slate-900/90 backdrop-blur-md border-t border-slate-700/50 h-[100px] flex items-center justify-between px-4 pointer-events-auto">
+                    {/* LEFT ARROW */}
+                    <button
+                        className={`rounded-2xl flex items-center justify-center transition-all border-2 active:scale-95 ${getButtonStyle(leftHolding)}`}
+                        style={{
+                            width: `${buttonSize}px`,
+                            height: `${buttonSize}px`,
+                        }}
+                        onTouchStart={(e) => { e.preventDefault(); handlePress('left'); }}
+                        onTouchEnd={(e) => { e.preventDefault(); handleRelease('left'); }}
+                        onMouseDown={() => handlePress('left')}
+                        onMouseUp={() => handleRelease('left')}
+                        onMouseLeave={() => handleRelease('left')}
+                    >
+                        <ChevronLeft size={48 * globalScale} className={showPerfectIndicator ? 'text-pink-200' : leftHolding ? 'text-purple-100' : 'text-white'} strokeWidth={2.5} />
+                    </button>
+                    
+                    {/* Centro - Dica de controle */}
+                    <div className="flex flex-col items-center gap-1 opacity-60">
+                        <span className="text-[10px] text-slate-400 uppercase tracking-wider">Toque = Pulo</span>
+                        <span className="text-[10px] text-purple-400 uppercase tracking-wider">Segure = Jetpack</span>
                     </div>
-                )}
+                    
+                    {/* RIGHT ARROW */}
+                    <button
+                        className={`rounded-2xl flex items-center justify-center transition-all border-2 active:scale-95 ${getButtonStyle(rightHolding)}`}
+                        style={{
+                            width: `${buttonSize}px`,
+                            height: `${buttonSize}px`,
+                        }}
+                        onTouchStart={(e) => { e.preventDefault(); handlePress('right'); }}
+                        onTouchEnd={(e) => { e.preventDefault(); handleRelease('right'); }}
+                        onMouseDown={() => handlePress('right')}
+                        onMouseUp={() => handleRelease('right')}
+                        onMouseLeave={() => handleRelease('right')}
+                    >
+                        <ChevronRight size={48 * globalScale} className={showPerfectIndicator ? 'text-pink-200' : rightHolding ? 'text-purple-100' : 'text-white'} strokeWidth={2.5} />
+                    </button>
+                </div>
             </div>
         );
     }
 
-    // --- BUTTONS MODE: Arrows + Actions with custom layout ---
+    // --- BUTTONS MODE: Arrows + Jump (SEM JETPACK separado - segura jump = jetpack) ---
     return (
         <div className="absolute inset-0 pointer-events-none z-[100]">
             {/* Arrows */}
@@ -630,11 +622,9 @@ export const TouchControls = ({ inputRef, mode, layout = { scale: 1, x: 0, y: 0 
             {renderButton('rightArrow', 'right', <ChevronRight size={32 * globalScale} className="text-white" />, 80, 
                 'bg-slate-700/50 border-2 border-slate-400/40 active:bg-slate-600/50')}
             
-            {/* Actions */}
+            {/* Jump Button - segura para jetpack */}
             {renderButton('jumpBtn', 'jump', <ArrowUp size={32 * globalScale} className="text-cyan-200" />, 80, 
                 'bg-cyan-800/50 border-2 border-cyan-500/50 active:bg-cyan-500/50')}
-            {renderButton('jetpackBtn', 'jetpack', <Rocket size={32 * globalScale} className="text-purple-200" />, 96, 
-                'bg-purple-800/50 border-2 border-purple-500/50 active:bg-purple-500/50 shadow-[0_0_20px_rgba(168,85,247,0.2)]')}
         </div>
     );
 };

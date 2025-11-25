@@ -125,9 +125,9 @@ export const VisualControlEditor: React.FC<Props> = ({ isOpen, onClose, onSave, 
 
     const handleSave = () => {
         localStorage.setItem('CONTROLS_LAYOUT', JSON.stringify(layout));
-        // Also save selected control mode
+        // Also save selected control mode using Persistence
         if (onModeChange) {
-            localStorage.setItem('CONTROL_MODE', previewMode);
+            localStorage.setItem('NEON_CONTROL_MODE', previewMode);
             onModeChange(previewMode);
         }
         onSave(layout);

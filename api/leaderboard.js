@@ -161,6 +161,15 @@ export default async function handler(request, response) {
 
         // ============ POST - Salvar score ============
         if (request.method === 'POST') {
+            // RESET endpoint - zerar leaderboard
+            if (request.body?.action === 'RESET_LEADERBOARD_2025') {
+                if (!redis) {
+                    return response.status(200).json({ success: false, error: 'Redis não disponível' });
+                }
+                await redis.del(LEADERBOARD_KEY);
+                return response.status(200).json({ success: true, message: 'Leaderboard zerado!' });
+            }
+
             const { name, score } = request.body || {};
 
             // Validações

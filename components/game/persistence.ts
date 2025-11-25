@@ -55,11 +55,11 @@ export const Persistence = {
         localStorage.setItem('NEON_UPGRADES', JSON.stringify(upgrades));
     },
 
-    loadControlMode: (): 'BUTTONS' | 'TILT' | null => {
-        return localStorage.getItem('NEON_CONTROL_MODE') as 'BUTTONS' | 'TILT' | null;
+    loadControlMode: (): 'BUTTONS' | 'TILT' | 'ARROWS' | 'JOYSTICK' | null => {
+        return localStorage.getItem('NEON_CONTROL_MODE') as 'BUTTONS' | 'TILT' | 'ARROWS' | 'JOYSTICK' | null;
     },
 
-    saveControlMode: (mode: 'BUTTONS' | 'TILT') => {
+    saveControlMode: (mode: 'BUTTONS' | 'TILT' | 'ARROWS' | 'JOYSTICK') => {
         localStorage.setItem('NEON_CONTROL_MODE', mode);
     },
 
