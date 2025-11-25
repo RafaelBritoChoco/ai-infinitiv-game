@@ -24,6 +24,7 @@ import { useInputController } from './game/hooks/useInputController';
 import { CalibrationModal, GameOverMenu, StartScreen, PauseMenu, ControlsModal, LeftSidebar, RightSidebar, ShopModal, TouchControls, PortraitLock, LayoutEditorModal, SensorDebugModal } from './game/ui';
 import { DevEditor } from './game/DevEditor';
 import { UserSettingsModal } from './game/UserSettingsModal';
+import { VisualControlEditor, ControlsLayout } from './game/VisualControlEditor';
 import { SkillTreeShop } from './game/SkillTreeShop';
 import { VirtualJoystick } from './game/VirtualJoystick';
 
@@ -51,12 +52,14 @@ const GameCanvas: React.FC = () => {
     const [isControlsOpen, setIsControlsOpen] = useState(false);
     const [showCalibration, setShowCalibration] = useState(false);
     const [showLayoutEditor, setShowLayoutEditor] = useState(false);
+    const [showVisualEditor, setShowVisualEditor] = useState(false);
     const [controlLayout, setControlLayout] = useState({ scale: 1, x: 0, y: 0 });
+    const [controlsLayout, setControlsLayout] = useState<ControlsLayout | null>(null);
     const [rotationLock, setRotationLock] = useState(true);
     const [tiltDebug, setTiltDebug] = useState(0);
     const [rawTiltDebug, setRawTiltDebug] = useState(0);
     const [showSensorDebug, setShowSensorDebug] = useState(false);
-    const [showSettings, setShowSettings] = useState(false); // NEW: Settings Modal State
+    const [showSettings, setShowSettings] = useState(false);
     const [showDevEditor, setShowDevEditor] = useState(false);
 
     // Shadow Refs for Loop Stability
@@ -396,6 +399,7 @@ const GameCanvas: React.FC = () => {
                         inputRef={inputRef}
                         mode={gameState.mobileControlMode}
                         layout={controlLayout}
+                        controlsLayout={controlsLayout}
                         gameState={gameState}
                         hideMotionDebug={gameState.hideMotionDebug}
                     />
@@ -424,8 +428,6 @@ const GameCanvas: React.FC = () => {
                 {Constants.APP_VERSION}
             </div>
 
-            {/* DEV BUTTON - DISABLED FOR USER VERSION */}
-
             {/* USER SETTINGS MODAL */}
             {showSettings && (
                 <UserSettingsModal
@@ -442,8 +444,23 @@ const GameCanvas: React.FC = () => {
                         setShowDevEditor(true);
                         setGameState((p: any) => ({ ...p, isPaused: true }));
                     }}
+                    onOpenVisualEditor={() => {
+                        setShowSettings(false);
+                        setShowVisualEditor(true);
+                    }}
                 />
             )}
+
+            {/* VISUAL CONTROL EDITOR */}
+            <VisualControlEditor
+                isOpen={showVisualEditor}
+                onClose={() => setShowVisualEditor(false)}
+                onSave={(newLayout) => {
+                    setControlsLayout(newLayout);
+                    setShowVisualEditor(false);
+                }}
+                initialLayout={controlsLayout || undefined}
+            />
         </div>
     );
 };

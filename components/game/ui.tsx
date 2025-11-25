@@ -355,9 +355,56 @@ export const CharacterPreview = ({ skin }: { skin: CharacterSkin }) => {
     );
 };
 
-export const TouchControls = ({ inputRef, mode, layout = { scale: 1, x: 0, y: 0 }, gameState, onOpenSettings, hideMotionDebug = false }: { inputRef: any, mode: 'BUTTONS' | 'TILT' | 'JOYSTICK', layout?: any, gameState?: any, onOpenSettings?: () => void, hideMotionDebug?: boolean }) => {
-    // Don't render if not playing, or if in JOYSTICK mode (VirtualJoystick handles that)
-    // Strict Rendering Check
+// Interface for individual button layouts
+interface ButtonLayout {
+    id: string;
+    x: number;
+    y: number;
+    scale: number;
+    visible: boolean;
+}
+
+interface ControlsLayout {
+    leftArrow: ButtonLayout;
+    rightArrow: ButtonLayout;
+    jumpBtn: ButtonLayout;
+    jetpackBtn: ButtonLayout;
+    globalScale: number;
+}
+
+const DEFAULT_CONTROLS_LAYOUT: ControlsLayout = {
+    leftArrow: { id: 'leftArrow', x: 24, y: 24, scale: 1, visible: true },
+    rightArrow: { id: 'rightArrow', x: 120, y: 24, scale: 1, visible: true },
+    jumpBtn: { id: 'jumpBtn', x: -140, y: 24, scale: 1, visible: true },
+    jetpackBtn: { id: 'jetpackBtn', x: -48, y: 24, scale: 1.1, visible: true },
+    globalScale: 1,
+};
+
+export const TouchControls = ({ inputRef, mode, layout = { scale: 1, x: 0, y: 0 }, controlsLayout, gameState, onOpenSettings, hideMotionDebug = false }: { 
+    inputRef: any, 
+    mode: 'BUTTONS' | 'TILT' | 'JOYSTICK', 
+    layout?: any, 
+    controlsLayout?: ControlsLayout | null,
+    gameState?: any, 
+    onOpenSettings?: () => void, 
+    hideMotionDebug?: boolean 
+}) => {
+    // Load saved layout or use default
+    const [savedLayout, setSavedLayout] = React.useState<ControlsLayout>(() => {
+        if (controlsLayout) return controlsLayout;
+        try {
+            const saved = localStorage.getItem('CONTROLS_LAYOUT');
+            if (saved) return JSON.parse(saved);
+        } catch { }
+        return DEFAULT_CONTROLS_LAYOUT;
+    });
+
+    // Update when controlsLayout prop changes
+    React.useEffect(() => {
+        if (controlsLayout) setSavedLayout(controlsLayout);
+    }, [controlsLayout]);
+
+    // Don't render if not playing
     if (!gameState?.isPlaying || gameState?.isGameOver || gameState?.isPaused) {
         return null;
     }
@@ -370,96 +417,69 @@ export const TouchControls = ({ inputRef, mode, layout = { scale: 1, x: 0, y: 0 
         if (key === 'jetpack') { inputRef.current.jetpack = pressed; }
     };
 
-    const containerStyle = {
-        paddingBottom: `calc(env(safe-area-inset-bottom, 24px) + ${layout.y}px)`,
-        transform: `scale(${layout.scale})`,
-        transformOrigin: 'bottom center',
-        paddingLeft: `${24 + layout.x}px`,
-        paddingRight: `${24 - layout.x}px`
-    };
+    const globalScale = savedLayout.globalScale || 1;
 
-    // COMMON DEV BUTTON (Safe Zone - Top Left)
-    const DevButton = () => (
-        // DEV BUTTON REMOVED - Using the one at top of GameCanvas instead
-        <div className="absolute top-6 left-6 pointer-events-auto" style={{ zIndex: Constants.Z_LAYERS.MODAL }}>
-            {/* <button
-                onClick={onOpenSettings}
-                className="px-3 py-2 bg-purple-900/70 border border-purple-500/60 rounded-lg backdrop-blur-md text-purple-300 font-bold text-xs uppercase tracking-widest hover:bg-purple-800/90 hover:shadow-[0_0_20px_rgba(168,85,247,0.5)] transition-all shadow-lg flex items-center gap-1.5"
+    // Helper to render a button with custom layout
+    const renderButton = (id: 'leftArrow' | 'rightArrow' | 'jumpBtn' | 'jetpackBtn', touchKey: string, icon: React.ReactNode, baseSize: number, colorClass: string) => {
+        const btnLayout = savedLayout[id];
+        if (!btnLayout?.visible) return null;
+        
+        const size = baseSize * (btnLayout.scale || 1) * globalScale;
+        const isRightAligned = btnLayout.x < 0;
+        
+        return (
+            <button
+                key={id}
+                className={`pointer-events-auto rounded-full flex items-center justify-center active:scale-95 transition-all backdrop-blur-sm ${colorClass}`}
+                style={{
+                    width: `${size}px`,
+                    height: `${size}px`,
+                    position: 'absolute',
+                    bottom: `${btnLayout.y}px`,
+                    left: isRightAligned ? undefined : `${btnLayout.x}px`,
+                    right: isRightAligned ? `${-btnLayout.x}px` : undefined,
+                }}
+                onTouchStart={(e) => { e.preventDefault(); handleTouch(touchKey, true); }}
+                onTouchEnd={(e) => { e.preventDefault(); handleTouch(touchKey, false); }}
             >
-                <Settings size={14} /> DEV
-            </button> */}
-        </div>
-    );
-
-
+                {icon}
+            </button>
+        );
+    };
 
     // --- TILT MODE: Bubble Level + Action Buttons ---
     if (mode === 'TILT') {
-        // Calculate bubble position based on tiltX (accessed via inputRef for visualization)
         const tiltX = inputRef.current?.tiltX || 0;
-        const bubblePos = Math.max(-50, Math.min(50, tiltX * 50)); // Clamp to +/- 50px
+        const bubblePos = Math.max(-50, Math.min(50, tiltX * 50));
         const isLevel = Math.abs(tiltX) < 0.1;
 
         return (
-            <div className="absolute inset-0 pointer-events-none z-[100] flex flex-col justify-end" style={containerStyle}>
-                {/* Center: Bubble Level Indicator - Only show if hideMotionDebug is false */}
+            <div className="absolute inset-0 pointer-events-none z-[100]">
+                {/* Bubble Level Indicator */}
                 {!hideMotionDebug && (
                     <div className="absolute bottom-32 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-80">
                         <div className="w-48 h-4 bg-slate-900/80 rounded-full border border-slate-600 relative overflow-hidden shadow-lg backdrop-blur-sm">
-                            {/* Center Marker */}
                             <div className="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 w-8 bg-slate-700/50 border-x border-slate-500/30"></div>
-                            {/* The Bubble */}
                             <div
-                                className={`absolute top-0.5 bottom-0.5 w-8 rounded-full transition-transform duration-100 will-change-transform ${isLevel ? 'bg-green-400 shadow-[0_0_10px_#4ade80]' : 'bg-cyan-400'}`}
-                                style={{
-                                    left: '50%',
-                                    marginLeft: '-16px', // Half width to center
-                                    transform: `translateX(${bubblePos}px)`
-                                }}
-                            ></div>
+                                className={`absolute top-0.5 bottom-0.5 w-8 rounded-full transition-transform duration-100 ${isLevel ? 'bg-green-400 shadow-[0_0_10px_#4ade80]' : 'bg-cyan-400'}`}
+                                style={{ left: '50%', marginLeft: '-16px', transform: `translateX(${bubblePos}px)` }}
+                            />
                         </div>
                         <span className={`text-[10px] font-bold tracking-widest uppercase ${isLevel ? 'text-green-400' : 'text-slate-500'}`}>
                             {isLevel ? 'LEVEL' : 'TILT TO STEER'}
                         </span>
-                        {/* DEBUG OVERLAY */}
-                        <div className="mt-2 text-[10px] font-mono text-cyan-500 bg-black/50 px-2 py-1 rounded">
-                            RAW: {inputRef.current?.lastDebugValue?.toFixed(2) || '0.00'}
-                        </div>
                     </div>
                 )}
 
-                {/* Right: Action Buttons */}
-                <div className="flex justify-end items-end w-full mb-4 px-6">
-                    <div className="flex gap-8">
-                        {/* Jump Button */}
-                        <button
-                            className="pointer-events-auto w-20 h-20 bg-cyan-900/40 border-2 border-cyan-500/50 rounded-full flex items-center justify-center active:bg-cyan-500/50 active:scale-95 transition-all backdrop-blur-sm"
-                            onTouchStart={(e) => { e.preventDefault(); handleTouch('jump', true); }}
-                            onTouchEnd={(e) => { e.preventDefault(); handleTouch('jump', false); }}
-                        >
-                            <ArrowUp size={32} className="text-cyan-200" />
-                        </button>
-
-                        {/* Jetpack Button */}
-                        <button
-                            className="pointer-events-auto w-24 h-24 bg-purple-900/40 border-2 border-purple-500/50 rounded-full flex items-center justify-center active:bg-purple-500/50 active:scale-95 transition-all backdrop-blur-sm shadow-[0_0_20px_rgba(168,85,247,0.2)]"
-                            onTouchStart={(e) => { e.preventDefault(); handleTouch('jetpack', true); }}
-                            onTouchEnd={(e) => { e.preventDefault(); handleTouch('jetpack', false); }}
-                        >
-                            <div className="flex flex-col items-center">
-                                <Rocket size={32} className="text-purple-200" />
-                                <span className="text-[10px] font-bold text-purple-300 uppercase tracking-wider mt-1">FLY</span>
-                            </div>
-                        </button>
-                    </div>
-                </div>
-
-                <DevButton />
-
-                {/* Version Overlay */}
-                <div className="absolute bottom-1 right-1 text-[10px] text-slate-600 font-mono opacity-50 pointer-events-none">
-                    {Constants.APP_VERSION}
-                </div>
+                {/* Action Buttons with Custom Layout */}
+                {renderButton('jumpBtn', 'jump', <ArrowUp size={32 * globalScale} className="text-cyan-200" />, 80, 
+                    'bg-cyan-900/40 border-2 border-cyan-500/50 active:bg-cyan-500/50')}
+                {renderButton('jetpackBtn', 'jetpack', 
+                    <div className="flex flex-col items-center">
+                        <Rocket size={32 * globalScale} className="text-purple-200" />
+                        <span className="text-[10px] font-bold text-purple-300 uppercase">FLY</span>
+                    </div>, 
+                    96, 'bg-purple-900/40 border-2 border-purple-500/50 active:bg-purple-500/50 shadow-[0_0_20px_rgba(168,85,247,0.2)]')}
             </div>
         );
     }
@@ -467,88 +487,29 @@ export const TouchControls = ({ inputRef, mode, layout = { scale: 1, x: 0, y: 0 
     // --- JOYSTICK MODE: Action Buttons ONLY (Joystick is separate) ---
     if (mode === 'JOYSTICK') {
         return (
-            <div className="absolute inset-0 pointer-events-none z-[100]" style={containerStyle}>
-                <DevButton />
-
-                {/* Version Overlay */}
-                <div className="absolute bottom-1 right-1 text-[10px] text-slate-600 font-mono opacity-50 pointer-events-none">
-                    {Constants.APP_VERSION}
-                </div>
-
-                <div className="absolute bottom-8 right-8 flex flex-col gap-4 items-center pointer-events-auto">
-                    {/* Jetpack (Top) */}
-                    <button
-                        className="w-16 h-16 bg-purple-900/40 border-2 border-purple-500/50 rounded-full flex items-center justify-center active:bg-purple-500/50 active:scale-95 transition-all backdrop-blur-sm shadow-[0_0_20px_rgba(168,85,247,0.2)]"
-                        onTouchStart={(e) => { e.preventDefault(); handleTouch('jetpack', true); }}
-                        onTouchEnd={(e) => { e.preventDefault(); handleTouch('jetpack', false); }}
-                    >
-                        <Rocket size={24} className="text-purple-200" />
-                    </button>
-
-                    {/* Jump (Bottom) */}
-                    <button
-                        className="w-20 h-20 bg-cyan-900/40 border-2 border-cyan-500/50 rounded-full flex items-center justify-center active:bg-cyan-500/50 active:scale-95 transition-all backdrop-blur-sm"
-                        onTouchStart={(e) => { e.preventDefault(); handleTouch('jump', true); }}
-                        onTouchEnd={(e) => { e.preventDefault(); handleTouch('jump', false); }}
-                    >
-                        <ArrowUp size={32} className="text-cyan-200" />
-                    </button>
-                </div>
+            <div className="absolute inset-0 pointer-events-none z-[100]">
+                {renderButton('jumpBtn', 'jump', <ArrowUp size={32 * globalScale} className="text-cyan-200" />, 80, 
+                    'bg-cyan-900/40 border-2 border-cyan-500/50 active:bg-cyan-500/50')}
+                {renderButton('jetpackBtn', 'jetpack', <Rocket size={24 * globalScale} className="text-purple-200" />, 64, 
+                    'bg-purple-900/40 border-2 border-purple-500/50 active:bg-purple-500/50 shadow-[0_0_20px_rgba(168,85,247,0.2)]')}
             </div>
         );
     }
 
-    // --- BUTTONS MODE: Arrows + Actions ---
-    const transformStyle = {
-        transform: `translate(${layout.x}px, ${layout.y}px)`
-    };
-
+    // --- BUTTONS MODE: Arrows + Actions with custom layout ---
     return (
-        <div className="absolute inset-0 pointer-events-none z-[100] flex flex-col justify-end" style={{ ...containerStyle, ...transformStyle }}>
-            <div className="flex justify-between items-end w-full mb-4 px-6">
-                {/* Left: Arrows */}
-                <div className="flex gap-8 pointer-events-auto">
-                    <button
-                        className="w-20 h-20 bg-slate-900/40 border-2 border-slate-500/50 rounded-full flex items-center justify-center active:bg-slate-700/50 active:scale-95 transition-all backdrop-blur-sm"
-                        onTouchStart={(e) => { e.preventDefault(); handleTouch('left', true); }}
-                        onTouchEnd={(e) => { e.preventDefault(); handleTouch('left', false); }}
-                    >
-                        <ChevronLeft size={32} className="text-white" />
-                    </button>
-                    <button
-                        className="w-20 h-20 bg-slate-900/40 border-2 border-slate-500/50 rounded-full flex items-center justify-center active:bg-slate-700/50 active:scale-95 transition-all backdrop-blur-sm"
-                        onTouchStart={(e) => { e.preventDefault(); handleTouch('right', true); }}
-                        onTouchEnd={(e) => { e.preventDefault(); handleTouch('right', false); }}
-                    >
-                        <ChevronRight size={32} className="text-white" />
-                    </button>
-                </div>
-
-                {/* Right: Actions */}
-                <div className="flex gap-8 pointer-events-auto">
-                    <button
-                        className="w-20 h-20 bg-cyan-900/40 border-2 border-cyan-500/50 rounded-full flex items-center justify-center active:bg-cyan-500/50 active:scale-95 transition-all backdrop-blur-sm"
-                        onTouchStart={(e) => { e.preventDefault(); handleTouch('jump', true); }}
-                        onTouchEnd={(e) => { e.preventDefault(); handleTouch('jump', false); }}
-                    >
-                        <ArrowUp size={32} className="text-cyan-200" />
-                    </button>
-                    <button
-                        className="w-24 h-24 bg-purple-900/40 border-2 border-purple-500/50 rounded-full flex items-center justify-center active:bg-purple-500/50 active:scale-95 transition-all backdrop-blur-sm shadow-[0_0_20px_rgba(168,85,247,0.2)]"
-                        onTouchStart={(e) => { e.preventDefault(); handleTouch('jetpack', true); }}
-                        onTouchEnd={(e) => { e.preventDefault(); handleTouch('jetpack', false); }}
-                    >
-                        <Rocket size={32} className="text-purple-200" />
-                    </button>
-                </div>
-            </div>
-
-            <DevButton />
-
-            {/* Version Overlay */}
-            <div className="absolute bottom-1 right-1 text-[10px] text-slate-600 font-mono opacity-50 pointer-events-none">
-                {Constants.APP_VERSION}
-            </div>
+        <div className="absolute inset-0 pointer-events-none z-[100]">
+            {/* Arrows */}
+            {renderButton('leftArrow', 'left', <ChevronLeft size={32 * globalScale} className="text-white" />, 80, 
+                'bg-slate-900/40 border-2 border-slate-500/50 active:bg-slate-700/50')}
+            {renderButton('rightArrow', 'right', <ChevronRight size={32 * globalScale} className="text-white" />, 80, 
+                'bg-slate-900/40 border-2 border-slate-500/50 active:bg-slate-700/50')}
+            
+            {/* Actions */}
+            {renderButton('jumpBtn', 'jump', <ArrowUp size={32 * globalScale} className="text-cyan-200" />, 80, 
+                'bg-cyan-900/40 border-2 border-cyan-500/50 active:bg-cyan-500/50')}
+            {renderButton('jetpackBtn', 'jetpack', <Rocket size={32 * globalScale} className="text-purple-200" />, 96, 
+                'bg-purple-900/40 border-2 border-purple-500/50 active:bg-purple-500/50 shadow-[0_0_20px_rgba(168,85,247,0.2)]')}
         </div>
     );
 };
