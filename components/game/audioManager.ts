@@ -359,14 +359,6 @@ export class SoundManager {
         osc.stop(time + duration);
     }
 
-    playHover() {
-        // Assuming 'play' method exists elsewhere or is intended to be added.
-        // For now, this will cause a compile error if 'play' is not defined.
-        // This part of the instruction seems to be a partial snippet or depends on other changes.
-        // Keeping it as provided, but noting potential issue.
-        // this.play('hover'); 
-    }
-
     setVolume(volume: number) {
         // Clamp volume between 0 and 1
         const v = Math.max(0, Math.min(1, volume));

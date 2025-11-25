@@ -49,7 +49,19 @@ export const updatePlayerPhysics = (props: PhysicsUpdateProps): void => {
     } = props;
 
     const cfg = config;
-    const timeScale = props.dt / (1000 / 60); // Normalize to 60 FPS
+    // Normalize to 60 FPS with clamping to prevent extreme values
+    const rawTimeScale = props.dt / (1000 / 60);
+    const timeScale = Math.min(Math.max(rawTimeScale, 0.1), 3.0); // Clamp between 0.1 and 3.0
+
+    // Safety check for NaN values in player state
+    if (isNaN(player.x) || isNaN(player.y) || isNaN(player.vx) || isNaN(player.vy)) {
+        player.x = (cfg.VIEWPORT_WIDTH || 1200) / 2;
+        player.y = 0;
+        player.vx = 0;
+        player.vy = 0;
+        console.warn('Physics: Reset player due to NaN values');
+        return;
+    }
 
     // --- JUMP COOLDOWN (ANTI-SPAM) ---
     if (player.jumpCooldown > 0) {
@@ -200,6 +212,9 @@ export const updatePlayerPhysics = (props: PhysicsUpdateProps): void => {
     const prevFeet = prevY + player.height;
 
     for (const p of platforms) {
+        // Skip invalid platforms
+        if (!p || typeof p.x !== 'number' || typeof p.y !== 'number') continue;
+        
         if (p.collectible && !p.collectible.collected) {
             const cX = p.x + p.collectible.x + p.collectible.width / 2;
             const cY = p.y + p.collectible.y + p.collectible.height / 2;
@@ -207,7 +222,9 @@ export const updatePlayerPhysics = (props: PhysicsUpdateProps): void => {
             const pCenterY = player.y + player.height / 2;
 
             const dist = Math.sqrt((cX - pCenterX) ** 2 + (cY - pCenterY) ** 2);
-            if (dist < (player.width / 2 + p.collectible.width)) {
+            // Improved collision radius calculation
+            const collisionRadius = Math.max(player.width / 2, p.collectible.width) * 0.8;
+            if (dist < collisionRadius) {
                 p.collectible.collected = true;
                 if (p.collectible.type === 'FUEL') {
                     const refillAmount = cfg.FUEL_REFILL_AMOUNT;
@@ -238,8 +255,13 @@ export const updatePlayerPhysics = (props: PhysicsUpdateProps): void => {
                 yOffset = Math.sin(timeElapsed * 1 + p.x * 0.01) * 5;
             }
             const platformTop = p.y + yOffset;
-            const inX = player.x + player.width * 0.8 > p.x && player.x + player.width * 0.2 < p.x + p.width;
-            const crossedPlatform = prevFeet <= platformTop + 15 && feet >= platformTop;
+            // Improved horizontal collision detection with better margins
+            const playerLeft = player.x + player.width * 0.15;
+            const playerRight = player.x + player.width * 0.85;
+            const inX = playerRight > p.x && playerLeft < p.x + p.width;
+            // Improved vertical crossing detection with velocity-based tolerance
+            const velocityTolerance = Math.max(15, Math.abs(player.vy) * 0.5);
+            const crossedPlatform = prevFeet <= platformTop + velocityTolerance && feet >= platformTop - 5;
 
 
             if (inX && crossedPlatform) {

@@ -23,7 +23,7 @@ import { useInputController } from './game/hooks/useInputController';
 // --- UI Components ---
 import { CalibrationModal, GameOverMenu, StartScreen, PauseMenu, ControlsModal, LeftSidebar, RightSidebar, ShopModal, TouchControls, PortraitLock, LayoutEditorModal, SensorDebugModal } from './game/ui';
 import { DevEditor } from './game/DevEditor';
-import { SettingsModal } from './game/SettingsModalNew';
+import { UserSettingsModal } from './game/UserSettingsModal';
 import { SkillTreeShop } from './game/SkillTreeShop';
 import { VirtualJoystick } from './game/VirtualJoystick';
 
@@ -143,7 +143,8 @@ const GameCanvas: React.FC = () => {
     const { handleCanvasMouseDown, handleCanvasMouseMove, handleCanvasMouseUp, handleFirstInteraction } = useInputController({
         inputRef, stateRef, setGameState, configRef, canvasRef, playerRef, platformsRef, cameraRef, zoomRef, mouseRef,
         editorTool, setEditorTool, selectedPlatformId, setSelectedPlatformId, handleStart, showGameOverMenu, showCalibration,
-        setShowCalibration, gyroEnabled, setRawTiltDebug, setTiltDebug, calibrationRef
+        setShowCalibration, gyroEnabled, setGyroEnabled, setRawTiltDebug, setTiltDebug, calibrationRef,
+        mobileControlMode: gameState.mobileControlMode // Pass as reactive prop
     });
 
     // --- Load Persistence ---
@@ -156,6 +157,8 @@ const GameCanvas: React.FC = () => {
         const savedControlMode = Persistence.loadControlMode();
         const savedLeaderboard = Persistence.loadLeaderboard();
         const savedCal = Persistence.loadCalibration();
+        const savedHideMotionDebug = localStorage.getItem('HIDE_MOTION_DEBUG') === 'true';
+        const savedInvertMotion = localStorage.getItem('INVERT_MOTION') === 'true';
 
         if (savedCal) calibrationRef.current = savedCal;
 
@@ -165,7 +168,9 @@ const GameCanvas: React.FC = () => {
             maxAltitude: savedMaxAlt,
             totalCoins: savedCoins,
             mobileControlMode: savedControlMode || 'BUTTONS',
-            upgrades: { ...prev.upgrades, ...savedUpgrades }
+            upgrades: { ...prev.upgrades, ...savedUpgrades },
+            hideMotionDebug: savedHideMotionDebug,
+            invertMotion: savedInvertMotion
         }));
 
         // Auto-enable gyro state if TILT mode was saved (for Android/non-strict envs)
@@ -284,6 +289,7 @@ const GameCanvas: React.FC = () => {
                         onOpenSettings={() => setShowSettings(true)}
                         selectedIndex={menuIndex}
                         gyroEnabled={gyroEnabled}
+                        setGyroEnabled={setGyroEnabled}
                     />
                 )}
 
@@ -298,6 +304,7 @@ const GameCanvas: React.FC = () => {
                                     try {
                                         const permission = await (DeviceOrientationEvent as any).requestPermission();
                                         if (permission === 'granted') {
+                                            setGyroEnabled(true);
                                             setGameState((p: any) => ({ ...p, mobileControlMode: 'TILT' }));
                                         } else {
                                             alert('⚠️ Permission denied. Enable sensors in browser settings.');
@@ -307,9 +314,11 @@ const GameCanvas: React.FC = () => {
                                     }
                                 } else {
                                     // Android or desktop - no permission needed
+                                    setGyroEnabled(true);
                                     setGameState((p: any) => ({ ...p, mobileControlMode: 'TILT' }));
                                 }
                             } else {
+                                setGyroEnabled(false);
                                 setGameState(prev => ({ ...prev, mobileControlMode: mode }));
                             }
                         }}
@@ -388,6 +397,7 @@ const GameCanvas: React.FC = () => {
                         mode={gameState.mobileControlMode}
                         layout={controlLayout}
                         gameState={gameState}
+                        hideMotionDebug={gameState.hideMotionDebug}
                     />
 
                     {/* 2. Virtual Joystick */}
@@ -414,38 +424,11 @@ const GameCanvas: React.FC = () => {
                 {Constants.APP_VERSION}
             </div>
 
-            {/* DEV BUTTON - Centered at top for mobile (PASSWORD PROTECTED) */}
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 flex gap-3 z-50 pointer-events-auto">
-                <button
-                    onClick={() => {
-                        const password = prompt('🔐 Enter DEV password:');
-                        if (password === 'chocopro') {
-                            setShowDevEditor(true);
-                            setGameState(prev => ({ ...prev, isPaused: true })); // Pause game when dev editor opens
-                        } else if (password !== null) {
-                            alert('❌ Incorrect password');
-                        }
-                    }}
-                    className="px-3 py-2 bg-purple-900/70 border border-purple-500/60 rounded-lg backdrop-blur-md text-purple-300 font-bold text-xs uppercase tracking-widest hover:bg-purple-800/90 hover:shadow-[0_0_20px_rgba(168,85,247,0.5)] transition-all shadow-lg flex items-center gap-1.5"
-                >
-                    <Settings size={14} /> DEV
-                </button>
+            {/* DEV BUTTON - DISABLED FOR USER VERSION */}
 
-                {/* EDITOR BUTTON DISABLED PER USER REQUEST */}
-                {/* <button
-                    onClick={() => {
-                        setShowDevEditor(true);
-                        // Don't pause - let user edit while seeing the game
-                    }}
-                    className="px-3 py-2 bg-red-900/70 border border-red-500/60 rounded-lg backdrop-blur-md text-red-300 font-bold text-xs uppercase tracking-widest hover:bg-red-800/90 hover:shadow-[0_0_20px_rgba(239,68,68,0.5)] transition-all shadow-lg flex items-center gap-1.5"
-                >
-                    <Edit size={14} /> EDITOR
-                </button> */}
-            </div>
-
-            {/* SETTINGS MODAL */}
+            {/* USER SETTINGS MODAL */}
             {showSettings && (
-                <SettingsModal
+                <UserSettingsModal
                     onClose={() => setShowSettings(false)}
                     gameState={gameState}
                     setGameState={setGameState}
@@ -453,6 +436,11 @@ const GameCanvas: React.FC = () => {
                     setConfig={(newConfig: any) => {
                         configRef.current = { ...configRef.current, ...newConfig };
                         setForceUpdate(p => p + 1);
+                    }}
+                    onOpenDevConsole={() => {
+                        setShowSettings(false);
+                        setShowDevEditor(true);
+                        setGameState((p: any) => ({ ...p, isPaused: true }));
                     }}
                 />
             )}

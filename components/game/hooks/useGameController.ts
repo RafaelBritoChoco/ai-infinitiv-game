@@ -68,7 +68,9 @@ export const useGameController = (props: GameControllerProps) => {
         combo: 0,
         selectedSkin: SKINS[0], // FIX: Initialize with valid skin, not empty placeholder
         upgrades: { maxFuel: 0, efficiency: 0, luck: 0, jump: 0, shield: 0, aerodynamics: 0 },
-        hitStop: 0
+        hitStop: 0,
+        hideMotionDebug: false, // Hide motion level bar and RAW debug
+        invertMotion: false // Invert motion controls
     });
 
     const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);

@@ -145,6 +145,8 @@ export interface GameState {
   hitStop: number; // Frame freeze counter
   showHitboxes?: boolean; // Debug: Show hitboxes
   godMode?: boolean; // Debug: Invincibility
+  hideMotionDebug?: boolean; // Hide motion visual indicators during gameplay
+  invertMotion?: boolean; // Invert motion controls for rotated screen
 }
 
 export interface Player {

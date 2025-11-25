@@ -15,15 +15,36 @@ export const SensorDebugModal = ({ onClose }: { onClose: () => void }) => {
     const [motion, setMotion] = useState<any>({});
     const [counts, setCounts] = useState({ orient: 0, abs: 0, motion: 0 });
     const [perms, setPerms] = useState<string>("Unknown");
+    const [sensorStatus, setSensorStatus] = useState<'checking' | 'working' | 'blocked' | 'no-data'>('checking');
+    const [isBrave, setIsBrave] = useState(false);
 
     useEffect(() => {
+        // Detect Brave browser
+        (navigator as any).brave?.isBrave().then((result: boolean) => setIsBrave(result)).catch(() => {});
+        // Also check user agent
+        if (navigator.userAgent.includes('Brave')) setIsBrave(true);
+
+        let hasReceivedValidData = false;
+        let checkTimeout: NodeJS.Timeout;
+
         const handleOrient = (e: DeviceOrientationEvent) => {
             setOrientation({ a: e.alpha, b: e.beta, g: e.gamma, abs: e.absolute });
             setCounts(p => ({ ...p, orient: p.orient + 1 }));
+            
+            // Check if we have REAL data (not null/undefined)
+            if (e.gamma !== null && e.gamma !== undefined && e.beta !== null) {
+                hasReceivedValidData = true;
+                setSensorStatus('working');
+            }
         };
         const handleAbs = (e: any) => {
             setAbsolute({ a: e.alpha, b: e.beta, g: e.gamma, abs: e.absolute });
             setCounts(p => ({ ...p, abs: p.abs + 1 }));
+            
+            if (e.gamma !== null && e.gamma !== undefined) {
+                hasReceivedValidData = true;
+                setSensorStatus('working');
+            }
         };
         const handleMotion = (e: DeviceMotionEvent) => {
             setMotion({
@@ -32,16 +53,29 @@ export const SensorDebugModal = ({ onClose }: { onClose: () => void }) => {
                 rot: e.rotationRate
             });
             setCounts(p => ({ ...p, motion: p.motion + 1 }));
+            
+            if (e.accelerationIncludingGravity?.x !== null) {
+                hasReceivedValidData = true;
+                setSensorStatus('working');
+            }
         };
 
         window.addEventListener('deviceorientation', handleOrient);
         window.addEventListener('deviceorientationabsolute', handleAbs);
         window.addEventListener('devicemotion', handleMotion);
 
+        // After 3 seconds, check if we got valid data
+        checkTimeout = setTimeout(() => {
+            if (!hasReceivedValidData) {
+                setSensorStatus('blocked');
+            }
+        }, 3000);
+
         return () => {
             window.removeEventListener('deviceorientation', handleOrient);
             window.removeEventListener('deviceorientationabsolute', handleAbs);
             window.removeEventListener('devicemotion', handleMotion);
+            clearTimeout(checkTimeout);
         };
     }, []);
 
@@ -59,6 +93,8 @@ export const SensorDebugModal = ({ onClose }: { onClose: () => void }) => {
         }
     };
 
+    const isBraveDetected = isBrave || navigator.userAgent.includes('Brave');
+
     return (
         <div className="fixed inset-0 z-[300] bg-black/95 text-white p-6 overflow-y-auto font-mono text-xs">
             <div className="flex justify-between items-center mb-4 border-b border-slate-700 pb-2">
@@ -67,37 +103,77 @@ export const SensorDebugModal = ({ onClose }: { onClose: () => void }) => {
             </div>
 
             <div className="space-y-4">
+                {/* STATUS ALERT */}
+                {sensorStatus === 'blocked' && (
+                    <div className="bg-red-900/50 border-2 border-red-500 p-4 rounded-lg animate-pulse">
+                        <h3 className="font-bold text-red-400 text-lg mb-2">⚠️ SENSORS BLOCKED!</h3>
+                        <p className="text-red-200 mb-3">Your browser is blocking motion sensors. Values are empty/null.</p>
+                        
+                        {isBraveDetected ? (
+                            <div className="bg-orange-900/50 p-3 rounded border border-orange-500 mb-3">
+                                <h4 className="font-bold text-orange-400 mb-2">🦁 BRAVE BROWSER DETECTED</h4>
+                                <p className="text-orange-200 text-xs mb-2">Brave blocks sensors by default for privacy.</p>
+                                <ol className="text-orange-100 text-xs space-y-1 list-decimal list-inside">
+                                    <li>Tap the <strong>Brave Shield icon</strong> (lion) in address bar</li>
+                                    <li>Turn OFF "Block Fingerprinting"</li>
+                                    <li>Or use <strong>Chrome/Samsung Internet</strong> instead</li>
+                                </ol>
+                            </div>
+                        ) : (
+                            <div className="bg-yellow-900/50 p-3 rounded border border-yellow-500">
+                                <h4 className="font-bold text-yellow-400 mb-2">💡 Try these fixes:</h4>
+                                <ol className="text-yellow-100 text-xs space-y-1 list-decimal list-inside">
+                                    <li>Use <strong>Chrome</strong> or <strong>Samsung Internet</strong></li>
+                                    <li>Check browser settings for "Motion Sensors"</li>
+                                    <li>Reload the page after changing settings</li>
+                                </ol>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {sensorStatus === 'working' && (
+                    <div className="bg-green-900/50 border-2 border-green-500 p-4 rounded-lg">
+                        <h3 className="font-bold text-green-400 text-lg">✅ SENSORS WORKING!</h3>
+                        <p className="text-green-200">Motion controls should work. Close this and play!</p>
+                    </div>
+                )}
+
+                {sensorStatus === 'checking' && (
+                    <div className="bg-blue-900/50 border-2 border-blue-500 p-4 rounded-lg">
+                        <h3 className="font-bold text-blue-400 text-lg flex items-center gap-2">
+                            <Loader2 className="animate-spin" size={20} /> Checking sensors...
+                        </h3>
+                        <p className="text-blue-200">Tilt your device to test.</p>
+                    </div>
+                )}
+
                 <div className="bg-slate-900 p-3 rounded border border-slate-700">
                     <h3 className="font-bold text-yellow-400 mb-2">ENVIRONMENT</h3>
                     <div>Secure Context (HTTPS): <span className={window.isSecureContext ? "text-green-400" : "text-red-500"}>{window.isSecureContext ? "YES" : "NO"}</span></div>
-                    <div>User Agent: {navigator.userAgent}</div>
+                    <div>Browser: <span className={isBraveDetected ? "text-orange-400" : "text-slate-300"}>{isBraveDetected ? "Brave (may block sensors)" : "Chrome/Other"}</span></div>
                     <div>Permission State: {perms}</div>
                     <button onClick={requestPerms} className="mt-2 px-3 py-1 bg-blue-900 text-blue-200 rounded border border-blue-700">Request Permission</button>
                 </div>
 
                 <div className="bg-slate-900 p-3 rounded border border-slate-700">
                     <h3 className="font-bold text-cyan-400 mb-2">DEVICE ORIENTATION (Standard)</h3>
-                    <div>Events Fired: {counts.orient}</div>
-                    <div>Alpha (Compass): {orientation.a?.toFixed(2)}</div>
-                    <div>Beta (Front/Back): {orientation.b?.toFixed(2)}</div>
-                    <div>Gamma (Left/Right): {orientation.g?.toFixed(2)}</div>
-                    <div>Absolute: {orientation.abs ? "YES" : "NO"}</div>
+                    <div>Events Fired: <span className={counts.orient > 5 ? "text-green-400" : "text-yellow-400"}>{counts.orient}</span></div>
+                    <div>Alpha (Compass): <span className={orientation.a !== undefined && orientation.a !== null ? "text-green-400" : "text-red-400"}>{orientation.a?.toFixed(2) || "NULL ❌"}</span></div>
+                    <div>Beta (Front/Back): <span className={orientation.b !== undefined && orientation.b !== null ? "text-green-400" : "text-red-400"}>{orientation.b?.toFixed(2) || "NULL ❌"}</span></div>
+                    <div>Gamma (Left/Right): <span className={orientation.g !== undefined && orientation.g !== null ? "text-green-400" : "text-red-400"}>{orientation.g?.toFixed(2) || "NULL ❌"}</span></div>
                 </div>
 
                 <div className="bg-slate-900 p-3 rounded border border-slate-700">
                     <h3 className="font-bold text-purple-400 mb-2">ORIENTATION ABSOLUTE (Android)</h3>
                     <div>Events Fired: {counts.abs}</div>
-                    <div>Alpha: {absolute.a?.toFixed(2)}</div>
-                    <div>Beta: {absolute.b?.toFixed(2)}</div>
-                    <div>Gamma: {absolute.g?.toFixed(2)}</div>
+                    <div>Gamma: <span className={absolute.g !== undefined && absolute.g !== null ? "text-green-400" : "text-red-400"}>{absolute.g?.toFixed(2) || "NULL ❌"}</span></div>
                 </div>
 
                 <div className="bg-slate-900 p-3 rounded border border-slate-700">
                     <h3 className="font-bold text-green-400 mb-2">DEVICE MOTION (Accel)</h3>
                     <div>Events Fired: {counts.motion}</div>
-                    <div>AccG X: {motion.accG?.x?.toFixed(2)}</div>
-                    <div>AccG Y: {motion.accG?.y?.toFixed(2)}</div>
-                    <div>AccG Z: {motion.accG?.z?.toFixed(2)}</div>
+                    <div>AccG X: <span className={motion.accG?.x !== undefined && motion.accG?.x !== null ? "text-green-400" : "text-red-400"}>{motion.accG?.x?.toFixed(2) || "NULL ❌"}</span></div>
                 </div>
             </div>
         </div>
@@ -279,7 +355,7 @@ export const CharacterPreview = ({ skin }: { skin: CharacterSkin }) => {
     );
 };
 
-export const TouchControls = ({ inputRef, mode, layout = { scale: 1, x: 0, y: 0 }, gameState, onOpenSettings }: { inputRef: any, mode: 'BUTTONS' | 'TILT' | 'JOYSTICK', layout?: any, gameState?: any, onOpenSettings?: () => void }) => {
+export const TouchControls = ({ inputRef, mode, layout = { scale: 1, x: 0, y: 0 }, gameState, onOpenSettings, hideMotionDebug = false }: { inputRef: any, mode: 'BUTTONS' | 'TILT' | 'JOYSTICK', layout?: any, gameState?: any, onOpenSettings?: () => void, hideMotionDebug?: boolean }) => {
     // Don't render if not playing, or if in JOYSTICK mode (VirtualJoystick handles that)
     // Strict Rendering Check
     if (!gameState?.isPlaying || gameState?.isGameOver || gameState?.isPaused) {
@@ -326,29 +402,31 @@ export const TouchControls = ({ inputRef, mode, layout = { scale: 1, x: 0, y: 0 
 
         return (
             <div className="absolute inset-0 pointer-events-none z-[100] flex flex-col justify-end" style={containerStyle}>
-                {/* Center: Bubble Level Indicator */}
-                <div className="absolute bottom-32 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-80">
-                    <div className="w-48 h-4 bg-slate-900/80 rounded-full border border-slate-600 relative overflow-hidden shadow-lg backdrop-blur-sm">
-                        {/* Center Marker */}
-                        <div className="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 w-8 bg-slate-700/50 border-x border-slate-500/30"></div>
-                        {/* The Bubble */}
-                        <div
-                            className={`absolute top-0.5 bottom-0.5 w-8 rounded-full transition-transform duration-100 will-change-transform ${isLevel ? 'bg-green-400 shadow-[0_0_10px_#4ade80]' : 'bg-cyan-400'}`}
-                            style={{
-                                left: '50%',
-                                marginLeft: '-16px', // Half width to center
-                                transform: `translateX(${bubblePos}px)`
-                            }}
-                        ></div>
+                {/* Center: Bubble Level Indicator - Only show if hideMotionDebug is false */}
+                {!hideMotionDebug && (
+                    <div className="absolute bottom-32 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-80">
+                        <div className="w-48 h-4 bg-slate-900/80 rounded-full border border-slate-600 relative overflow-hidden shadow-lg backdrop-blur-sm">
+                            {/* Center Marker */}
+                            <div className="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 w-8 bg-slate-700/50 border-x border-slate-500/30"></div>
+                            {/* The Bubble */}
+                            <div
+                                className={`absolute top-0.5 bottom-0.5 w-8 rounded-full transition-transform duration-100 will-change-transform ${isLevel ? 'bg-green-400 shadow-[0_0_10px_#4ade80]' : 'bg-cyan-400'}`}
+                                style={{
+                                    left: '50%',
+                                    marginLeft: '-16px', // Half width to center
+                                    transform: `translateX(${bubblePos}px)`
+                                }}
+                            ></div>
+                        </div>
+                        <span className={`text-[10px] font-bold tracking-widest uppercase ${isLevel ? 'text-green-400' : 'text-slate-500'}`}>
+                            {isLevel ? 'LEVEL' : 'TILT TO STEER'}
+                        </span>
+                        {/* DEBUG OVERLAY */}
+                        <div className="mt-2 text-[10px] font-mono text-cyan-500 bg-black/50 px-2 py-1 rounded">
+                            RAW: {inputRef.current?.lastDebugValue?.toFixed(2) || '0.00'}
+                        </div>
                     </div>
-                    <span className={`text-[10px] font-bold tracking-widest uppercase ${isLevel ? 'text-green-400' : 'text-slate-500'}`}>
-                        {isLevel ? 'LEVEL' : 'TILT TO STEER'}
-                    </span>
-                    {/* DEBUG OVERLAY */}
-                    <div className="mt-2 text-[10px] font-mono text-cyan-500 bg-black/50 px-2 py-1 rounded">
-                        RAW: {inputRef.current?.lastDebugValue?.toFixed(2) || '0.00'}
-                    </div>
-                </div>
+                )}
 
                 {/* Right: Action Buttons */}
                 <div className="flex justify-end items-end w-full mb-4 px-6">
@@ -676,8 +754,128 @@ export const DevConsole = ({ isOpen, onClose, configRef }: DevConsoleProps) => {
     );
 };
 
-// Keep old CalibrationModal name for compatibility but it's actually DevConsole now
-export const CalibrationModal = DevConsole;
+// ====================================================================================
+// CALIBRATION MODAL - Gyro/Motion Calibration
+// ====================================================================================
+
+export const CalibrationModal = ({ isOpen, onClose, configRef }: { isOpen: boolean; onClose: () => void; configRef: React.MutableRefObject<any> }) => {
+    const [sensitivity, setSensitivity] = useState(configRef.current?.GYRO_SENSITIVITY || 35);
+    const [offset, setOffset] = useState(0);
+    const [currentTilt, setCurrentTilt] = useState(0);
+    const [calibrated, setCalibrated] = useState(false);
+
+    useEffect(() => {
+        if (!isOpen) return;
+
+        const handleOrientation = (e: DeviceOrientationEvent) => {
+            const gamma = e.gamma || 0;
+            setCurrentTilt(gamma);
+        };
+
+        window.addEventListener('deviceorientation', handleOrientation);
+        return () => window.removeEventListener('deviceorientation', handleOrientation);
+    }, [isOpen]);
+
+    const handleCalibrate = () => {
+        // Set current position as zero
+        setOffset(currentTilt);
+        setCalibrated(true);
+        soundManager.playCollect();
+    };
+
+    const handleSave = () => {
+        // Save to configRef
+        if (configRef.current) {
+            configRef.current.GYRO_SENSITIVITY = sensitivity;
+        }
+        // Save calibration to localStorage
+        localStorage.setItem('GYRO_CALIBRATION', JSON.stringify({ offset, sensitivity }));
+        soundManager.playClick();
+        onClose();
+    };
+
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 z-[250] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4">
+            <div className="max-w-md w-full bg-slate-900 border border-cyan-500/30 rounded-2xl shadow-2xl overflow-hidden">
+                {/* Header */}
+                <div className="bg-slate-800 border-b border-slate-700 p-4 flex justify-between items-center">
+                    <h2 className="text-xl font-black text-cyan-400 flex items-center gap-2">
+                        <Settings size={20} /> CALIBRATION
+                    </h2>
+                    <button onClick={onClose} className="p-2 hover:bg-slate-700 rounded-full transition-all text-slate-400 hover:text-white">
+                        <X size={20} />
+                    </button>
+                </div>
+
+                <div className="p-6 space-y-6">
+                    {/* Current Tilt Display */}
+                    <div className="bg-slate-800 p-4 rounded-xl border border-slate-700">
+                        <div className="text-sm font-bold text-slate-400 mb-3 uppercase tracking-widest">Live Tilt Reading</div>
+                        <div className="relative h-8 bg-slate-900 rounded-full overflow-hidden">
+                            <div className="absolute left-1/2 top-0 bottom-0 w-1 bg-cyan-500 z-10"></div>
+                            <div 
+                                className="absolute top-1 bottom-1 w-6 bg-green-500 rounded-full transition-all duration-100 shadow-[0_0_10px_#22c55e]"
+                                style={{ 
+                                    left: `calc(50% + ${Math.max(-45, Math.min(45, (currentTilt - offset))) * 2}px - 12px)` 
+                                }}
+                            ></div>
+                        </div>
+                        <div className="flex justify-between mt-2 text-xs text-slate-500 font-mono">
+                            <span>-45°</span>
+                            <span className="text-cyan-400">{(currentTilt - offset).toFixed(1)}°</span>
+                            <span>+45°</span>
+                        </div>
+                    </div>
+
+                    {/* Calibrate Button */}
+                    <button 
+                        onClick={handleCalibrate}
+                        className={`w-full py-4 rounded-xl font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${
+                            calibrated 
+                                ? 'bg-green-900/50 border-2 border-green-500 text-green-400' 
+                                : 'bg-cyan-600 hover:bg-cyan-500 text-white'
+                        }`}
+                    >
+                        {calibrated ? <Check size={20} /> : <RotateCcw size={20} />}
+                        {calibrated ? 'CALIBRATED!' : 'SET CURRENT AS CENTER'}
+                    </button>
+
+                    {/* Sensitivity Slider */}
+                    <div className="bg-slate-800 p-4 rounded-xl border border-slate-700">
+                        <div className="flex justify-between mb-3">
+                            <span className="text-sm font-bold text-slate-400 uppercase tracking-widest">Sensitivity</span>
+                            <span className="text-sm font-mono text-cyan-400">{sensitivity}</span>
+                        </div>
+                        <input
+                            type="range"
+                            min="10"
+                            max="80"
+                            step="5"
+                            value={sensitivity}
+                            onChange={(e) => setSensitivity(parseInt(e.target.value))}
+                            className="w-full accent-cyan-500 h-2 bg-slate-700 rounded-lg cursor-pointer"
+                        />
+                        <div className="flex justify-between text-[10px] text-slate-600 mt-2">
+                            <span>LOW</span>
+                            <span>DEFAULT (35)</span>
+                            <span>HIGH</span>
+                        </div>
+                    </div>
+
+                    {/* Save Button */}
+                    <button
+                        onClick={handleSave}
+                        className="w-full py-4 bg-green-600 hover:bg-green-500 text-white rounded-xl font-bold uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-lg shadow-green-500/20"
+                    >
+                        <Save size={20} /> SAVE & CLOSE
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 // ====================================================================================
 // LEFT SIDEBAR
@@ -1072,11 +1270,12 @@ export const LayoutEditorModal = ({ onClose, layout, onSave }: any) => {
     );
 };
 
-export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInput, setShowAiInput, aiPrompt, setAiPrompt, isGeneratingSkin, handleGenerateSkin, handleStart, onOpenControls, onOpenCalibration, onOpenSettings, selectedIndex, gyroEnabled }: any) => {
+export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInput, setShowAiInput, aiPrompt, setAiPrompt, isGeneratingSkin, handleGenerateSkin, handleStart, onOpenControls, onOpenCalibration, onOpenSettings, selectedIndex, gyroEnabled, setGyroEnabled }: any) => {
     // SAFETY: Ensure availableSkins is always an array
     const safeSkins = Array.isArray(availableSkins) ? availableSkins : [];
 
     const [lang, setLang] = useState<'EN' | 'PT'>('EN');
+    const [showSensorDebug, setShowSensorDebug] = useState(false);
 
     const t = {
         EN: {
@@ -1259,29 +1458,46 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
                         {/* TILT/MOTION MODE */}
                         <button
                             onClick={async () => {
+                                console.log('MOTION button clicked');
                                 // Request motion permission first
                                 if (typeof DeviceOrientationEvent !== 'undefined' && typeof (DeviceOrientationEvent as any).requestPermission === 'function') {
+                                    console.log('iOS detected - requesting permission');
                                     try {
                                         const permission = await (DeviceOrientationEvent as any).requestPermission();
+                                        console.log('iOS permission result:', permission);
                                         if (permission === 'granted') {
+                                            if (setGyroEnabled) setGyroEnabled(true);
                                             setGameState((p: any) => ({ ...p, mobileControlMode: 'TILT' }));
                                         } else {
                                             alert('⚠️ Permission denied. Enable sensors in browser settings.');
                                         }
                                     } catch (e) {
+                                        console.error('Permission error:', e);
                                         alert('❌ Error requesting sensor permission.');
                                     }
                                 } else {
                                     // Android or desktop - no permission needed
+                                    console.log('Android/Desktop - no permission needed, enabling TILT');
+                                    if (setGyroEnabled) setGyroEnabled(true);
                                     setGameState((p: any) => ({ ...p, mobileControlMode: 'TILT' }));
                                 }
                             }}
-                            className={`py-3 md:py-4 rounded-xl border-2 font-bold text-[10px] md:text-sm flex flex-col items-center gap-2 transition-all ${gameState.mobileControlMode === 'TILT' ? 'bg-slate-800 border-cyan-500 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.2)]' : 'bg-slate-900/50 border-slate-800 text-slate-500 hover:border-slate-600'}`}
+                            className={`py-3 md:py-4 rounded-xl border-2 font-bold text-[10px] md:text-sm flex flex-col items-center gap-2 transition-all ${gameState.mobileControlMode === 'TILT' ? 'bg-green-800 border-green-500 text-green-400 shadow-[0_0_15px_rgba(34,197,94,0.3)]' : 'bg-slate-900/50 border-slate-800 text-slate-500 hover:border-slate-600'}`}
                         >
                             <Smartphone size={20} className="md:w-6 md:h-6" />
-                            MOTION
+                            {gameState.mobileControlMode === 'TILT' ? (gyroEnabled ? '✓ MOTION' : '⏳ MOTION') : 'MOTION'}
                         </button>
                     </div>
+
+                    {/* SENSOR DEBUG BUTTON - Only show when MOTION is selected */}
+                    {gameState.mobileControlMode === 'TILT' && (
+                        <button
+                            onClick={() => setShowSensorDebug(true)}
+                            className="w-full py-2 bg-cyan-900/50 border border-cyan-700 rounded-lg text-xs font-bold text-cyan-400 hover:bg-cyan-800/50 transition-all flex items-center justify-center gap-2"
+                        >
+                            <HelpCircle size={14} /> SENSOR DIAGNOSTICS
+                        </button>
+                    )}
 
                     {/* UTILS ROW */}
                     <div className="grid grid-cols-3 gap-2">
@@ -1309,6 +1525,9 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
                     <span>{t[lang].coins}: <span className="text-yellow-500">{gameState.totalCoins}</span></span>
                 </div>
             </div>
+
+            {/* SENSOR DEBUG MODAL */}
+            {showSensorDebug && <SensorDebugModal onClose={() => setShowSensorDebug(false)} />}
         </div>
     );
 };

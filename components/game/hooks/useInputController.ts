@@ -25,9 +25,11 @@ interface InputControllerProps {
     showCalibration: boolean;
     setShowCalibration: (v: boolean) => void;
     gyroEnabled: boolean;
+    setGyroEnabled: (v: boolean) => void;
     setRawTiltDebug: (v: number) => void;
     setTiltDebug: (v: number) => void;
     calibrationRef: React.MutableRefObject<any>;
+    mobileControlMode: 'BUTTONS' | 'TILT' | 'JOYSTICK'; // Added as real prop for reactivity
 }
 
 export const useInputController = (props: InputControllerProps) => {
@@ -35,7 +37,8 @@ export const useInputController = (props: InputControllerProps) => {
         inputRef, stateRef, setGameState, configRef, canvasRef, playerRef, platformsRef,
         cameraRef, zoomRef, mouseRef, editorTool, setEditorTool, selectedPlatformId,
         setSelectedPlatformId, handleStart, showGameOverMenu, showCalibration, setShowCalibration,
-        gyroEnabled, setRawTiltDebug, setTiltDebug, calibrationRef
+        gyroEnabled, setGyroEnabled, setRawTiltDebug, setTiltDebug, calibrationRef,
+        mobileControlMode
     } = props;
 
     const handleFirstInteraction = () => {
@@ -44,21 +47,33 @@ export const useInputController = (props: InputControllerProps) => {
     };
 
     // Motion Controls - Using Unified Manager
+    // This effect now uses mobileControlMode prop (reactive) instead of stateRef (non-reactive)
     useEffect(() => {
-        if (stateRef.current.mobileControlMode !== 'TILT') return;
+        console.log('Motion Effect: mobileControlMode =', mobileControlMode, 'gyroEnabled =', gyroEnabled);
+        
+        // Only run for TILT mode
+        if (mobileControlMode !== 'TILT') {
+            console.log('Motion: Not in TILT mode, skipping setup. Current mode:', mobileControlMode);
+            // Clean up any existing listeners if switching away from TILT
+            motionManager.stopListening();
+            return;
+        }
+
+        console.log('Motion: Setting up TILT controls');
 
         const handleOrientation = (event: DeviceOrientationEvent) => {
-            if (!gyroEnabled) return;
-
             const beta = event.beta || 0;
             const gamma = event.gamma || 0;
             let tilt = gamma;
 
+            // Store raw value for debug
+            inputRef.current.lastDebugValue = tilt;
+
             // Apply calibration
-            tilt -= calibrationRef.current.offset;
+            tilt -= calibrationRef.current.offset || 0;
 
             // Apply sensitivity and multiplier
-            const sensitivity = configRef.current.GYRO_SENSITIVITY * (configRef.current.MOBILE_SENSITIVITY_MULTIPLIER || 1);
+            const sensitivity = (configRef.current.GYRO_SENSITIVITY || 35) * (configRef.current.MOBILE_SENSITIVITY_MULTIPLIER || 1);
             const maxTiltAngle = 45;
             const effectiveMaxTilt = maxTiltAngle / (sensitivity / 20);
 
@@ -66,22 +81,25 @@ export const useInputController = (props: InputControllerProps) => {
             normalizedTilt = Math.max(-1, Math.min(1, normalizedTilt));
 
             // Apply deadzone
-            if (Math.abs(normalizedTilt) < configRef.current.GAMEPAD_DEADZONE) {
+            const deadzone = configRef.current.GAMEPAD_DEADZONE || 0.1;
+            if (Math.abs(normalizedTilt) < deadzone) {
                 normalizedTilt = 0;
             }
 
-            // Invert if needed
-            if (calibrationRef.current.inverted) normalizedTilt *= -1;
+            // Invert if needed (from calibration or user settings)
+            if (calibrationRef.current.inverted || stateRef.current.invertMotion) {
+                normalizedTilt *= -1;
+            }
 
             // Update input
             inputRef.current.tiltX = normalizedTilt;
             inputRef.current.targetTiltX = normalizedTilt;
 
-            // Debug
+            // Debug - update state for UI
             setRawTiltDebug(Math.round(tilt));
             setTiltDebug(Math.round(normalizedTilt * 100));
 
-            // Map to left/right
+            // Map to left/right for game movement
             if (normalizedTilt < -0.2) {
                 inputRef.current.left = true;
                 inputRef.current.right = false;
@@ -94,17 +112,32 @@ export const useInputController = (props: InputControllerProps) => {
             }
         };
 
-        // Request permission and start listening using unified manager
-        motionManager.requestWithUI().then(granted => {
-            if (granted) {
+        // Initialize motion controls
+        const initMotion = async () => {
+            console.log('Motion: Initializing...HTTPS:', window.isSecureContext);
+            
+            // Request permission (needed for iOS)
+            const status = await motionManager.requestPermission();
+            console.log('Motion: Permission status:', status);
+            
+            if (status === 'granted' || status === 'not-required') {
+                console.log('Motion: Starting listener...');
                 motionManager.startListening(handleOrientation);
+                // Confirm gyro is enabled
+                if (!gyroEnabled) setGyroEnabled(true);
+            } else {
+                console.warn('Motion: Permission denied or unavailable');
+                setGyroEnabled(false);
             }
-        });
+        };
+
+        initMotion();
 
         return () => {
+            console.log('Motion: Cleaning up listener');
             motionManager.stopListening(handleOrientation);
         };
-    }, [gyroEnabled, stateRef.current.mobileControlMode, inputRef, configRef, calibrationRef, setRawTiltDebug, setTiltDebug]);
+    }, [mobileControlMode, gyroEnabled]); // Now using reactive props
 
     // 3. Game Loop for Input Smoothing (Optional but good for analog feel)
     useEffect(() => {
