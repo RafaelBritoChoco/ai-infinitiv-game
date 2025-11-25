@@ -97,23 +97,52 @@ export default async function handler(request, response) {
                 });
             }
 
+            // Debug: ver formato dos scores
+            console.log('Scores raw:', JSON.stringify(scores));
+
             const leaderboard = [];
-            for (let i = 0; i < scores.length; i += 2) {
-                try {
-                    const data = JSON.parse(scores[i]);
-                    leaderboard.push({
-                        name: data.name,
-                        score: Number(scores[i + 1]),
-                        date: data.date,
-                        rank: Math.floor(i / 2) + 1
-                    });
-                } catch {
-                    leaderboard.push({
-                        name: String(scores[i]),
-                        score: Number(scores[i + 1]),
-                        date: null,
-                        rank: Math.floor(i / 2) + 1
-                    });
+            
+            // Upstash retorna array de objetos {score, member} ou array alternado [member, score]
+            if (Array.isArray(scores) && scores[0] && typeof scores[0] === 'object' && 'score' in scores[0]) {
+                // Formato: [{score: 297, member: "{...}"}, ...]
+                for (let i = 0; i < scores.length; i++) {
+                    const item = scores[i];
+                    try {
+                        const memberData = typeof item.member === 'string' ? JSON.parse(item.member) : item.member;
+                        leaderboard.push({
+                            name: memberData.name || 'Unknown',
+                            score: Number(item.score),
+                            date: memberData.date || null,
+                            rank: i + 1
+                        });
+                    } catch {
+                        leaderboard.push({
+                            name: String(item.member),
+                            score: Number(item.score),
+                            date: null,
+                            rank: i + 1
+                        });
+                    }
+                }
+            } else {
+                // Formato alternado: [member, score, member, score, ...]
+                for (let i = 0; i < scores.length; i += 2) {
+                    try {
+                        const data = typeof scores[i] === 'string' ? JSON.parse(scores[i]) : scores[i];
+                        leaderboard.push({
+                            name: data.name || 'Unknown',
+                            score: Number(scores[i + 1]),
+                            date: data.date || null,
+                            rank: Math.floor(i / 2) + 1
+                        });
+                    } catch {
+                        leaderboard.push({
+                            name: String(scores[i]),
+                            score: Number(scores[i + 1]),
+                            date: null,
+                            rank: Math.floor(i / 2) + 1
+                        });
+                    }
                 }
             }
 
