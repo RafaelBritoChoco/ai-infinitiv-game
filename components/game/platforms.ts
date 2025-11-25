@@ -135,10 +135,23 @@ export const createPlatform = (
     const spawnChance = 0.20 + (luckLevel * Constants.UPGRADE_LUCK_BONUS);
 
     if (gameMode !== 'TEST' && width > 60 && r6 < spawnChance) {
-        const isFuel = hasJetpack ? (r1 > 0.6) : false;
+        // Determine collectible type
+        // HEART: 5% chance (rare!)
+        // FUEL: 30% chance if has jetpack
+        // COIN: default
+        let collectibleType: 'FUEL' | 'COIN' | 'HEART' = 'COIN';
+        const heartChance = 0.05; // 5% chance for heart
+        const fuelChance = 0.35; // 35% chance for fuel if has jetpack
+        
+        if (r1 < heartChance) {
+            collectibleType = 'HEART';
+        } else if (hasJetpack && r1 < (heartChance + fuelChance)) {
+            collectibleType = 'FUEL';
+        }
+        
         collectible = {
             id: `c-${genCount}`,
-            type: isFuel ? 'FUEL' : 'COIN',
+            type: collectibleType,
             x: width / 2 - Constants.COLLECTIBLE_SIZE / 2,
             y: -Constants.COLLECTIBLE_SIZE - 10,
             baseY: -Constants.COLLECTIBLE_SIZE - 10,

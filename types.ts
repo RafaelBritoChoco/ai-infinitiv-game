@@ -27,7 +27,7 @@ export enum PlatformType {
   LATERAL_BOUNCE = 'LATERAL_BOUNCE' // NEW: Launches player sideways in parabolic arc
 }
 
-export type CollectibleType = 'FUEL' | 'COIN';
+export type CollectibleType = 'FUEL' | 'COIN' | 'HEART';
 
 export interface Collectible {
   id: string;

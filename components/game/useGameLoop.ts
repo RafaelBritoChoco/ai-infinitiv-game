@@ -470,18 +470,43 @@ export const useGameLoop = (props: GameLoopProps) => {
 
                 const coinColors = { 0: null, 1: '#713f12', 2: '#eab308', 3: '#fef08a' };
                 const fuelColors = { 0: null, 1: '#1e3a8a', 2: '#3b82f6', 3: '#60a5fa', 4: '#93c5fd' };
+                const heartColors = { 0: null, 1: '#7f1d1d', 2: '#ef4444', 3: '#fca5a5' };
 
                 ctx.save();
-                ctx.shadowBlur = 10 + (neonIntensity * 30);
-                ctx.shadowColor = p.collectible.type === 'FUEL' ? '#3b82f6' : '#eab308';
+                
+                // Different glow colors based on type
+                if (p.collectible.type === 'HEART') {
+                    ctx.shadowBlur = 15 + (neonIntensity * 35);
+                    ctx.shadowColor = '#ef4444';
+                    // Draw heart shape
+                    const heartSize = cSize * 0.8;
+                    const hx = cx + cSize / 2;
+                    const hy = cy + cSize / 2;
+                    ctx.fillStyle = '#ef4444';
+                    ctx.beginPath();
+                    ctx.moveTo(hx, hy + heartSize * 0.3);
+                    ctx.bezierCurveTo(hx, hy - heartSize * 0.1, hx - heartSize * 0.5, hy - heartSize * 0.1, hx - heartSize * 0.5, hy + heartSize * 0.1);
+                    ctx.bezierCurveTo(hx - heartSize * 0.5, hy + heartSize * 0.4, hx, hy + heartSize * 0.6, hx, hy + heartSize * 0.6);
+                    ctx.bezierCurveTo(hx, hy + heartSize * 0.6, hx + heartSize * 0.5, hy + heartSize * 0.4, hx + heartSize * 0.5, hy + heartSize * 0.1);
+                    ctx.bezierCurveTo(hx + heartSize * 0.5, hy - heartSize * 0.1, hx, hy - heartSize * 0.1, hx, hy + heartSize * 0.3);
+                    ctx.fill();
+                    // Inner highlight
+                    ctx.fillStyle = '#fca5a5';
+                    ctx.beginPath();
+                    ctx.arc(hx - heartSize * 0.2, hy + heartSize * 0.05, heartSize * 0.12, 0, Math.PI * 2);
+                    ctx.fill();
+                } else {
+                    ctx.shadowBlur = 10 + (neonIntensity * 30);
+                    ctx.shadowColor = p.collectible.type === 'FUEL' ? '#3b82f6' : '#eab308';
 
-                drawSimpleSprite(
-                    ctx,
-                    p.collectible.type === 'FUEL' ? COLLECTIBLE_SPRITES.FUEL : COLLECTIBLE_SPRITES.COIN,
-                    cx, cy, cSize,
-                    p.collectible.type === 'FUEL' ? fuelColors : coinColors,
-                    spinScale
-                );
+                    drawSimpleSprite(
+                        ctx,
+                        p.collectible.type === 'FUEL' ? COLLECTIBLE_SPRITES.FUEL : COLLECTIBLE_SPRITES.COIN,
+                        cx, cy, cSize,
+                        p.collectible.type === 'FUEL' ? fuelColors : coinColors,
+                        spinScale
+                    );
+                }
                 ctx.restore();
             }
         });

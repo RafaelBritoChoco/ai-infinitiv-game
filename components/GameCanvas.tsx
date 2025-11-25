@@ -2,7 +2,7 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import * as Constants from '../constants';
 import { Player, Platform, PlatformType, Particle, GameConfig, SaveNode, CharacterSkin, GameState, detectPerformanceMode } from '../types';
-import { Play, Move, Trash2, PlusSquare, Save, AlertTriangle, Pause, Settings, Edit } from 'lucide-react';
+import { Play, Move, Trash2, PlusSquare, Save, AlertTriangle, Pause, Settings, Edit, Volume2, VolumeX } from 'lucide-react';
 import './game/responsiveUI.css';
 
 // --- Sub-Module Imports ---
@@ -235,6 +235,7 @@ const GameCanvas: React.FC = () => {
                 <div
                     ref={containerRef}
                     className="relative w-full h-full max-w-4xl shadow-2xl"
+                    style={{ paddingBottom: gameState.isPlaying && typeof window !== 'undefined' && window.innerWidth < 768 ? '120px' : '0' }}
                 >
                     <div className="absolute inset-0 bg-red-600 pointer-events-none z-20 mix-blend-overlay transition-opacity duration-100" style={{ opacity: damageFlash * 0.5 }} />
 
@@ -258,12 +259,26 @@ const GameCanvas: React.FC = () => {
                     />
 
                     {gameState.isPlaying && !gameState.isGameOver && (
-                        <div className="absolute top-6 right-6 z-40">
+                        <div className="absolute top-6 right-6 z-40 flex flex-col gap-2">
                             <button
                                 onMouseEnter={() => soundManager.playHover()}
                                 onClick={() => { soundManager.playClick(); setGameState(p => ({ ...p, isPaused: !p.isPaused })); }}
                                 className="p-3 bg-black/50 backdrop-blur text-cyan-400 rounded-full border border-cyan-500/50 hover:bg-cyan-900/50 transition-all shadow-[0_0_10px_#06b6d4]">
                                 {gameState.isPaused ? <Play size={24} /> : <Pause size={24} />}
+                            </button>
+                            <button
+                                onClick={() => {
+                                    const currentVol = config.VOLUME_MASTER || 0.5;
+                                    const newVol = currentVol > 0 ? 0 : 0.5;
+                                    setConfig({ ...config, VOLUME_MASTER: newVol });
+                                    soundManager.setVolumes(newVol, config.VOLUME_MUSIC || 0.4, config.VOLUME_SFX || 0.6);
+                                }}
+                                className={`p-3 backdrop-blur rounded-full border transition-all ${
+                                    (config.VOLUME_MASTER || 0.5) > 0 
+                                        ? 'bg-black/50 text-green-400 border-green-500/50 hover:bg-green-900/50' 
+                                        : 'bg-black/50 text-red-400 border-red-500/50 hover:bg-red-900/50'
+                                }`}>
+                                {(config.VOLUME_MASTER || 0.5) > 0 ? <Volume2 size={20} /> : <VolumeX size={20} />}
                             </button>
                         </div>
                     )}

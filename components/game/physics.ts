@@ -234,6 +234,27 @@ export const updatePlayerPhysics = (props: PhysicsUpdateProps): void => {
                     floatingTextsRef.current.push({
                         id: Date.now() + Math.random(), x: cX, y: cY, text: "FUEL", color: "#3b82f6", life: 1.0, velocity: -2, size: 20
                     });
+                } else if (p.collectible.type === 'HEART') {
+                    // HEART - Recovers 1 health (max MAX_HEALTH)
+                    const currentHealth = gameState.health;
+                    const maxHealth = cfg.MAX_HEALTH || 3;
+                    if (currentHealth < maxHealth) {
+                        setGameState(prev => ({ ...prev, health: Math.min(maxHealth, prev.health + 1) }));
+                        soundManager.playPerfectJump();
+                        spawnParticles(particles, cX, cY, 25, '#ef4444', true, cfg);
+                        spawnParticles(particles, cX, cY, 15, '#fca5a5', true, cfg);
+                        floatingTextsRef.current.push({
+                            id: Date.now() + Math.random(), x: cX, y: cY, text: "❤️ +1", color: "#ef4444", life: 1.5, velocity: -3, size: 28
+                        });
+                    } else {
+                        // Full health - convert to coins
+                        setGameState(prev => ({ ...prev, runCoins: prev.runCoins + 5 }));
+                        soundManager.playCollect();
+                        spawnParticles(particles, cX, cY, 15, '#eab308', true, cfg);
+                        floatingTextsRef.current.push({
+                            id: Date.now() + Math.random(), x: cX, y: cY, text: "+ 5", color: "#facc15", life: 1.0, velocity: -2, size: 24
+                        });
+                    }
                 } else {
                     setGameState(prev => ({ ...prev, runCoins: prev.runCoins + cfg.COIN_VALUE }));
                     soundManager.playCollect();
