@@ -291,7 +291,28 @@ const GameCanvas: React.FC = () => {
                     <ControlsModal
                         onClose={() => setIsControlsOpen(false)}
                         currentMode={gameState.mobileControlMode}
-                        setMobileControlMode={(mode: 'BUTTONS' | 'TILT') => setGameState(prev => ({ ...prev, mobileControlMode: mode }))}
+                        setMobileControlMode={async (mode: 'BUTTONS' | 'TILT') => {
+                            if (mode === 'TILT') {
+                                // Request motion permission first
+                                if (typeof DeviceOrientationEvent !== 'undefined' && typeof (DeviceOrientationEvent as any).requestPermission === 'function') {
+                                    try {
+                                        const permission = await (DeviceOrientationEvent as any).requestPermission();
+                                        if (permission === 'granted') {
+                                            setGameState((p: any) => ({ ...p, mobileControlMode: 'TILT' }));
+                                        } else {
+                                            alert('⚠️ Permission denied. Enable sensors in browser settings.');
+                                        }
+                                    } catch (e) {
+                                        alert('❌ Error requesting sensor permission.');
+                                    }
+                                } else {
+                                    // Android or desktop - no permission needed
+                                    setGameState((p: any) => ({ ...p, mobileControlMode: 'TILT' }));
+                                }
+                            } else {
+                                setGameState(prev => ({ ...prev, mobileControlMode: mode }));
+                            }
+                        }}
                         onCalibrate={() => { setIsControlsOpen(false); setShowCalibration(true); }}
                         onOpenLayoutEditor={() => { setIsControlsOpen(false); setShowLayoutEditor(true); }}
                         rotationLock={rotationLock}
@@ -393,10 +414,18 @@ const GameCanvas: React.FC = () => {
                 {Constants.APP_VERSION}
             </div>
 
-            {/* DEV & EDITOR BUTTONS - Centered at top for mobile */}
+            {/* DEV BUTTON - Centered at top for mobile (PASSWORD PROTECTED) */}
             <div className="absolute top-4 left-1/2 -translate-x-1/2 flex gap-3 z-50 pointer-events-auto">
                 <button
-                    onClick={() => setShowSettings(true)}
+                    onClick={() => {
+                        const password = prompt('🔐 Enter DEV password:');
+                        if (password === 'chocopro') {
+                            setShowDevEditor(true);
+                            setGameState(prev => ({ ...prev, isPaused: true })); // Pause game when dev editor opens
+                        } else if (password !== null) {
+                            alert('❌ Incorrect password');
+                        }
+                    }}
                     className="px-3 py-2 bg-purple-900/70 border border-purple-500/60 rounded-lg backdrop-blur-md text-purple-300 font-bold text-xs uppercase tracking-widest hover:bg-purple-800/90 hover:shadow-[0_0_20px_rgba(168,85,247,0.5)] transition-all shadow-lg flex items-center gap-1.5"
                 >
                     <Settings size={14} /> DEV

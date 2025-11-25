@@ -1258,7 +1258,24 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
 
                         {/* TILT/MOTION MODE */}
                         <button
-                            onClick={() => setGameState((p: any) => ({ ...p, mobileControlMode: 'TILT' }))}
+                            onClick={async () => {
+                                // Request motion permission first
+                                if (typeof DeviceOrientationEvent !== 'undefined' && typeof (DeviceOrientationEvent as any).requestPermission === 'function') {
+                                    try {
+                                        const permission = await (DeviceOrientationEvent as any).requestPermission();
+                                        if (permission === 'granted') {
+                                            setGameState((p: any) => ({ ...p, mobileControlMode: 'TILT' }));
+                                        } else {
+                                            alert('⚠️ Permission denied. Enable sensors in browser settings.');
+                                        }
+                                    } catch (e) {
+                                        alert('❌ Error requesting sensor permission.');
+                                    }
+                                } else {
+                                    // Android or desktop - no permission needed
+                                    setGameState((p: any) => ({ ...p, mobileControlMode: 'TILT' }));
+                                }
+                            }}
                             className={`py-3 md:py-4 rounded-xl border-2 font-bold text-[10px] md:text-sm flex flex-col items-center gap-2 transition-all ${gameState.mobileControlMode === 'TILT' ? 'bg-slate-800 border-cyan-500 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.2)]' : 'bg-slate-900/50 border-slate-800 text-slate-500 hover:border-slate-600'}`}
                         >
                             <Smartphone size={20} className="md:w-6 md:h-6" />
@@ -1267,12 +1284,15 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
                     </div>
 
                     {/* UTILS ROW */}
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-3 gap-2">
                         <button onClick={() => setLang(lang === 'EN' ? 'PT' : 'EN')} className="py-3 bg-slate-900/80 border border-slate-700 rounded-lg text-xs font-bold text-slate-300 hover:text-white hover:border-slate-500 transition-all">
                             {lang === 'EN' ? '🇺🇸 EN' : '🇧🇷 PT'}
                         </button>
                         <button onClick={toggleFullscreen} className="py-3 bg-slate-900/80 border border-slate-700 rounded-lg text-xs font-bold text-slate-300 hover:text-white hover:border-slate-500 transition-all flex items-center justify-center gap-1">
                             <Maximize size={14} /> {t[lang].fullscreen}
+                        </button>
+                        <button onClick={onOpenSettings} className="py-3 bg-purple-900/80 border border-purple-600 rounded-lg text-xs font-bold text-purple-300 hover:text-white hover:border-purple-400 transition-all flex items-center justify-center gap-1">
+                            <Settings size={14} /> SET
                         </button>
                     </div>
                 </div>
