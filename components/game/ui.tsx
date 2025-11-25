@@ -450,10 +450,24 @@ export const TouchControls = ({ inputRef, mode, layout = { scale: 1, x: 0, y: 0 
         const size = baseSize * (btnLayout.scale || 1) * globalScale;
         const isRightAligned = btnLayout.x < 0;
         
+        // Only apply perfect indicator to JUMP button
+        const isJumpButton = id === 'jumpBtn';
+        const shouldShowPerfect = isJumpButton && showPerfectIndicator;
+        const buttonStyle = shouldShowPerfect 
+            ? 'bg-pink-500/50 border-2 border-pink-400 shadow-[0_0_20px_rgba(236,72,153,0.6)] animate-pulse' 
+            : colorClass;
+        
+        // Clone icon with pink color if perfect jump available on jump button
+        const iconElement = shouldShowPerfect && React.isValidElement(icon)
+            ? React.cloneElement(icon as React.ReactElement<any>, { 
+                className: 'text-pink-200 drop-shadow-[0_0_8px_rgba(236,72,153,0.8)]' 
+              })
+            : icon;
+        
         return (
             <button
                 key={id}
-                className={`pointer-events-auto rounded-full flex items-center justify-center active:scale-95 transition-all backdrop-blur-sm ${showPerfectIndicator ? perfectStyle : colorClass}`}
+                className={`pointer-events-auto rounded-full flex items-center justify-center active:scale-95 transition-all backdrop-blur-sm ${buttonStyle}`}
                 style={{
                     width: `${size}px`,
                     height: `${size}px`,
@@ -465,7 +479,7 @@ export const TouchControls = ({ inputRef, mode, layout = { scale: 1, x: 0, y: 0 
                 onTouchStart={(e) => { e.preventDefault(); handleTouch(touchKey, true); }}
                 onTouchEnd={(e) => { e.preventDefault(); handleTouch(touchKey, false); }}
             >
-                {icon}
+                {iconElement}
             </button>
         );
     };
@@ -497,9 +511,13 @@ export const TouchControls = ({ inputRef, mode, layout = { scale: 1, x: 0, y: 0 
                     </div>
                 )}
 
-                {/* Jump Button - CENTRALIZADO e PEQUENO */}
+                {/* Jump Button - CENTRALIZADO e PEQUENO - ROSA quando pulo perfeito disponível */}
                 <button
-                    className="absolute pointer-events-auto rounded-full flex items-center justify-center border-2 active:scale-95 bg-cyan-900/30 border-cyan-500/40"
+                    className={`absolute pointer-events-auto rounded-full flex items-center justify-center border-2 active:scale-95 transition-all ${
+                        showPerfectIndicator 
+                            ? 'bg-pink-500/50 border-pink-400 shadow-[0_0_20px_rgba(236,72,153,0.6)] animate-pulse' 
+                            : 'bg-cyan-900/30 border-cyan-500/40'
+                    }`}
                     style={{
                         bottom: '24px',
                         left: '50%',
@@ -512,7 +530,7 @@ export const TouchControls = ({ inputRef, mode, layout = { scale: 1, x: 0, y: 0 
                     onMouseDown={() => { inputRef.current.jumpIntent = true; inputRef.current.jumpPressedTime = Date.now(); }}
                     onMouseUp={() => { inputRef.current.jumpIntent = false; inputRef.current.jetpack = false; }}
                 >
-                    <ArrowUp size={24 * globalScale} className="text-cyan-200/70" />
+                    <ArrowUp size={24 * globalScale} className={showPerfectIndicator ? 'text-pink-200 drop-shadow-[0_0_8px_rgba(236,72,153,0.8)]' : 'text-cyan-200/70'} />
                 </button>
 
                 {/* Jetpack Button - À DIREITA */}
@@ -1496,7 +1514,7 @@ export const AdminPanel = ({ onClose }: { onClose: () => void }) => {
 };
 
 // ============================================================================
-// CHARACTER PREVIEW MODAL - Animated character like in-game
+// CHARACTER PREVIEW & TUTORIAL MODAL - Animated character demos
 // ============================================================================
 const CharacterPreviewModal = ({ skin, onClose, onSelectSkin, allSkins }: { 
     skin: CharacterSkin; 
@@ -1510,31 +1528,72 @@ const CharacterPreviewModal = ({ skin, onClose, onSelectSkin, allSkins }: {
         const idx = allSkins.findIndex(s => s.id === skin.id);
         return idx >= 0 ? idx : 0;
     });
+    const [activeTab, setActiveTab] = useState<'preview' | 'jetpack' | 'perfect' | 'wrap'>('preview');
     
     const currentSkin = allSkins[currentSkinIndex] || skin;
     
     // Animation state
     const stateRef = useRef({
-        x: 150, // center X
-        y: 200, // initial Y
+        x: 150,
+        y: 250,
         vx: 0,
         vy: 0,
         frame: 0,
-        isJumping: false,
-        jumpPhase: 0,
-        direction: 1, // 1 = right, -1 = left
+        isGrounded: true,
+        direction: 1,
         platforms: [
-            { x: 50, y: 280, w: 80 },
-            { x: 170, y: 220, w: 80 },
-            { x: 80, y: 160, w: 80 },
-            { x: 200, y: 100, w: 80 },
-            { x: 60, y: 40, w: 80 },
+            { x: 110, y: 320, w: 80 }, // Ground platform (always visible)
         ],
-        cameraY: 0,
         particles: [] as { x: number; y: number; vx: number; vy: number; life: number; color: string }[],
         jetpackActive: false,
         jetpackTimer: 0,
+        perfectJumpReady: false,
+        tutorialPhase: 0,
     });
+    
+    // Reset state when tab changes
+    useEffect(() => {
+        const state = stateRef.current;
+        state.x = 150;
+        state.y = 250;
+        state.vx = 0;
+        state.vy = 0;
+        state.frame = 0;
+        state.isGrounded = true;
+        state.direction = 1;
+        state.jetpackActive = false;
+        state.jetpackTimer = 0;
+        state.perfectJumpReady = false;
+        state.tutorialPhase = 0;
+        state.particles = [];
+        
+        // Set up platforms based on tab
+        if (activeTab === 'preview') {
+            state.platforms = [
+                { x: 20, y: 320, w: 260 }, // Wide ground
+                { x: 50, y: 250, w: 70 },
+                { x: 180, y: 250, w: 70 },
+                { x: 110, y: 180, w: 80 },
+                { x: 40, y: 110, w: 70 },
+                { x: 190, y: 110, w: 70 },
+            ];
+        } else if (activeTab === 'jetpack') {
+            state.platforms = [
+                { x: 20, y: 320, w: 100 }, // Left ground
+                { x: 180, y: 320, w: 100 }, // Right ground (gap in middle)
+                { x: 110, y: 150, w: 80 }, // High platform
+            ];
+        } else if (activeTab === 'perfect') {
+            state.platforms = [
+                { x: 60, y: 320, w: 180 }, // Ground
+                { x: 100, y: 200, w: 100 }, // Target platform
+            ];
+        } else if (activeTab === 'wrap') {
+            state.platforms = [
+                { x: 20, y: 320, w: 260 }, // Full ground
+            ];
+        }
+    }, [activeTab]);
     
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -1544,9 +1603,8 @@ const CharacterPreviewModal = ({ skin, onClose, onSelectSkin, allSkins }: {
         if (!ctx) return;
         
         const state = stateRef.current;
-        const GRAVITY = 0.4;
-        const JUMP_FORCE = -10;
-        const MOVE_SPEED = 2;
+        const GRAVITY = 0.5;
+        const GROUND_Y = 320;
         
         const animate = () => {
             // Clear
@@ -1554,157 +1612,233 @@ const CharacterPreviewModal = ({ skin, onClose, onSelectSkin, allSkins }: {
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             
             // Stars background
-            ctx.fillStyle = 'rgba(255,255,255,0.3)';
-            for (let i = 0; i < 30; i++) {
-                const sx = (i * 73) % canvas.width;
-                const sy = ((i * 47) + state.cameraY * 0.1) % canvas.height;
+            ctx.fillStyle = 'rgba(255,255,255,0.2)';
+            for (let i = 0; i < 20; i++) {
+                const sx = (i * 73 + state.frame * 0.1) % canvas.width;
+                const sy = (i * 47) % canvas.height;
                 ctx.fillRect(sx, sy, 1, 1);
             }
             
-            // Update frame
             state.frame++;
             
-            // Auto movement - horizontal zigzag
-            if (state.frame % 60 < 30) {
-                state.direction = 1;
-            } else {
-                state.direction = -1;
-            }
-            state.vx = state.direction * MOVE_SPEED;
-            
-            // Auto jump when on platform
-            if (!state.isJumping && state.frame % 40 === 0) {
-                state.vy = JUMP_FORCE;
-                state.isJumping = true;
-                
-                // Add jump particles
-                for (let i = 0; i < 5; i++) {
-                    state.particles.push({
-                        x: state.x,
-                        y: state.y + 16,
-                        vx: (Math.random() - 0.5) * 3,
-                        vy: Math.random() * 2,
-                        life: 20,
-                        color: currentSkin.color || '#06b6d4'
-                    });
+            // ========== TAB-SPECIFIC LOGIC ==========
+            if (activeTab === 'preview') {
+                // Auto movement - zigzag
+                if (state.frame % 90 < 45) {
+                    state.direction = 1;
+                    state.vx = 2;
+                } else {
+                    state.direction = -1;
+                    state.vx = -2;
                 }
+                
+                // Auto jump when grounded
+                if (state.isGrounded && state.frame % 50 === 0) {
+                    state.vy = -12;
+                    state.isGrounded = false;
+                    // Jump particles
+                    for (let i = 0; i < 5; i++) {
+                        state.particles.push({
+                            x: state.x, y: state.y + 24,
+                            vx: (Math.random() - 0.5) * 4, vy: Math.random() * 2,
+                            life: 20, color: currentSkin.color || '#06b6d4'
+                        });
+                    }
+                }
+                
+                // Jetpack occasionally
+                if (state.frame % 180 === 90) {
+                    state.jetpackActive = true;
+                    state.jetpackTimer = 40;
+                }
+            } else if (activeTab === 'jetpack') {
+                // Tutorial: show jetpack crossing gap
+                const phase = Math.floor(state.frame / 120) % 4;
+                
+                if (phase === 0) {
+                    // Walk right
+                    state.vx = 1.5;
+                    state.direction = 1;
+                } else if (phase === 1) {
+                    // Jump and activate jetpack over gap
+                    if (state.tutorialPhase !== 1) {
+                        state.vy = -8;
+                        state.isGrounded = false;
+                        state.tutorialPhase = 1;
+                    }
+                    state.jetpackActive = true;
+                    state.vx = 2;
+                } else if (phase === 2) {
+                    // Land and walk left
+                    state.jetpackActive = false;
+                    state.vx = -1.5;
+                    state.direction = -1;
+                } else {
+                    // Reset position
+                    state.x = 70;
+                    state.y = 250;
+                    state.vx = 0;
+                    state.vy = 0;
+                    state.isGrounded = true;
+                    state.tutorialPhase = 0;
+                }
+            } else if (activeTab === 'perfect') {
+                // Tutorial: show perfect jump timing
+                const phase = Math.floor(state.frame / 100) % 3;
+                
+                if (phase === 0) {
+                    // Show pink indicator (ready to perfect jump)
+                    state.perfectJumpReady = state.isGrounded;
+                    state.vx = 0;
+                } else if (phase === 1) {
+                    // Do perfect jump (high jump)
+                    if (state.tutorialPhase !== 1 && state.isGrounded) {
+                        state.vy = -16; // Higher jump!
+                        state.isGrounded = false;
+                        state.tutorialPhase = 1;
+                        state.perfectJumpReady = false;
+                        // Pink particles for perfect jump
+                        for (let i = 0; i < 10; i++) {
+                            state.particles.push({
+                                x: state.x, y: state.y + 24,
+                                vx: (Math.random() - 0.5) * 6, vy: -Math.random() * 4,
+                                life: 30, color: '#ec4899'
+                            });
+                        }
+                    }
+                } else {
+                    // Reset
+                    state.x = 150;
+                    state.y = 250;
+                    state.vy = 0;
+                    state.isGrounded = true;
+                    state.tutorialPhase = 0;
+                }
+            } else if (activeTab === 'wrap') {
+                // Tutorial: show screen wrap
+                state.vx = 3;
+                state.direction = 1;
+                // Don't clamp, let it wrap
             }
             
-            // Activate jetpack occasionally
-            if (state.frame % 120 === 60) {
-                state.jetpackActive = true;
-                state.jetpackTimer = 40;
-            }
-            
+            // ========== PHYSICS ==========
+            // Jetpack
             if (state.jetpackActive) {
                 state.jetpackTimer--;
-                state.vy = -3;
-                if (state.jetpackTimer <= 0) {
+                state.vy = Math.max(state.vy - 0.8, -6);
+                if (state.jetpackTimer <= 0 && activeTab !== 'jetpack') {
                     state.jetpackActive = false;
                 }
-                
-                // Jetpack flame particles
+                // Flame particles
                 if (state.frame % 2 === 0) {
                     state.particles.push({
-                        x: state.x,
-                        y: state.y + 16,
-                        vx: (Math.random() - 0.5) * 2,
-                        vy: Math.random() * 4 + 2,
-                        life: 15,
-                        color: Math.random() > 0.5 ? '#f97316' : '#facc15'
+                        x: state.x, y: state.y + 24,
+                        vx: (Math.random() - 0.5) * 2, vy: Math.random() * 4 + 2,
+                        life: 15, color: Math.random() > 0.5 ? '#f97316' : '#facc15'
                     });
                 }
             }
             
-            // Apply gravity
-            state.vy += GRAVITY;
+            // Gravity
+            if (!state.isGrounded) {
+                state.vy += GRAVITY;
+            }
             
             // Apply velocity
             state.x += state.vx;
             state.y += state.vy;
             
-            // Wrap horizontally
-            if (state.x < 0) state.x = canvas.width;
-            if (state.x > canvas.width) state.x = 0;
+            // Screen wrap (horizontal)
+            if (activeTab === 'wrap') {
+                if (state.x > canvas.width + 20) {
+                    state.x = -20;
+                    // Wrap effect particles
+                    for (let i = 0; i < 5; i++) {
+                        state.particles.push({
+                            x: 5, y: state.y + Math.random() * 40 - 20,
+                            vx: 3, vy: (Math.random() - 0.5) * 2,
+                            life: 20, color: '#a855f7'
+                        });
+                    }
+                }
+            } else {
+                // Normal boundary
+                if (state.x < 20) state.x = 20;
+                if (state.x > canvas.width - 20) state.x = canvas.width - 20;
+            }
             
             // Platform collision
-            const playerBottom = state.y + 16;
+            state.isGrounded = false;
+            const playerBottom = state.y + 24;
             for (const plat of state.platforms) {
-                const platY = plat.y - state.cameraY;
-                if (state.vy > 0 && 
-                    playerBottom >= platY && playerBottom <= platY + 10 &&
-                    state.x >= plat.x - 8 && state.x <= plat.x + plat.w + 8) {
-                    state.y = platY - 16;
+                if (state.vy >= 0 && 
+                    playerBottom >= plat.y && playerBottom <= plat.y + 15 &&
+                    state.x >= plat.x - 10 && state.x <= plat.x + plat.w + 10) {
+                    state.y = plat.y - 24;
                     state.vy = 0;
-                    state.isJumping = false;
+                    state.isGrounded = true;
                 }
             }
             
-            // Camera follows player
-            const targetCameraY = state.y - canvas.height / 2;
-            state.cameraY += (targetCameraY - state.cameraY) * 0.1;
-            
-            // Reset if fallen too far
-            if (state.y > state.cameraY + canvas.height + 50) {
-                state.y = state.cameraY;
+            // Safety: don't fall below screen
+            if (state.y > canvas.height - 30) {
+                state.y = canvas.height - 54;
                 state.vy = 0;
+                state.isGrounded = true;
             }
             
-            // Regenerate platforms above
-            const highestPlatY = Math.min(...state.platforms.map(p => p.y));
-            if (highestPlatY > state.cameraY - 100) {
-                state.platforms.push({
-                    x: Math.random() * (canvas.width - 80),
-                    y: highestPlatY - 60 - Math.random() * 40,
-                    w: 60 + Math.random() * 40
-                });
-                // Remove platforms below screen
-                state.platforms = state.platforms.filter(p => p.y < state.cameraY + canvas.height + 100);
-            }
+            // ========== DRAWING ==========
             
             // Draw platforms
             for (const plat of state.platforms) {
-                const platY = plat.y - state.cameraY;
-                // Platform glow
+                // Platform shadow
+                ctx.fillStyle = 'rgba(0,0,0,0.3)';
+                ctx.fillRect(plat.x + 4, plat.y + 4, plat.w, 10);
+                // Platform body
                 ctx.shadowColor = '#06b6d4';
-                ctx.shadowBlur = 10;
+                ctx.shadowBlur = 8;
                 ctx.fillStyle = '#0891b2';
-                ctx.fillRect(plat.x, platY, plat.w, 8);
+                ctx.fillRect(plat.x, plat.y, plat.w, 10);
                 ctx.shadowBlur = 0;
-                // Platform top highlight
+                // Platform top
                 ctx.fillStyle = '#22d3ee';
-                ctx.fillRect(plat.x, platY, plat.w, 2);
+                ctx.fillRect(plat.x, plat.y, plat.w, 3);
             }
             
-            // Update and draw particles
+            // Draw particles
             state.particles = state.particles.filter(p => {
                 p.x += p.vx;
                 p.y += p.vy;
                 p.life--;
-                
-                const py = p.y - state.cameraY;
                 ctx.globalAlpha = p.life / 20;
                 ctx.fillStyle = p.color;
-                ctx.fillRect(p.x - 2, py - 2, 4, 4);
+                ctx.fillRect(p.x - 2, p.y - 2, 4, 4);
                 ctx.globalAlpha = 1;
-                
                 return p.life > 0;
             });
             
             // Draw character
-            const charY = state.y - state.cameraY;
             const pixels = currentSkin.pixels || [];
             const pixelSize = 3;
             const charWidth = (pixels[0]?.length || 16) * pixelSize;
             const charHeight = pixels.length * pixelSize;
             const startX = state.x - charWidth / 2;
-            const startY = charY - charHeight / 2;
+            const startY = state.y - charHeight / 2;
             
-            // Character glow
-            ctx.shadowColor = currentSkin.color || '#f97316';
-            ctx.shadowBlur = 15;
+            // Perfect jump glow (pink)
+            if (state.perfectJumpReady && activeTab === 'perfect') {
+                ctx.shadowColor = '#ec4899';
+                ctx.shadowBlur = 25;
+                ctx.fillStyle = 'rgba(236,72,153,0.3)';
+                ctx.beginPath();
+                ctx.arc(state.x, state.y, 35, 0, Math.PI * 2);
+                ctx.fill();
+            } else {
+                ctx.shadowColor = currentSkin.color || '#f97316';
+                ctx.shadowBlur = 12;
+            }
             
-            // Draw character pixels
+            // Draw pixels
             pixels.forEach((row: number[], y: number) => {
                 row.forEach((val: number, x: number) => {
                     if (val === 0) return;
@@ -1722,22 +1856,48 @@ const CharacterPreviewModal = ({ skin, onClose, onSelectSkin, allSkins }: {
                     ctx.fillRect(drawX, startY + y * pixelSize, pixelSize, pixelSize);
                 });
             });
-            
             ctx.shadowBlur = 0;
             
             // Jetpack flame
             if (state.jetpackActive) {
                 ctx.fillStyle = '#f97316';
-                ctx.fillRect(state.x - 4, charY + charHeight/2, 8, 8 + Math.random() * 8);
+                ctx.fillRect(state.x - 4, state.y + charHeight/2 - 5, 8, 10 + Math.random() * 10);
                 ctx.fillStyle = '#facc15';
-                ctx.fillRect(state.x - 2, charY + charHeight/2 + 4, 4, 4 + Math.random() * 8);
+                ctx.fillRect(state.x - 2, state.y + charHeight/2, 4, 6 + Math.random() * 10);
             }
             
-            // Height indicator
-            const height = Math.floor(-state.cameraY / 10);
-            ctx.fillStyle = '#94a3b8';
-            ctx.font = 'bold 12px monospace';
-            ctx.fillText(`${height}m`, 10, 20);
+            // ========== TUTORIAL TEXT ==========
+            ctx.font = 'bold 14px monospace';
+            ctx.textAlign = 'center';
+            
+            if (activeTab === 'jetpack') {
+                ctx.fillStyle = '#a855f7';
+                ctx.fillText('🚀 JETPACK', canvas.width/2, 30);
+                ctx.font = '11px monospace';
+                ctx.fillStyle = '#94a3b8';
+                ctx.fillText('Segure o botão roxo para voar', canvas.width/2, 50);
+                ctx.fillText('Use para cruzar vãos!', canvas.width/2, 68);
+            } else if (activeTab === 'perfect') {
+                ctx.fillStyle = '#ec4899';
+                ctx.fillText('⚡ PERFECT JUMP', canvas.width/2, 30);
+                ctx.font = '11px monospace';
+                ctx.fillStyle = '#94a3b8';
+                ctx.fillText('Botão fica ROSA quando pronto', canvas.width/2, 50);
+                ctx.fillText('Pula mais alto no momento certo!', canvas.width/2, 68);
+                
+                if (state.perfectJumpReady) {
+                    ctx.fillStyle = '#ec4899';
+                    ctx.font = 'bold 16px monospace';
+                    ctx.fillText('🎯 AGORA! PULE!', canvas.width/2, canvas.height - 50);
+                }
+            } else if (activeTab === 'wrap') {
+                ctx.fillStyle = '#a855f7';
+                ctx.fillText('↔️ SCREEN WRAP', canvas.width/2, 30);
+                ctx.font = '11px monospace';
+                ctx.fillStyle = '#94a3b8';
+                ctx.fillText('Saia por um lado da tela...', canvas.width/2, 50);
+                ctx.fillText('...apareça do outro lado!', canvas.width/2, 68);
+            }
             
             animationRef.current = requestAnimationFrame(animate);
         };
@@ -1747,76 +1907,102 @@ const CharacterPreviewModal = ({ skin, onClose, onSelectSkin, allSkins }: {
         return () => {
             cancelAnimationFrame(animationRef.current);
         };
-    }, [currentSkin]);
+    }, [currentSkin, activeTab]);
     
-    const nextSkin = () => {
-        setCurrentSkinIndex((prev) => (prev + 1) % allSkins.length);
-    };
+    const nextSkin = () => setCurrentSkinIndex((prev) => (prev + 1) % allSkins.length);
+    const prevSkin = () => setCurrentSkinIndex((prev) => (prev - 1 + allSkins.length) % allSkins.length);
     
-    const prevSkin = () => {
-        setCurrentSkinIndex((prev) => (prev - 1 + allSkins.length) % allSkins.length);
-    };
+    const tabs = [
+        { id: 'preview', label: '👁️', title: 'Preview' },
+        { id: 'jetpack', label: '🚀', title: 'Jetpack' },
+        { id: 'perfect', label: '⚡', title: 'Perfect' },
+        { id: 'wrap', label: '↔️', title: 'Wrap' },
+    ];
     
     return (
-        <div className="fixed inset-0 z-[200] bg-black/95 flex flex-col items-center justify-center p-4">
+        <div className="fixed inset-0 z-[200] bg-black/95 flex flex-col items-center justify-center p-4 overflow-y-auto">
             {/* Close button */}
-            <button onClick={onClose} className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white">
+            <button onClick={onClose} className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white z-10">
                 <X size={24} />
             </button>
             
             {/* Title */}
-            <h2 className="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500 mb-2">
-                AGENT PREVIEW
+            <h2 className="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500 mb-1">
+                {activeTab === 'preview' ? 'AGENT PREVIEW' : 'TUTORIAL'}
             </h2>
-            <p className="text-sm text-slate-500 mb-4">{currentSkin.name || currentSkin.id}</p>
+            <p className="text-sm text-slate-500 mb-3">{currentSkin.name || currentSkin.id}</p>
             
-            {/* Canvas container with navigation arrows */}
+            {/* Tab buttons */}
+            <div className="flex gap-2 mb-3">
+                {tabs.map(tab => (
+                    <button
+                        key={tab.id}
+                        onClick={() => setActiveTab(tab.id as any)}
+                        className={`px-3 py-2 rounded-lg text-sm font-bold transition-all ${
+                            activeTab === tab.id 
+                                ? 'bg-cyan-600 text-white shadow-[0_0_15px_rgba(6,182,212,0.5)]' 
+                                : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                        }`}
+                        title={tab.title}
+                    >
+                        {tab.label} {tab.title}
+                    </button>
+                ))}
+            </div>
+            
+            {/* Canvas container with navigation arrows (only in preview mode) */}
             <div className="relative">
-                <button 
-                    onClick={prevSkin}
-                    className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-12 p-2 bg-slate-800 rounded-full text-white hover:bg-slate-700"
-                >
-                    <ChevronLeft size={24} />
-                </button>
+                {activeTab === 'preview' && (
+                    <button 
+                        onClick={prevSkin}
+                        className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-12 p-2 bg-slate-800 rounded-full text-white hover:bg-slate-700 z-10"
+                    >
+                        <ChevronLeft size={24} />
+                    </button>
+                )}
                 
                 <canvas 
                     ref={canvasRef} 
                     width={300} 
-                    height={400} 
+                    height={380} 
                     className="rounded-xl border-2 border-slate-700 shadow-[0_0_30px_rgba(6,182,212,0.3)]"
                 />
                 
-                <button 
-                    onClick={nextSkin}
-                    className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-12 p-2 bg-slate-800 rounded-full text-white hover:bg-slate-700"
-                >
-                    <ChevronRight size={24} />
-                </button>
+                {activeTab === 'preview' && (
+                    <button 
+                        onClick={nextSkin}
+                        className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-12 p-2 bg-slate-800 rounded-full text-white hover:bg-slate-700 z-10"
+                    >
+                        <ChevronRight size={24} />
+                    </button>
+                )}
             </div>
             
-            {/* Skin counter */}
-            <p className="text-sm text-slate-500 mt-2">{currentSkinIndex + 1} / {allSkins.length}</p>
+            {/* Skin counter (only in preview) */}
+            {activeTab === 'preview' && (
+                <p className="text-sm text-slate-500 mt-2">{currentSkinIndex + 1} / {allSkins.length}</p>
+            )}
             
-            {/* Select button */}
-            <button
-                onClick={() => {
-                    onSelectSkin(currentSkin);
-                    onClose();
-                }}
-                className="mt-4 px-8 py-3 bg-gradient-to-r from-cyan-600 to-purple-600 text-white font-bold rounded-xl text-sm uppercase tracking-widest hover:from-cyan-500 hover:to-purple-500 transition-all"
-            >
-                <Check size={18} className="inline mr-2" />
-                SELECT {currentSkin.name || currentSkin.id}
-            </button>
-            
-            {/* Create AI skin button */}
-            <button
-                onClick={onClose}
-                className="mt-2 px-6 py-2 bg-purple-900/50 border border-purple-600/50 text-purple-400 font-bold rounded-xl text-xs uppercase tracking-widest hover:bg-purple-900/80 transition-all"
-            >
-                <Sparkles size={14} className="inline mr-2" />
-                CREATE AI SKIN
-            </button>
+            {/* Action buttons */}
+            <div className="flex gap-3 mt-4">
+                <button
+                    onClick={() => {
+                        onSelectSkin(currentSkin);
+                        onClose();
+                    }}
+                    className="px-6 py-3 bg-gradient-to-r from-cyan-600 to-purple-600 text-white font-bold rounded-xl text-sm uppercase tracking-widest hover:from-cyan-500 hover:to-purple-500 transition-all"
+                >
+                    <Check size={16} className="inline mr-2" />
+                    Selecionar
+                </button>
+                
+                <button
+                    onClick={onClose}
+                    className="px-6 py-3 bg-slate-800 border border-slate-600 text-slate-300 font-bold rounded-xl text-sm uppercase tracking-widest hover:bg-slate-700 transition-all"
+                >
+                    Fechar
+                </button>
+            </div>
         </div>
     );
 };
