@@ -42,13 +42,21 @@ export const useInputController = (props: InputControllerProps) => {
         soundManager.playClick();
     };
 
-    // --- MOTION CONTROL DELETED PER USER REQUEST ---
-    // Force BUTTONS mode if TILT was previously selected
+    // Request iOS permissions for motion if needed
     useEffect(() => {
-        if (stateRef.current.mobileControlMode === 'TILT') {
-            setGameState(prev => ({ ...prev, mobileControlMode: 'BUTTONS' }));
+        if (stateRef.current.mobileControlMode === 'TILT' && (typeof DeviceOrientationEvent !== 'undefined' && typeof (DeviceOrientationEvent as any).requestPermission === 'function')) {
+            (DeviceOrientationEvent as any).requestPermission()
+                .then((permissionState: string) => {
+                    if (permissionState === 'granted') {
+                        console.log('Motion permission granted');
+                    } else {
+                        console.warn('Motion permission denied');
+                        alert('Motion controls require sensor permissions. Please enable in browser settings.');
+                    }
+                })
+                .catch((err: any) => console.error('Error requesting motion permission:', err));
         }
-    }, []);
+    }, [stateRef.current.mobileControlMode]);
 
     // 2. Motion / Tilt Controls
     useEffect(() => {

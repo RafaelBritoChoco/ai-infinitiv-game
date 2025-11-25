@@ -925,6 +925,13 @@ export const PauseMenu = ({ setGameState, handleStart, selectedIndex = 0, onOpen
                 </button>
 
                 <button
+                    onClick={onOpenSettings}
+                    className="w-full py-4 bg-purple-800 hover:bg-purple-700 border-2 border-purple-500 text-white font-bold uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-2"
+                >
+                    <Settings size={20} /> SETTINGS
+                </button>
+
+                <button
                     onClick={() => {
                         setGameState((prev: any) => ({ ...prev, isPaused: false, isPlaying: false, isGameOver: false }));
                     }}
