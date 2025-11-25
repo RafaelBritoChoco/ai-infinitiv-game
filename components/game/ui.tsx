@@ -1510,27 +1510,22 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
 // RANKING MODAL - Global Leaderboard Display
 // ====================================================================================
 export const RankingModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
-    const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+    const [localLeaderboard, setLocalLeaderboard] = useState<LeaderboardEntry[]>([]);
+    const [globalLeaderboard, setGlobalLeaderboard] = useState<LeaderboardEntry[]>([]);
     const [loading, setLoading] = useState(false);
-    const [isOnline, setIsOnline] = useState(false);
-    const [lastError, setLastError] = useState<string | null>(null);
+    const [activeTab, setActiveTab] = useState<'local' | 'global'>('local');
+    const [globalStatus, setGlobalStatus] = useState<string>('');
 
     const fetchLeaderboard = async () => {
-        // INSTANT: Show local data first
+        // LOCAL: Always load instantly
         const localData = Persistence.loadLeaderboard();
-        if (localData.length > 0) {
-            setLeaderboard(localData);
-        } else {
-            setLeaderboard([
-                { id: '1', name: '- - -', score: 0, date: '' },
-                { id: '2', name: '- - -', score: 0, date: '' },
-                { id: '3', name: '- - -', score: 0, date: '' },
-            ]);
-        }
+        setLocalLeaderboard(localData.length > 0 ? localData : [
+            { id: '1', name: 'Você', score: 0, date: '' },
+        ]);
         
+        // GLOBAL: Try to fetch
         setLoading(true);
-        setLastError(null);
-        setIsOnline(false);
+        setGlobalStatus('Conectando...');
         
         try {
             const controller = new AbortController();
@@ -1545,19 +1540,21 @@ export const RankingModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: ()
             const data = await res.json();
             
             if (data.offline) {
-                setLastError('Servidor offline');
+                setGlobalStatus('❌ Redis não configurado');
+                setGlobalLeaderboard([]);
             } else if (data.success && data.leaderboard?.length > 0) {
-                // Só atualiza se tiver dados reais (não placeholder)
                 const hasRealData = data.leaderboard.some((e: any) => e.name !== '- - -' && e.score > 0);
                 if (hasRealData) {
-                    setLeaderboard(data.leaderboard);
-                    setIsOnline(true);
+                    setGlobalLeaderboard(data.leaderboard);
+                    setGlobalStatus('✅ Conectado');
                 } else {
-                    setLastError('Nenhum score global ainda');
+                    setGlobalStatus('📭 Vazio - seja o primeiro!');
+                    setGlobalLeaderboard([]);
                 }
             }
         } catch (e: any) {
-            setLastError('Erro de conexão');
+            setGlobalStatus('❌ Erro de conexão');
+            setGlobalLeaderboard([]);
         } finally {
             setLoading(false);
         }
@@ -1578,6 +1575,8 @@ export const RankingModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: ()
         return 'text-slate-500 bg-slate-800/50 border-slate-700';
     };
 
+    const currentList = activeTab === 'local' ? localLeaderboard : globalLeaderboard;
+
     return (
         <div className="fixed inset-0 z-[200] bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
             <div className="w-full max-w-md max-h-[85vh] bg-slate-950 border border-yellow-500/30 rounded-2xl shadow-[0_0_50px_rgba(234,179,8,0.2)] flex flex-col overflow-hidden animate-in zoom-in-95">
@@ -1585,7 +1584,7 @@ export const RankingModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: ()
                 <div className="p-4 border-b border-yellow-500/20 bg-gradient-to-r from-yellow-900/20 to-slate-900/50 flex justify-between items-center">
                     <h2 className="text-xl font-black text-white flex items-center gap-3">
                         <Trophy size={24} className="text-yellow-400" />
-                        RANKING {isOnline ? 'GLOBAL' : 'LOCAL'}
+                        RANKING
                     </h2>
                     <div className="flex items-center gap-2">
                         <button 
@@ -1601,40 +1600,79 @@ export const RankingModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: ()
                     </div>
                 </div>
 
-                {/* Content - Always show immediately */}
-                <div className="flex-1 overflow-y-auto p-4">
-                    <div className="space-y-2">
-                        {leaderboard.slice(0, 10).map((entry, index) => (
-                            <div 
-                                key={entry.id || index}
-                                className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${getMedalColor(index)} ${index < 3 ? 'shadow-lg' : ''}`}
-                            >
-                                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-lg ${
-                                    index === 0 ? 'bg-yellow-500 text-black' :
-                                    index === 1 ? 'bg-slate-400 text-black' :
-                                    index === 2 ? 'bg-amber-600 text-black' :
-                                    'bg-slate-800 text-slate-400'
-                                }`}>
-                                    {index < 3 ? <Medal size={20} /> : `#${index + 1}`}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <p className={`font-bold truncate ${index < 3 ? 'text-white' : 'text-slate-300'}`}>{entry.name}</p>
-                                    {entry.date && <p className="text-[10px] text-slate-600">{new Date(entry.date).toLocaleDateString('pt-BR')}</p>}
-                                </div>
-                                <div className="text-right">
-                                    <p className={`font-mono font-black text-lg ${index === 0 ? 'text-yellow-400' : index === 1 ? 'text-slate-300' : index === 2 ? 'text-amber-500' : 'text-cyan-400'}`}>
-                                        {entry.score}m
-                                    </p>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
+                {/* Tabs */}
+                <div className="flex border-b border-slate-800">
+                    <button
+                        onClick={() => setActiveTab('local')}
+                        className={`flex-1 py-3 text-sm font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
+                            activeTab === 'local' 
+                                ? 'bg-cyan-900/30 text-cyan-400 border-b-2 border-cyan-400' 
+                                : 'text-slate-500 hover:text-slate-300'
+                        }`}
+                    >
+                        <Smartphone size={16} /> Local
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('global')}
+                        className={`flex-1 py-3 text-sm font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
+                            activeTab === 'global' 
+                                ? 'bg-green-900/30 text-green-400 border-b-2 border-green-400' 
+                                : 'text-slate-500 hover:text-slate-300'
+                        }`}
+                    >
+                        <Globe size={16} /> Global
+                        {loading && <Loader2 size={14} className="animate-spin" />}
+                    </button>
                 </div>
+
+                {/* Content */}
+                <div className="flex-1 overflow-y-auto p-4">
+                    {currentList.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center h-full text-center py-8">
+                            <Trophy size={48} className="text-slate-700 mb-4" />
+                            <p className="text-slate-500 font-bold">
+                                {activeTab === 'local' ? 'Nenhum score local' : 'Nenhum score global'}
+                            </p>
+                            <p className="text-slate-600 text-sm mt-1">
+                                {activeTab === 'local' ? 'Jogue para aparecer aqui!' : globalStatus}
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="space-y-2">
+                            {currentList.slice(0, 10).map((entry, index) => (
+                                <div 
+                                    key={entry.id || index}
+                                    className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${getMedalColor(index)} ${index < 3 ? 'shadow-lg' : ''}`}
+                                >
+                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-lg ${
+                                        index === 0 ? 'bg-yellow-500 text-black' :
+                                        index === 1 ? 'bg-slate-400 text-black' :
+                                        index === 2 ? 'bg-amber-600 text-black' :
+                                        'bg-slate-800 text-slate-400'
+                                    }`}>
+                                        {index < 3 ? <Medal size={20} /> : `#${index + 1}`}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className={`font-bold truncate ${index < 3 ? 'text-white' : 'text-slate-300'}`}>{entry.name}</p>
+                                        {entry.date && <p className="text-[10px] text-slate-600">{new Date(entry.date).toLocaleDateString('pt-BR')}</p>}
+                                    </div>
+                                    <div className="text-right">
+                                        <p className={`font-mono font-black text-lg ${index === 0 ? 'text-yellow-400' : index === 1 ? 'text-slate-300' : index === 2 ? 'text-amber-500' : 'text-cyan-400'}`}>
+                                            {entry.score}m
+                                        </p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+                
+                {/* Footer */}
                 <div className="p-3 border-t border-slate-800 bg-slate-900/50 text-center">
                     <p className="text-slate-600 text-[10px]">
-                        {loading ? '⏳ Carregando...' : 
-                         isOnline ? '🌐 Ranking global sincronizado' : 
-                         lastError ? `⚠️ ${lastError}` : '📱 Ranking local'}
+                        {activeTab === 'local' 
+                            ? `📱 Seus melhores scores neste dispositivo`
+                            : globalStatus || 'Carregando...'}
                     </p>
                 </div>
             </div>

@@ -51,6 +51,18 @@ export default async function handler(request, response) {
         return response.status(200).end();
     }
 
+    // DEBUG endpoint - para verificar se variáveis estão configuradas
+    if (request.query.debug === 'true') {
+        return response.status(200).json({
+            hasRedisLib: !!Redis,
+            hasUpstashUrl: !!process.env.UPSTASH_REDIS_REST_URL,
+            hasUpstashToken: !!process.env.UPSTASH_REDIS_REST_TOKEN,
+            hasKvUrl: !!process.env.KV_REST_API_URL,
+            upstashUrlPreview: process.env.UPSTASH_REDIS_REST_URL ? 
+                process.env.UPSTASH_REDIS_REST_URL.substring(0, 30) + '...' : null,
+        });
+    }
+
     // Tenta criar cliente Redis - se falhar, continua sem
     let redis = null;
     try {
