@@ -268,17 +268,17 @@ const GameCanvas: React.FC = () => {
                             </button>
                             <button
                                 onClick={() => {
-                                    const currentVol = config.VOLUME_MASTER || 0.5;
+                                    const currentVol = configRef.current.VOLUME_MASTER || 0.5;
                                     const newVol = currentVol > 0 ? 0 : 0.5;
-                                    setConfig({ ...config, VOLUME_MASTER: newVol });
-                                    soundManager.setVolumes(newVol, config.VOLUME_MUSIC || 0.4, config.VOLUME_SFX || 0.6);
+                                    setConfig({ ...configRef.current, VOLUME_MASTER: newVol });
+                                    soundManager.setVolumes(newVol, configRef.current.VOLUME_MUSIC || 0.4, configRef.current.VOLUME_SFX || 0.6);
                                 }}
                                 className={`p-3 backdrop-blur rounded-full border transition-all ${
-                                    (config.VOLUME_MASTER || 0.5) > 0 
+                                    (configRef.current.VOLUME_MASTER || 0.5) > 0 
                                         ? 'bg-black/50 text-green-400 border-green-500/50 hover:bg-green-900/50' 
                                         : 'bg-black/50 text-red-400 border-red-500/50 hover:bg-red-900/50'
                                 }`}>
-                                {(config.VOLUME_MASTER || 0.5) > 0 ? <Volume2 size={20} /> : <VolumeX size={20} />}
+                                {(configRef.current.VOLUME_MASTER || 0.5) > 0 ? <Volume2 size={20} /> : <VolumeX size={20} />}
                             </button>
                         </div>
                     )}
