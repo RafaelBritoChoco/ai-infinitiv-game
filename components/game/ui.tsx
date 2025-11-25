@@ -442,6 +442,99 @@ export const TouchControls = ({ inputRef, mode, layout = { scale: 1, x: 0, y: 0 
     // Perfect indicator style - PINK SUAVE when player is on ground (can perfect jump)
     const perfectStyle = showPerfectIndicator ? 'bg-pink-400/30 border-pink-300/50 shadow-[0_0_12px_rgba(236,72,153,0.3)]' : '';
 
+    // Radial indicator for perfect jump timing - renders a circle that fills up
+    const RadialPerfectIndicator = ({ size, isReady }: { size: number; isReady: boolean }) => {
+        const [fillProgress, setFillProgress] = React.useState(0);
+        
+        React.useEffect(() => {
+            if (isReady) {
+                // When ready, animate fill to 100%
+                const startTime = Date.now();
+                const duration = 800; // 0.8 seconds to fill
+                const animate = () => {
+                    const elapsed = Date.now() - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+                    setFillProgress(progress);
+                    if (progress < 1) {
+                        requestAnimationFrame(animate);
+                    }
+                };
+                animate();
+                
+                // Start charging sound
+                soundManager.startPerfectCharge();
+            } else {
+                setFillProgress(0);
+                // Stop charging sound
+                soundManager.stopPerfectCharge();
+            }
+            
+            return () => {
+                soundManager.stopPerfectCharge();
+            };
+        }, [isReady]);
+        
+        if (!isReady && fillProgress === 0) return null;
+        
+        const radius = size / 2 - 4;
+        const circumference = 2 * Math.PI * radius;
+        const strokeDashoffset = circumference * (1 - fillProgress);
+        
+        return (
+            <svg 
+                className="absolute inset-0 pointer-events-none" 
+                width={size} 
+                height={size}
+                style={{ transform: 'rotate(-90deg)' }}
+            >
+                {/* Background circle - very low opacity */}
+                <circle
+                    cx={size / 2}
+                    cy={size / 2}
+                    r={radius}
+                    fill="none"
+                    stroke="rgba(236, 72, 153, 0.1)"
+                    strokeWidth="4"
+                />
+                {/* Progress circle - fills up */}
+                <circle
+                    cx={size / 2}
+                    cy={size / 2}
+                    r={radius}
+                    fill="none"
+                    stroke={`rgba(236, 72, 153, ${0.3 + fillProgress * 0.5})`}
+                    strokeWidth="4"
+                    strokeDasharray={circumference}
+                    strokeDashoffset={strokeDashoffset}
+                    strokeLinecap="round"
+                    style={{ transition: 'stroke-dashoffset 0.05s linear' }}
+                />
+                {/* Glow when full */}
+                {fillProgress >= 1 && (
+                    <circle
+                        cx={size / 2}
+                        cy={size / 2}
+                        r={radius}
+                        fill="none"
+                        stroke="rgba(236, 72, 153, 0.8)"
+                        strokeWidth="2"
+                        className="animate-pulse"
+                        filter="url(#glow)"
+                    />
+                )}
+                <defs>
+                    <filter id="glow">
+                        <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                        <feMerge>
+                            <feMergeNode in="coloredBlur"/>
+                            <feMergeNode in="SourceGraphic"/>
+                        </feMerge>
+                    </filter>
+                </defs>
+            </svg>
+        );
+    };
+
     // Helper to render a button with custom layout
     const renderButton = (id: 'leftArrow' | 'rightArrow' | 'jumpBtn' | 'jetpackBtn', touchKey: string, icon: React.ReactNode, baseSize: number, colorClass: string) => {
         const btnLayout = savedLayout[id];
@@ -454,7 +547,7 @@ export const TouchControls = ({ inputRef, mode, layout = { scale: 1, x: 0, y: 0 
         const isJumpButton = id === 'jumpBtn';
         const shouldShowPerfect = isJumpButton && showPerfectIndicator;
         const buttonStyle = shouldShowPerfect 
-            ? 'bg-pink-500/50 border-2 border-pink-400 shadow-[0_0_20px_rgba(236,72,153,0.6)] animate-pulse' 
+            ? 'bg-pink-500/30 border-2 border-pink-400/50' 
             : colorClass;
         
         // Clone icon with pink color if perfect jump available on jump button
@@ -467,7 +560,7 @@ export const TouchControls = ({ inputRef, mode, layout = { scale: 1, x: 0, y: 0 
         return (
             <button
                 key={id}
-                className={`pointer-events-auto rounded-full flex items-center justify-center active:scale-95 transition-all backdrop-blur-sm ${buttonStyle}`}
+                className={`pointer-events-auto rounded-full flex items-center justify-center active:scale-95 transition-all backdrop-blur-sm relative ${buttonStyle}`}
                 style={{
                     width: `${size}px`,
                     height: `${size}px`,
@@ -479,6 +572,8 @@ export const TouchControls = ({ inputRef, mode, layout = { scale: 1, x: 0, y: 0 
                 onTouchStart={(e) => { e.preventDefault(); handleTouch(touchKey, true); }}
                 onTouchEnd={(e) => { e.preventDefault(); handleTouch(touchKey, false); }}
             >
+                {/* Radial indicator for jump button */}
+                {isJumpButton && <RadialPerfectIndicator size={size} isReady={showPerfectIndicator} />}
                 {iconElement}
             </button>
         );
@@ -513,9 +608,9 @@ export const TouchControls = ({ inputRef, mode, layout = { scale: 1, x: 0, y: 0 
 
                 {/* Jump Button - CENTRALIZADO e PEQUENO - ROSA quando pulo perfeito disponível */}
                 <button
-                    className={`absolute pointer-events-auto rounded-full flex items-center justify-center border-2 active:scale-95 transition-all ${
+                    className={`absolute pointer-events-auto rounded-full flex items-center justify-center border-2 active:scale-95 transition-all relative ${
                         showPerfectIndicator 
-                            ? 'bg-pink-500/50 border-pink-400 shadow-[0_0_20px_rgba(236,72,153,0.6)] animate-pulse' 
+                            ? 'bg-pink-500/30 border-pink-400/50' 
                             : 'bg-cyan-900/30 border-cyan-500/40'
                     }`}
                     style={{
@@ -530,6 +625,7 @@ export const TouchControls = ({ inputRef, mode, layout = { scale: 1, x: 0, y: 0 
                     onMouseDown={() => { inputRef.current.jumpIntent = true; inputRef.current.jumpPressedTime = Date.now(); }}
                     onMouseUp={() => { inputRef.current.jumpIntent = false; inputRef.current.jetpack = false; }}
                 >
+                    <RadialPerfectIndicator size={jumpSize} isReady={showPerfectIndicator} />
                     <ArrowUp size={24 * globalScale} className={showPerfectIndicator ? 'text-pink-200 drop-shadow-[0_0_8px_rgba(236,72,153,0.8)]' : 'text-cyan-200/70'} />
                 </button>
 
@@ -1590,7 +1686,7 @@ const CharacterPreviewModal = ({ skin, onClose, onSelectSkin, allSkins }: {
             ];
         } else if (activeTab === 'wrap') {
             state.platforms = [
-                { x: 20, y: 320, w: 260 }, // Full ground
+                { x: -50, y: 340, w: 400 }, // Extra wide ground to prevent falling
             ];
         }
     }, [activeTab]);
@@ -1715,27 +1811,59 @@ const CharacterPreviewModal = ({ skin, onClose, onSelectSkin, allSkins }: {
                     state.tutorialPhase = 0;
                 }
             } else if (activeTab === 'wrap') {
-                // Tutorial: show screen wrap
+                // Tutorial: show screen wrap - keep grounded
                 state.vx = 3;
                 state.direction = 1;
+                state.y = 290; // Keep on ground level
+                state.vy = 0; // No vertical movement
                 // Don't clamp, let it wrap
             }
             
             // ========== PHYSICS ==========
-            // Jetpack
+            // Jetpack - IGUAL AO JOGO (BURST quando caindo, GLIDE quando subindo)
             if (state.jetpackActive) {
                 state.jetpackTimer--;
-                state.vy = Math.max(state.vy - 0.8, -6);
+                
+                // Jetpack force depends on vertical velocity (like the game)
+                let force = 0.8;
+                let isBurst = false;
+                
+                if (state.vy > 0) {
+                    // BURST mode - falling, need more force
+                    force = 2.0;
+                    isBurst = true;
+                } else {
+                    // GLIDE mode - ascending, gentle force
+                    force = state.vy < -6 ? 0.4 : 0.6;
+                }
+                
+                state.vy = Math.max(state.vy - force, -8);
+                
                 if (state.jetpackTimer <= 0 && activeTab !== 'jetpack') {
                     state.jetpackActive = false;
                 }
-                // Flame particles
+                
+                // Flame particles - different colors for BURST vs GLIDE
                 if (state.frame % 2 === 0) {
+                    const pColor = isBurst ? '#f97316' : '#22d3ee'; // Orange for burst, cyan for glide
                     state.particles.push({
-                        x: state.x, y: state.y + 24,
-                        vx: (Math.random() - 0.5) * 2, vy: Math.random() * 4 + 2,
-                        life: 15, color: Math.random() > 0.5 ? '#f97316' : '#facc15'
+                        x: state.x + (Math.random() - 0.5) * 10, 
+                        y: state.y + 24,
+                        vx: (Math.random() - 0.5) * (isBurst ? 8 : 3), 
+                        vy: (isBurst ? 10 : 4) + Math.random() * (isBurst ? 10 : 4),
+                        life: isBurst ? 20 : 12, 
+                        color: pColor
                     });
+                    // Extra flame for burst mode
+                    if (isBurst) {
+                        state.particles.push({
+                            x: state.x, y: state.y + 24,
+                            vx: (Math.random() - 0.5) * 4, 
+                            vy: 8 + Math.random() * 8,
+                            life: 15, 
+                            color: '#facc15' // Yellow inner flame
+                        });
+                    }
                 }
             }
             
@@ -2164,10 +2292,22 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
                 <div className={`border rounded-2xl p-6 backdrop-blur-sm flex flex-col items-center ${weedMode ? 'bg-green-900/30 border-green-700' : 'bg-slate-900/50 border-slate-800'}`}>
                     <h3 className={`text-xs font-bold tracking-[0.2em] mb-4 uppercase ${weedMode ? 'text-green-400' : 'text-slate-400'}`}>{weedT.skin}</h3>
 
-                    <div className="relative w-32 h-32 mb-4 group cursor-pointer" onClick={() => setShowCharacterPreview(true)}>
-                        <div className="absolute inset-0 bg-gradient-to-br from-cyan-500 to-purple-600 rounded-xl opacity-20 group-hover:opacity-40 transition-opacity"></div>
-                        <div className="w-full h-full p-2">
-                            <svg viewBox={`0 0 ${gameState.selectedSkin?.pixels?.length > 16 ? 24 : 16} ${gameState.selectedSkin?.pixels?.length > 16 ? 24 : 16}`} className="w-full h-full drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]" shapeRendering="crispEdges">
+                    {/* Character Preview Box - Click for Tutorial */}
+                    <div 
+                        className="relative w-36 h-40 mb-2 group cursor-pointer rounded-xl border-2 border-dashed border-cyan-500/30 hover:border-cyan-400/60 transition-all hover:scale-105" 
+                        onClick={() => setShowCharacterPreview(true)}
+                    >
+                        {/* Hover instruction */}
+                        <div className="absolute -top-6 left-1/2 -translate-x-1/2 whitespace-nowrap">
+                            <span className="text-[10px] font-bold text-cyan-400 animate-pulse">👆 TOQUE PARA TUTORIAL</span>
+                        </div>
+                        
+                        {/* Background glow */}
+                        <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/20 to-purple-600/20 rounded-xl group-hover:from-cyan-500/30 group-hover:to-purple-600/30 transition-all"></div>
+                        
+                        {/* Character */}
+                        <div className="w-full h-full p-3 flex items-center justify-center">
+                            <svg viewBox={`0 0 ${gameState.selectedSkin?.pixels?.length > 16 ? 24 : 16} ${gameState.selectedSkin?.pixels?.length > 16 ? 24 : 16}`} className="w-24 h-24 drop-shadow-[0_0_15px_rgba(255,255,255,0.4)] group-hover:drop-shadow-[0_0_25px_rgba(6,182,212,0.6)] transition-all" shapeRendering="crispEdges">
                                 {(gameState.selectedSkin?.pixels || []).map((row: number[], y: number) =>
                                     row.map((val: number, x: number) => {
                                         if (val === 0) return null;
@@ -2182,9 +2322,13 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
                                 )}
                             </svg>
                         </div>
-                        <p className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-xs font-bold text-cyan-400 uppercase tracking-wider whitespace-nowrap">{gameState.selectedSkin?.name || ''}</p>
-                        <div className="absolute bottom-2 right-2 bg-black/80 p-1.5 rounded-lg border border-white/10">
-                            <Eye size={14} className="text-cyan-400" />
+                        
+                        {/* Character name */}
+                        <p className="absolute bottom-1 left-1/2 -translate-x-1/2 text-xs font-bold text-cyan-400 uppercase tracking-wider whitespace-nowrap bg-black/60 px-2 py-0.5 rounded">{gameState.selectedSkin?.name || ''}</p>
+                        
+                        {/* Tutorial icon */}
+                        <div className="absolute top-2 right-2 bg-cyan-500/80 p-1.5 rounded-lg border border-cyan-300/50 animate-bounce" style={{ animationDuration: '2s' }}>
+                            <HelpCircle size={14} className="text-white" />
                         </div>
                     </div>
 

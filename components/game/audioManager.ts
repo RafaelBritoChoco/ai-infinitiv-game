@@ -141,6 +141,65 @@ export class SoundManager {
         setTimeout(() => this.playTone(2400, 'square', 0.1, 0.05, -400), 50);
     }
 
+    // Perfect Jump Charging Sound - pitch rises infinitely
+    private chargingOsc: OscillatorNode | null = null;
+    private chargingGain: GainNode | null = null;
+    private chargingInterval: number | null = null;
+    private chargingStartTime: number = 0;
+
+    public startPerfectCharge() {
+        if (!this.ctx || this.chargingOsc) return;
+        const t = this.ctx.currentTime;
+        this.chargingStartTime = t;
+
+        this.chargingOsc = this.ctx.createOscillator();
+        this.chargingOsc.type = 'sine';
+        this.chargingOsc.frequency.value = 200; // Start frequency
+
+        this.chargingGain = this.ctx.createGain();
+        this.chargingGain.gain.setValueAtTime(0, t);
+        this.chargingGain.gain.linearRampToValueAtTime(0.08, t + 0.3); // Very subtle
+
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.value = 800;
+
+        this.chargingOsc.connect(filter);
+        filter.connect(this.chargingGain);
+        this.chargingGain.connect(this.sfxGain!);
+        this.chargingOsc.start();
+
+        // Continuously raise pitch
+        this.chargingInterval = window.setInterval(() => {
+            if (this.chargingOsc && this.ctx) {
+                const elapsed = this.ctx.currentTime - this.chargingStartTime;
+                // Pitch rises exponentially - doubles every 2 seconds
+                const newFreq = 200 * Math.pow(2, elapsed / 2);
+                this.chargingOsc.frequency.setTargetAtTime(Math.min(newFreq, 4000), this.ctx.currentTime, 0.1);
+            }
+        }, 50);
+    }
+
+    public stopPerfectCharge() {
+        if (this.chargingInterval) {
+            clearInterval(this.chargingInterval);
+            this.chargingInterval = null;
+        }
+        if (!this.ctx || !this.chargingOsc || !this.chargingGain) return;
+        const t = this.ctx.currentTime;
+
+        try {
+            this.chargingGain.gain.setTargetAtTime(0, t, 0.05);
+            const osc = this.chargingOsc;
+            setTimeout(() => {
+                try { osc.stop(); } catch (e) { }
+            }, 100);
+        } catch (e) { }
+
+        this.chargingOsc = null;
+        this.chargingGain = null;
+    }
+
     public playDamage() { this.playTone(100, 'sawtooth', 0.3, 0.2, -80); }
     public playCollect() { this.playTone(1200, 'triangle', 0.5, 0.1, 800); }
     public playHover() { this.playTone(400, 'sine', 0.05, 0.02, -100); }
