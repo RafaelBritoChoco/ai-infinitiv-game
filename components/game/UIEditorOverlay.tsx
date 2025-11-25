@@ -166,7 +166,7 @@ export const UIEditorOverlay: React.FC<UIEditorOverlayProps> = ({ isActive }) =>
                     }}
                 >
                     <div style={{ fontWeight: 'bold', marginBottom: isMobile ? '2px' : '8px', color: '#3b82f6', fontSize: isMobile ? '9px' : '12px' }}>
-                        {isMobile ? '📱' : '🖱️'} Selected
+                        SELECTED
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: isMobile ? '2px' : '6px', marginBottom: isMobile ? '2px' : '8px', fontSize: isMobile ? '7px' : '10px' }}>
                         <div><strong>X:</strong> {Math.round(elementInfo.x)}</div>

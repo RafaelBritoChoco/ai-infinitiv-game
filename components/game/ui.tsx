@@ -677,13 +677,13 @@ export const DevConsole = ({ isOpen, onClose, configRef }: DevConsoleProps) => {
                 <div className="sticky top-0 bg-slate-900 border-b border-cyan-500/30 p-4 z-10">
                     <div className="flex justify-between items-center">
                         <h2 className="text-xl font-black text-cyan-400 flex items-center gap-2">
-                            🛠️ DEV CONSOLE
+                            DEV CONSOLE
                         </h2>
                         <button onClick={onClose} className="text-slate-400 hover:text-white">
                             <X size={24} />
                         </button>
                     </div>
-                    <p className="text-xs text-slate-500 mt-1">Changes apply instantly ⚡</p>
+                    <p className="text-xs text-slate-500 mt-1">Changes apply instantly</p>
                 </div>
 
                 {/* Tabs */}
@@ -695,7 +695,7 @@ export const DevConsole = ({ isOpen, onClose, configRef }: DevConsoleProps) => {
                             : 'bg-slate-800 text-slate-400 hover:text-white'
                             }`}
                     >
-                        ⚡ PHYSICS
+                        PHYSICS
                     </button>
                     <button
                         onClick={() => setActiveTab('controls')}
@@ -704,7 +704,7 @@ export const DevConsole = ({ isOpen, onClose, configRef }: DevConsoleProps) => {
                             : 'bg-slate-800 text-slate-400 hover:text-white'
                             }`}
                     >
-                        🎮 CONTROLS
+                        CONTROLS
                     </button>
                     <button
                         onClick={() => setActiveTab('visual')}
@@ -713,7 +713,7 @@ export const DevConsole = ({ isOpen, onClose, configRef }: DevConsoleProps) => {
                             : 'bg-slate-800 text-slate-400 hover:text-white'
                             }`}
                     >
-                        ✨ VISUAL
+                        VISUAL
                     </button>
                 </div>
 
@@ -822,7 +822,7 @@ export const DevConsole = ({ isOpen, onClose, configRef }: DevConsoleProps) => {
                         }}
                         className="w-full py-2 bg-orange-600 hover:bg-orange-500 text-white rounded font-bold text-sm"
                     >
-                        🔄 RESET TO DEFAULTS
+                        RESET TO DEFAULTS
                     </button>
                 </div>
             </div>
@@ -1416,15 +1416,15 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
 
     // Weed mode translations
     const weedT = {
-        title: weedMode ? '420 INFINITIV 🌿' : 'AI INFINITIV',
-        subtitle: weedMode ? 'Pega a Brisa Protocol 💨' : 'Vertical Ascent Protocol',
-        start: weedMode ? '🔥 ACENDE ESSA 🔥' : t[lang].start,
-        skin: weedMode ? '🌿 ESCOLHE TEU BECK' : t[lang].skin,
+        title: weedMode ? '420 INFINITIV' : 'AI INFINITIV',
+        subtitle: weedMode ? 'Pega a Brisa Protocol' : 'Vertical Ascent Protocol',
+        start: weedMode ? 'ACENDE ESSA' : t[lang].start,
+        skin: weedMode ? 'ESCOLHE TEU BECK' : t[lang].skin,
         highScore: weedMode ? 'MAIOR VIAGEM' : t[lang].highScore,
         coins: weedMode ? 'BECK COINS' : t[lang].coins,
-        motion: weedMode ? 'BALANÇA' : 'MOTION',
+        motion: weedMode ? 'BALANCA' : 'MOTION',
         controls: weedMode ? 'CONTROLA' : t[lang].controls,
-        ranking: weedMode ? '🏆 OS MAIS CHAPADOS' : 'RANKING GLOBAL',
+        ranking: weedMode ? 'OS MAIS CHAPADOS' : 'RANKING GLOBAL',
     };
 
     const toggleWeedMode = () => {
@@ -1435,43 +1435,41 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
 
     return (
         <div className={`absolute inset-0 z-50 flex flex-col items-center backdrop-blur-md overflow-y-auto custom-scrollbar ${weedMode ? 'bg-green-950/95' : 'bg-black/90'}`}>
-            {/* UPDATE BUTTON - FIXED AT TOP for mobile visibility */}
-            <div className="w-full sticky top-0 z-[60] bg-gradient-to-b from-black/90 to-transparent pb-4 pt-2 px-4 flex justify-center">
-                <button
-                    onClick={async () => {
-                        try {
-                            if ('caches' in window) {
-                                const cacheNames = await caches.keys();
-                                await Promise.all(cacheNames.map(name => caches.delete(name)));
-                            }
-                            if ('serviceWorker' in navigator) {
-                                const registrations = await navigator.serviceWorker.getRegistrations();
-                                await Promise.all(registrations.map(reg => reg.unregister()));
-                            }
-                            window.location.href = window.location.href.split('?')[0] + '?v=' + Date.now();
-                        } catch (e) {
-                            window.location.reload();
+            {/* UPDATE BUTTON - FIXED position always visible */}
+            <button
+                onClick={async () => {
+                    try {
+                        if ('caches' in window) {
+                            const cacheNames = await caches.keys();
+                            await Promise.all(cacheNames.map(name => caches.delete(name)));
                         }
-                    }}
-                    className="px-4 py-2 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-400 hover:to-red-400 text-white font-bold text-xs rounded-full shadow-lg hover:shadow-xl transition-all flex items-center gap-2 animate-pulse hover:animate-none"
-                >
-                    <RefreshCw size={14} /> 🔄 ATUALIZAR JOGO • <span className="text-yellow-300">{Constants.APP_VERSION}</span>
-                </button>
-            </div>
+                        if ('serviceWorker' in navigator) {
+                            const registrations = await navigator.serviceWorker.getRegistrations();
+                            await Promise.all(registrations.map(reg => reg.unregister()));
+                        }
+                        window.location.href = window.location.href.split('?')[0] + '?v=' + Date.now();
+                    } catch (e) {
+                        window.location.reload();
+                    }
+                }}
+                className="fixed top-2 left-1/2 -translate-x-1/2 z-[100] px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-[10px] uppercase tracking-wider rounded border-2 border-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.5)] hover:shadow-[0_0_25px_rgba(6,182,212,0.8)] transition-all flex items-center gap-2"
+            >
+                <RefreshCw size={12} className="animate-spin-slow" /> UPDATE <span className="text-yellow-300 font-mono">{Constants.APP_VERSION}</span>
+            </button>
 
             {/* WEED MODE TOGGLE */}
             <button 
                 onClick={toggleWeedMode}
-                className={`absolute top-14 right-4 z-50 px-3 py-2 rounded-full font-bold text-xs flex items-center gap-2 transition-all ${weedMode ? 'bg-green-600 text-white shadow-[0_0_20px_rgba(34,197,94,0.5)]' : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700/50'}`}
+                className={`fixed top-2 right-2 z-[100] px-3 py-2 rounded font-bold text-[10px] uppercase tracking-wider flex items-center gap-1 transition-all border ${weedMode ? 'bg-green-600 text-white border-green-400 shadow-[0_0_15px_rgba(34,197,94,0.5)]' : 'bg-slate-800/80 text-slate-400 border-slate-600 hover:bg-slate-700/80'}`}
             >
-                🌿 {weedMode ? 'ON' : 'OFF'}
+                420 {weedMode ? 'ON' : 'OFF'}
             </button>
 
             {/* HEADER */}
-            <div className="mb-4 md:mb-8 text-center relative shrink-0 mt-2">
+            <div className="mb-4 md:mb-8 text-center relative shrink-0 mt-12">
                 <div className={`absolute -inset-10 blur-3xl rounded-full animate-pulse ${weedMode ? 'bg-green-500/30' : 'bg-cyan-500/20'}`}></div>
                 <h1 className={`text-4xl md:text-8xl font-black italic tracking-tighter text-white relative z-10 ${weedMode ? 'drop-shadow-[0_0_15px_rgba(34,197,94,0.8)]' : 'drop-shadow-[0_0_15px_rgba(6,182,212,0.8)]'}`}>
-                    {weedMode ? '420 ' : 'AI '}<span className={`text-transparent bg-clip-text ${weedMode ? 'bg-gradient-to-r from-green-400 via-lime-400 to-green-500' : 'bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-500'}`}>{weedMode ? 'INFINITIV 🌿' : 'INFINITIV'}</span>
+                    {weedMode ? '420 ' : 'AI '}<span className={`text-transparent bg-clip-text ${weedMode ? 'bg-gradient-to-r from-green-400 via-lime-400 to-green-500' : 'bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-500'}`}>INFINITIV</span>
                 </h1>
                 
                 <p className={`font-mono tracking-[0.5em] text-[10px] md:text-sm mt-2 font-bold uppercase ${weedMode ? 'text-green-500' : 'text-cyan-500'}`}>{weedT.subtitle}</p>
@@ -1859,7 +1857,7 @@ export const RankingModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: ()
                 <div className="p-3 border-t border-slate-800 bg-slate-900/50 text-center">
                     <p className="text-slate-600 text-[10px]">
                         {activeTab === 'local' 
-                            ? `📱 Seus melhores scores neste dispositivo`
+                            ? `Seus melhores scores neste dispositivo`
                             : globalStatus || 'Carregando...'}
                     </p>
                 </div>
@@ -1991,7 +1989,7 @@ export const GameOverMenu = ({ gameState, handleStart, setGameState, leaderboard
                         </div>
                         {submittedRank && submittedRank <= 10 ? (
                             <p className="text-yellow-400 text-sm font-bold animate-pulse">
-                                🏆 Você está no Top {submittedRank} Global!
+                                TOP {submittedRank} GLOBAL!
                             </p>
                         ) : (
                             <p className="text-slate-500 text-xs">Ranking será atualizado em breve</p>

@@ -223,9 +223,9 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
                                 </div>
                                 <div className="mt-3 p-2 bg-slate-950 rounded-lg">
                                     <p className="text-[10px] text-slate-500 text-center">
-                                        {graphicsQuality === 'LOW' && '⚡ Máxima performance, sem efeitos visuais'}
-                                        {graphicsQuality === 'MEDIUM' && '✨ Efeitos básicos com boa performance'}
-                                        {graphicsQuality === 'HIGH' && '🎆 Todos os efeitos: partículas, sombras, blur'}
+                                        {graphicsQuality === 'LOW' && 'Maxima performance, sem efeitos visuais'}
+                                        {graphicsQuality === 'MEDIUM' && 'Efeitos basicos com boa performance'}
+                                        {graphicsQuality === 'HIGH' && 'Todos os efeitos: particulas, sombras, blur'}
                                     </p>
                                 </div>
                             </section>
@@ -326,11 +326,11 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
                             {/* Presets */}
                             <div className="grid grid-cols-3 gap-2">
                                 <button onClick={() => { updateConfig('GYRO_SENSITIVITY', 25); updateConfig('MOBILE_SENSITIVITY_MULTIPLIER', 1.5); }}
-                                    className="p-2 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-400 hover:border-slate-600">🐢 Lento</button>
+                                    className="p-2 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-400 hover:border-slate-600">LENTO</button>
                                 <button onClick={() => { updateConfig('GYRO_SENSITIVITY', 40); updateConfig('MOBILE_SENSITIVITY_MULTIPLIER', 2.5); }}
-                                    className="p-2 bg-green-900/30 border border-green-700 rounded-lg text-xs text-green-400">⚡ Normal</button>
+                                    className="p-2 bg-green-900/30 border border-green-700 rounded-lg text-xs text-green-400">NORMAL</button>
                                 <button onClick={() => { updateConfig('GYRO_SENSITIVITY', 70); updateConfig('MOBILE_SENSITIVITY_MULTIPLIER', 4); }}
-                                    className="p-2 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-400 hover:border-slate-600">🚀 Rápido</button>
+                                    className="p-2 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-400 hover:border-slate-600">RAPIDO</button>
                             </div>
                         </div>
                     )}

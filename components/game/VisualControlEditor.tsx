@@ -169,10 +169,10 @@ export const VisualControlEditor: React.FC<Props> = ({ isOpen, onClose, onSave, 
                 <p className="text-xs text-slate-400 mb-2 uppercase font-bold">Tipo de Controle:</p>
                 <div className="flex gap-2 flex-wrap">
                     {[
-                        { mode: 'ARROWS' as ControlMode, label: '◀ ▶ Setas', desc: 'Toque = pulo' },
-                        { mode: 'BUTTONS' as ControlMode, label: '🎮 Botões', desc: '4 botões' },
-                        { mode: 'TILT' as ControlMode, label: '📱 Inclinar', desc: 'Giroscópio' },
-                        { mode: 'JOYSTICK' as ControlMode, label: '🕹️ Joystick', desc: 'Analógico' },
+                        { mode: 'ARROWS' as ControlMode, label: 'SETAS', desc: 'Toque = pulo' },
+                        { mode: 'BUTTONS' as ControlMode, label: 'BOTOES', desc: '4 botoes' },
+                        { mode: 'TILT' as ControlMode, label: 'INCLINAR', desc: 'Giroscopio' },
+                        { mode: 'JOYSTICK' as ControlMode, label: 'JOYSTICK', desc: 'Analogico' },
                     ].map(({ mode, label, desc }) => (
                         <button
                             key={mode}
