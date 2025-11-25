@@ -14,6 +14,7 @@ import { getWorldWidthAtHeight, getScaleAndOffset, getWorldPos } from './game/ut
 import { useGameLoop } from './game/useGameLoop';
 import { soundManager } from './game/audioManager'; // Import Sound Manager
 import { Persistence } from './game/persistence';
+import { initResponsiveUI } from './game/responsiveUI';
 
 // --- Custom Hooks ---
 import { useGameController } from './game/hooks/useGameController';
@@ -67,7 +68,6 @@ const GameCanvas: React.FC = () => {
 
     // --- INIT: Responsive UI System ---
     useEffect(() => {
-        const { initResponsiveUI } = require('./game/responsiveUI');
         const cleanup = initResponsiveUI();
         return cleanup;
     }, []);
