@@ -1,49 +1,44 @@
 // Leaderboard API - Funciona com ou sem Redis
 // Se Redis não estiver configurado, retorna dados vazios mas não quebra
 
-import { Redis } from '@upstash/redis';
+let Redis;
+try {
+    Redis = require('@upstash/redis').Redis;
+} catch (e) {
+    Redis = null;
+}
 
 const LEADERBOARD_KEY = 'leaderboard:global';
-const MAX_ENTRIES = 100;
+
+// Placeholder entries quando não tem dados
+const EMPTY_LEADERBOARD = [
+    { name: '- - -', score: 0, date: null, rank: 1 },
+    { name: '- - -', score: 0, date: null, rank: 2 },
+    { name: '- - -', score: 0, date: null, rank: 3 },
+];
 
 // Tenta criar conexão Redis
 function createRedisClient() {
+    if (!Redis) return null;
+    
     try {
-        // Opção 1: Variáveis padrão do Upstash
         if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
             return new Redis({
                 url: process.env.UPSTASH_REDIS_REST_URL,
                 token: process.env.UPSTASH_REDIS_REST_TOKEN,
             });
         }
-        
-        // Opção 2: Variáveis KV_ (Vercel KV style)
         if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
             return new Redis({
                 url: process.env.KV_REST_API_URL,
                 token: process.env.KV_REST_API_TOKEN,
             });
         }
-        
-        // Opção 3: REDIS_URL + REDIS_TOKEN
-        if (process.env.REDIS_URL && process.env.REDIS_TOKEN) {
-            return new Redis({
-                url: process.env.REDIS_URL,
-                token: process.env.REDIS_TOKEN,
-            });
-        }
     } catch (e) {
-        console.error('Failed to create Redis client:', e);
+        console.error('Redis init error:', e.message);
     }
     return null;
 }
-
-// Placeholder entries quando não tem dados
-const EMPTY_LEADERBOARD = [
-    { name: '???', score: 0, date: null, rank: 1 },
-    { name: '???', score: 0, date: null, rank: 2 },
-    { name: '???', score: 0, date: null, rank: 3 },
-];
 
 export default async function handler(request, response) {
     // CORS headers
@@ -55,22 +50,37 @@ export default async function handler(request, response) {
         return response.status(200).end();
     }
 
-    const redis = createRedisClient();
+    // Tenta criar cliente Redis - se falhar, continua sem
+    let redis = null;
+    try {
+        redis = createRedisClient();
+    } catch (e) {
+        console.log('Redis not available:', e.message);
+    }
 
     try {
         // ============ GET - Buscar ranking ============
         if (request.method === 'GET') {
-            // Se não tem Redis, retorna leaderboard vazio
+            // Se não tem Redis, retorna leaderboard vazio IMEDIATAMENTE
             if (!redis) {
                 return response.status(200).json({ 
                     success: true, 
                     leaderboard: EMPTY_LEADERBOARD,
-                    offline: true,
-                    message: 'Modo offline - configure Redis para ranking global'
+                    offline: true
                 });
             }
 
-            const scores = await redis.zrange(LEADERBOARD_KEY, 0, 9, { rev: true, withScores: true });
+            let scores;
+            try {
+                scores = await redis.zrange(LEADERBOARD_KEY, 0, 9, { rev: true, withScores: true });
+            } catch (e) {
+                console.error('Redis zrange error:', e.message);
+                return response.status(200).json({ 
+                    success: true, 
+                    leaderboard: EMPTY_LEADERBOARD,
+                    offline: true
+                });
+            }
 
             // Se não tem scores, retorna placeholder
             if (!scores || scores.length === 0) {
