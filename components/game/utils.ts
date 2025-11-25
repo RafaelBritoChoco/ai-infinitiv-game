@@ -51,14 +51,14 @@ export const getScaleAndOffset = (
     const effectiveWidth = currentWorldWidth / effectiveZoom;
     const scale = width / effectiveWidth;
 
-    // No modo portrait mobile, jogador fica mais embaixo (0.8) para ver mais plataformas acima
+    // No modo portrait mobile, jogador fica mais embaixo (0.8) para ver melhor as plataformas acima
     // Em freefall, player is at top (0.2) looking down.
-    // Modo normal: 0.7 (desktop) ou 0.75 (mobile portrait para ver mais acima)
-    let playerScreenPosition = 0.7;
+    // Modo normal: 0.6 (desktop) ou 0.55 (mobile portrait - mais centralizado)
+    let playerScreenPosition = 0.6;
     if (isFreefall) {
         playerScreenPosition = 0.2;
     } else if (isMobilePortrait) {
-        playerScreenPosition = 0.78; // Jogador mais embaixo no mobile = vê mais do que vem acima
+        playerScreenPosition = 0.55; // Jogador mais centralizado no mobile = melhor visão do jogo
     }
     
     const centerOffsetY = height * playerScreenPosition;
