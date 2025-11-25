@@ -9,6 +9,7 @@ try {
 }
 
 const LEADERBOARD_KEY = 'leaderboard:global';
+const MAX_ENTRIES = 100; // Máximo de entradas no ranking
 
 // Placeholder entries quando não tem dados
 const EMPTY_LEADERBOARD = [
