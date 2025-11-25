@@ -173,14 +173,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
             {/* Floating draggable modal */}
             <div
-                className="fixed w-96 h-[600px] bg-slate-900/98 backdrop-blur-md border-2 border-cyan-500/50 rounded-lg shadow-2xl flex flex-col"
+                className="fixed w-full md:w-96 h-[80vh] md:h-[600px] bg-slate-900/98 backdrop-blur-md border-2 border-cyan-500/50 rounded-lg shadow-2xl flex flex-col"
                 style={{
                     zIndex: Constants.Z_LAYERS.MODAL,
-                    left: `${position.x}px`,
-                    top: `${position.y}px`,
-                    cursor: isDragging ? 'grabbing' : 'default'
+                    left: window.innerWidth < 768 ? '0' : `${position.x}px`,
+                    top: window.innerWidth < 768 ? '10%' : `${position.y}px`,
+                    cursor: isDragging ? 'grabbing' : 'default',
+                    maxWidth: '100vw'
                 }}
-                onMouseDown={handleMouseDown}
+                onMouseDown={window.innerWidth >= 768 ? handleMouseDown : undefined}
             >
 
                 {/* HEADER com Drag Handle */}
