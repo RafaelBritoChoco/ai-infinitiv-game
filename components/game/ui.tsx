@@ -1620,11 +1620,22 @@ const CharacterPreviewModal = ({ skin, onClose, onSelectSkin, allSkins }: {
 }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const animationRef = useRef<number>(0);
+    const listRef = useRef<HTMLDivElement>(null);
     const [currentSkinIndex, setCurrentSkinIndex] = useState(() => {
         const idx = allSkins.findIndex(s => s.id === skin.id);
         return idx >= 0 ? idx : 0;
     });
     const [activeTab, setActiveTab] = useState<'preview' | 'jetpack' | 'perfect' | 'wrap'>('preview');
+    
+    // Scroll to selected character when index changes
+    useEffect(() => {
+        if (listRef.current) {
+            const selectedItem = listRef.current.children[currentSkinIndex] as HTMLElement;
+            if (selectedItem) {
+                selectedItem.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+            }
+        }
+    }, [currentSkinIndex]);
     
     const currentSkin = allSkins[currentSkinIndex] || skin;
     
@@ -2037,9 +2048,6 @@ const CharacterPreviewModal = ({ skin, onClose, onSelectSkin, allSkins }: {
         };
     }, [currentSkin, activeTab]);
     
-    const nextSkin = () => setCurrentSkinIndex((prev) => (prev + 1) % allSkins.length);
-    const prevSkin = () => setCurrentSkinIndex((prev) => (prev - 1 + allSkins.length) % allSkins.length);
-    
     const tabs = [
         { id: 'preview', label: '👁️', title: 'Preview' },
         { id: 'jetpack', label: '🚀', title: 'Jetpack' },
@@ -2048,25 +2056,82 @@ const CharacterPreviewModal = ({ skin, onClose, onSelectSkin, allSkins }: {
     ];
     
     return (
-        <div className="fixed inset-0 z-[200] bg-black/95 flex flex-col items-center justify-center p-4 overflow-y-auto">
+        <div className="fixed inset-0 z-[200] bg-black/95 flex flex-col items-center justify-start p-2 overflow-hidden">
             {/* Close button */}
-            <button onClick={onClose} className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white z-10">
+            <button onClick={onClose} className="absolute top-2 right-2 p-2 text-slate-400 hover:text-white z-10">
                 <X size={24} />
             </button>
             
-            {/* Title */}
-            <h2 className="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500 mb-1">
-                {activeTab === 'preview' ? 'AGENT PREVIEW' : 'TUTORIAL'}
+            {/* CHARACTER LIST - Horizontal Gallery at TOP */}
+            <div className="w-full max-w-md mt-1 mb-2">
+                <p className="text-[10px] text-slate-500 text-center mb-1">← DESLIZE PARA VER TODOS →</p>
+                <div 
+                    ref={listRef}
+                    className="flex gap-2 overflow-x-auto custom-scrollbar pb-2 px-2 snap-x snap-mandatory"
+                    style={{ scrollbarWidth: 'thin' }}
+                >
+                    {allSkins.map((s, i) => {
+                        const isSelected = i === currentSkinIndex;
+                        return (
+                            <button
+                                key={s.id}
+                                onClick={() => setCurrentSkinIndex(i)}
+                                className={`flex-shrink-0 flex flex-col items-center p-1.5 rounded-lg border-2 transition-all snap-center ${
+                                    isSelected 
+                                        ? 'border-cyan-400 bg-cyan-900/40 shadow-[0_0_15px_rgba(6,182,212,0.5)] scale-110' 
+                                        : 'border-slate-700 bg-slate-900/60 hover:border-slate-500 opacity-60 hover:opacity-100'
+                                }`}
+                                style={{ minWidth: '50px' }}
+                            >
+                                {/* Mini character */}
+                                <div className={`w-8 h-8 ${isSelected ? 'animate-bounce' : ''}`} style={{ animationDuration: '0.6s' }}>
+                                    <svg viewBox={`0 0 ${s.pixels?.length > 16 ? 24 : 16} ${s.pixels?.length > 16 ? 24 : 16}`} className="w-full h-full" shapeRendering="crispEdges">
+                                        {(s?.pixels || []).map((row: number[], y: number) =>
+                                            row.map((val: number, x: number) => {
+                                                if (val === 0) return null;
+                                                let color = s?.color || '#f97316';
+                                                if (val === 1) color = '#0f172a';
+                                                else if (val === 3) color = '#ffffff';
+                                                else if (val === 4) color = '#ffffff';
+                                                else if (val === 5) color = '#000000';
+                                                else if (val === 6) color = '#facc15';
+                                                return <rect key={`${x}-${y}`} x={x} y={y} width="1" height="1" fill={color} />;
+                                            })
+                                        )}
+                                    </svg>
+                                </div>
+                                {/* Name */}
+                                <span className={`text-[7px] font-bold uppercase truncate max-w-[45px] ${isSelected ? 'text-cyan-300' : 'text-slate-500'}`}>
+                                    {s.name || s.id}
+                                </span>
+                                {/* Index indicator */}
+                                {isSelected && (
+                                    <div className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-cyan-400 rounded-full" />
+                                )}
+                            </button>
+                        );
+                    })}
+                </div>
+                {/* Position indicator */}
+                <div className="flex justify-center gap-1 mt-1">
+                    <span className="text-[10px] text-cyan-400 font-bold">{currentSkinIndex + 1}</span>
+                    <span className="text-[10px] text-slate-600">/</span>
+                    <span className="text-[10px] text-slate-500">{allSkins.length}</span>
+                </div>
+            </div>
+            
+            {/* Title - Character Name */}
+            <h2 className="text-lg font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500 mb-1">
+                {currentSkin.name || currentSkin.id}
             </h2>
-            <p className="text-sm text-slate-500 mb-3">{currentSkin.name || currentSkin.id}</p>
             
             {/* Tab buttons */}
-            <div className="flex gap-2 mb-3">
+            <div className="flex gap-1 mb-2">
                 {tabs.map(tab => (
                     <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id as any)}
-                        className={`px-3 py-2 rounded-lg text-sm font-bold transition-all ${
+                        className={`px-2 py-1.5 rounded-lg text-xs font-bold transition-all ${
                             activeTab === tab.id 
                                 ? 'bg-cyan-600 text-white shadow-[0_0_15px_rgba(6,182,212,0.5)]' 
                                 : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
@@ -2078,57 +2143,42 @@ const CharacterPreviewModal = ({ skin, onClose, onSelectSkin, allSkins }: {
                 ))}
             </div>
             
-            {/* Canvas container with navigation arrows (only in preview mode) */}
+            {/* Canvas - slightly smaller */}
             <div className="relative">
-                {activeTab === 'preview' && (
-                    <button 
-                        onClick={prevSkin}
-                        className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-12 p-2 bg-slate-800 rounded-full text-white hover:bg-slate-700 z-10"
-                    >
-                        <ChevronLeft size={24} />
-                    </button>
-                )}
-                
                 <canvas 
                     ref={canvasRef} 
-                    width={300} 
-                    height={380} 
+                    width={280} 
+                    height={320} 
                     className="rounded-xl border-2 border-slate-700 shadow-[0_0_30px_rgba(6,182,212,0.3)]"
                 />
                 
-                {activeTab === 'preview' && (
-                    <button 
-                        onClick={nextSkin}
-                        className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-12 p-2 bg-slate-800 rounded-full text-white hover:bg-slate-700 z-10"
-                    >
-                        <ChevronRight size={24} />
-                    </button>
-                )}
+                {/* Navigation arrows on canvas sides */}
+                <button 
+                    onClick={() => setCurrentSkinIndex((prev) => (prev - 1 + allSkins.length) % allSkins.length)}
+                    className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 p-2 bg-slate-800/90 rounded-full text-white hover:bg-cyan-600 z-10 border border-slate-600"
+                >
+                    <ChevronLeft size={20} />
+                </button>
+                
+                <button 
+                    onClick={() => setCurrentSkinIndex((prev) => (prev + 1) % allSkins.length)}
+                    className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 p-2 bg-slate-800/90 rounded-full text-white hover:bg-cyan-600 z-10 border border-slate-600"
+                >
+                    <ChevronRight size={20} />
+                </button>
             </div>
             
-            {/* Skin counter (only in preview) */}
-            {activeTab === 'preview' && (
-                <p className="text-sm text-slate-500 mt-2">{currentSkinIndex + 1} / {allSkins.length}</p>
-            )}
-            
-            {/* Action buttons */}
-            <div className="flex gap-3 mt-4">
+            {/* Action button - Select and Close */}
+            <div className="flex gap-3 mt-3">
                 <button
                     onClick={() => {
                         onSelectSkin(currentSkin);
                         onClose();
                     }}
-                    className="px-6 py-3 bg-gradient-to-r from-cyan-600 to-purple-600 text-white font-bold rounded-xl text-sm uppercase tracking-widest hover:from-cyan-500 hover:to-purple-500 transition-all"
+                    className="px-8 py-3 bg-gradient-to-r from-cyan-600 to-purple-600 text-white font-bold rounded-xl text-sm uppercase tracking-widest hover:from-cyan-500 hover:to-purple-500 transition-all shadow-[0_0_20px_rgba(6,182,212,0.4)]"
                 >
                     <Check size={16} className="inline mr-2" />
-                    Selecionar
-                </button>
-                
-                <button
-                    onClick={onClose}
-                    className="px-6 py-3 bg-slate-800 border border-slate-600 text-slate-300 font-bold rounded-xl text-sm uppercase tracking-widest hover:bg-slate-700 transition-all"
-                >
-                    Fechar
+                    USAR {currentSkin.name || currentSkin.id}
                 </button>
             </div>
         </div>
