@@ -551,6 +551,21 @@ export const TouchControls = ({ inputRef, mode, layout = { scale: 1, x: 0, y: 0 
         const [rightPressed, setRightPressed] = React.useState(false);
         const [jetpackActive, setJetpackActive] = React.useState(false);
         
+        // CRITICAL: Reset states when game restarts (when isPlaying changes to true)
+        React.useEffect(() => {
+            if (gameState?.isPlaying && !gameState?.isGameOver) {
+                setLeftPressed(false);
+                setRightPressed(false);
+                setJetpackActive(false);
+                if (inputRef.current) {
+                    inputRef.current.left = false;
+                    inputRef.current.right = false;
+                    inputRef.current.jetpack = false;
+                    inputRef.current.jumpIntent = false;
+                }
+            }
+        }, [gameState?.isPlaying, gameState?.runId]); // runId changes on each restart
+        
         // Check if both buttons are pressed
         React.useEffect(() => {
             if (leftPressed && rightPressed) {

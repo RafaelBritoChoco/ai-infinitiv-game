@@ -182,6 +182,14 @@ export const useGameController = (props: GameControllerProps) => {
         setShowGameOverMenu(false);
         setMenuIndex(0);
 
+        // CRITICAL: Reset ALL inputs to prevent "stuck moving" bug after restart
+        inputRef.current = {
+            left: false, right: false, up: false, down: false,
+            jetpack: false, jumpIntent: false, jumpPressedTime: 0,
+            pausePressed: false, menuSelect: false, menuBack: false,
+            menuInputCooldown: 0, lastInputMask: 0, tiltX: 0, targetTiltX: 0
+        };
+
         // Init Logic
         const currentState = stateRef.current;
         initGameWorld(currentState.levelIndex, currentState.levelType);
