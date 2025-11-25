@@ -3,10 +3,11 @@ import {
     Play, Move, Trash2, PlusSquare, Save, AlertTriangle, Pause, RefreshCw, Smartphone, Gamepad2, Rocket, Lock, Trophy, Coins, XOctagon,
     ToggleLeft, ToggleRight, X, Settings, Download, MapPin, Shuffle, Crown, Keyboard, Zap, Battery, ChevronsUp, Wind, TrendingUp,
     ArrowLeft, ShoppingBag, Home, Sparkles, Wand2, Maximize, RotateCcw, ChevronLeft, ChevronRight, ArrowUp, Shield, HelpCircle,
-    Layers, Globe, Check, MousePointer2, ArrowDown, Heart, Unlock, Loader2
+    Layers, Globe, Check, MousePointer2, ArrowDown, Heart, Unlock, Loader2, Medal, Send, User
 } from 'lucide-react';
 import { CharacterSkin, GameState, LeaderboardEntry, ShopUpgrades } from '../../types';
 import { soundManager } from './audioManager';
+import { Persistence } from './persistence';
 import * as Constants from '../../constants';
 
 export const SensorDebugModal = ({ onClose }: { onClose: () => void }) => {
@@ -1237,6 +1238,7 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
 
     const [lang, setLang] = useState<'EN' | 'PT'>('EN');
     const [showSensorDebug, setShowSensorDebug] = useState(false);
+    const [showRanking, setShowRanking] = useState(false);
 
     const t = {
         EN: {
@@ -1472,6 +1474,14 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
                             <Settings size={14} /> SET
                         </button>
                     </div>
+
+                    {/* RANKING BUTTON */}
+                    <button 
+                        onClick={() => setShowRanking(true)} 
+                        className="w-full py-3 bg-gradient-to-r from-yellow-900/50 to-amber-900/50 border border-yellow-600/50 rounded-lg text-xs font-bold text-yellow-400 hover:text-white hover:border-yellow-400 transition-all flex items-center justify-center gap-2"
+                    >
+                        <Trophy size={16} /> RANKING GLOBAL
+                    </button>
                 </div>
             </div>
 
@@ -1489,6 +1499,112 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
 
             {/* SENSOR DEBUG MODAL */}
             {showSensorDebug && <SensorDebugModal onClose={() => setShowSensorDebug(false)} />}
+            
+            {/* RANKING MODAL */}
+            <RankingModal isOpen={showRanking} onClose={() => setShowRanking(false)} />
+        </div>
+    );
+};
+
+// ====================================================================================
+// RANKING MODAL - Global Leaderboard Display
+// ====================================================================================
+export const RankingModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
+    const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (isOpen) {
+            setLoading(true);
+            setError(null);
+            Persistence.fetchGlobalLeaderboard()
+                .then(data => {
+                    setLeaderboard(data);
+                    setLoading(false);
+                })
+                .catch(err => {
+                    setError('Falha ao carregar ranking');
+                    setLeaderboard(Persistence.loadLeaderboard());
+                    setLoading(false);
+                });
+        }
+    }, [isOpen]);
+
+    if (!isOpen) return null;
+
+    const getMedalColor = (index: number) => {
+        if (index === 0) return 'text-yellow-400 bg-yellow-500/20 border-yellow-500/50';
+        if (index === 1) return 'text-slate-300 bg-slate-400/20 border-slate-400/50';
+        if (index === 2) return 'text-amber-600 bg-amber-600/20 border-amber-600/50';
+        return 'text-slate-500 bg-slate-800/50 border-slate-700';
+    };
+
+    return (
+        <div className="fixed inset-0 z-[200] bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
+            <div className="w-full max-w-md max-h-[85vh] bg-slate-950 border border-yellow-500/30 rounded-2xl shadow-[0_0_50px_rgba(234,179,8,0.2)] flex flex-col overflow-hidden animate-in zoom-in-95">
+                {/* Header */}
+                <div className="p-4 border-b border-yellow-500/20 bg-gradient-to-r from-yellow-900/20 to-slate-900/50 flex justify-between items-center">
+                    <h2 className="text-xl font-black text-white flex items-center gap-3">
+                        <Trophy size={24} className="text-yellow-400" />
+                        RANKING GLOBAL
+                    </h2>
+                    <button onClick={onClose} className="p-2 hover:bg-red-900/30 rounded-lg text-slate-400 hover:text-red-400">
+                        <X size={22} />
+                    </button>
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 overflow-y-auto p-4">
+                    {loading ? (
+                        <div className="flex flex-col items-center justify-center py-12">
+                            <Loader2 size={40} className="text-yellow-400 animate-spin mb-4" />
+                            <p className="text-slate-500 text-sm">Carregando ranking...</p>
+                        </div>
+                    ) : error ? (
+                        <div className="text-center py-8">
+                            <p className="text-red-400 text-sm mb-2">{error}</p>
+                            <p className="text-slate-600 text-xs">Mostrando ranking local</p>
+                        </div>
+                    ) : leaderboard.length === 0 ? (
+                        <div className="text-center py-12">
+                            <Trophy size={48} className="text-slate-700 mx-auto mb-4" />
+                            <p className="text-slate-500 text-sm">Nenhum score ainda!</p>
+                            <p className="text-slate-600 text-xs mt-1">Seja o primeiro a entrar no ranking!</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-2">
+                            {leaderboard.slice(0, 10).map((entry, index) => (
+                                <div 
+                                    key={entry.id || index}
+                                    className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${getMedalColor(index)} ${index < 3 ? 'shadow-lg' : ''}`}
+                                >
+                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-lg ${
+                                        index === 0 ? 'bg-yellow-500 text-black' :
+                                        index === 1 ? 'bg-slate-400 text-black' :
+                                        index === 2 ? 'bg-amber-600 text-black' :
+                                        'bg-slate-800 text-slate-400'
+                                    }`}>
+                                        {index < 3 ? <Medal size={20} /> : `#${index + 1}`}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className={`font-bold truncate ${index < 3 ? 'text-white' : 'text-slate-300'}`}>{entry.name}</p>
+                                        {entry.date && <p className="text-[10px] text-slate-600">{new Date(entry.date).toLocaleDateString('pt-BR')}</p>}
+                                    </div>
+                                    <div className="text-right">
+                                        <p className={`font-mono font-black text-lg ${index === 0 ? 'text-yellow-400' : index === 1 ? 'text-slate-300' : index === 2 ? 'text-amber-500' : 'text-cyan-400'}`}>
+                                            {entry.score}m
+                                        </p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+                <div className="p-3 border-t border-slate-800 bg-slate-900/50 text-center">
+                    <p className="text-slate-600 text-[10px]">Top 10 jogadores globais</p>
+                </div>
+            </div>
         </div>
     );
 };
@@ -1505,47 +1621,124 @@ export const PortraitLock = ({ locked = true }: { locked?: boolean }) => {
 };
 
 export const GameOverMenu = ({ gameState, handleStart, setGameState, leaderboard, onSaveScore, selectedIndex }: any) => {
-    const [name, setName] = useState(gameState.username);
-    const isHighScore = gameState.score >= (leaderboard?.[2]?.score || 0) || leaderboard?.length < 3;
-    const scoreSubmitted = leaderboard?.some((e: LeaderboardEntry) => e.id === gameState.runId);
+    const [playerName, setPlayerName] = useState(() => localStorage.getItem('PLAYER_NAME') || '');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitted, setSubmitted] = useState(false);
+    
+    const isNewHighScore = gameState.score > gameState.highScore;
 
-    // Navigation helper
+    const handleSubmitScore = async () => {
+        if (!playerName.trim() || playerName.length < 2) {
+            alert('Digite um nome com pelo menos 2 caracteres!');
+            return;
+        }
+        if (playerName.length > 15) {
+            alert('Nome muito longo! Máximo 15 caracteres.');
+            return;
+        }
+        
+        setIsSubmitting(true);
+        try {
+            // Save name for future use
+            localStorage.setItem('PLAYER_NAME', playerName.trim());
+            
+            // Submit to global leaderboard
+            await Persistence.submitGlobalScore(playerName.trim(), gameState.score);
+            setSubmitted(true);
+            soundManager.playPerfectJump();
+        } catch (e) {
+            console.error('Failed to submit score', e);
+            alert('Erro ao enviar score. Tente novamente.');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
     const menuOptions = [
         { label: 'RETRY MISSION', action: () => handleStart(gameState.gameMode), icon: RotateCcw, color: 'cyan' },
         { label: 'MAIN MENU', action: () => setGameState((p: any) => ({ ...p, isGameOver: false, isPlaying: false })), icon: Home, color: 'slate' }
     ];
 
     return (
-        <div className="absolute inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center">
-            <div className="bg-[#020617] border border-red-900/50 p-8 rounded-2xl shadow-[0_0_50px_rgba(220,38,38,0.2)] max-w-md w-full flex flex-col items-center gap-6 animate-in zoom-in-95 duration-300">
+        <div className="absolute inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+            <div className="bg-[#020617] border border-red-900/50 p-6 rounded-2xl shadow-[0_0_50px_rgba(220,38,38,0.2)] max-w-md w-full flex flex-col items-center gap-4 animate-in zoom-in-95 duration-300">
                 <div className="text-center">
                     <div className="text-red-500 text-sm font-bold tracking-[0.5em] uppercase mb-2">Signal Lost</div>
-                    <h2 className="text-5xl font-black text-white italic tracking-tighter">GAME OVER</h2>
+                    <h2 className="text-4xl font-black text-white italic tracking-tighter">GAME OVER</h2>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 w-full">
-                    <div className="bg-slate-900/50 border border-slate-800 p-4 rounded-xl text-center">
-                        <div className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1">Altitude</div>
-                        <div className="text-3xl font-black text-white">{gameState.score}m</div>
+                {/* Score Display */}
+                <div className="grid grid-cols-2 gap-3 w-full">
+                    <div className="bg-slate-900/50 border border-slate-800 p-3 rounded-xl text-center">
+                        <div className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-1">Altitude</div>
+                        <div className="text-2xl font-black text-white">{gameState.score}m</div>
                     </div>
-                    <div className="bg-slate-900/50 border border-slate-800 p-4 rounded-xl text-center">
-                        <div className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1">Coins</div>
-                        <div className="text-3xl font-black text-yellow-400 flex items-center justify-center gap-1"><Coins size={20} /> {gameState.runCoins}</div>
+                    <div className="bg-slate-900/50 border border-slate-800 p-3 rounded-xl text-center">
+                        <div className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-1">Coins</div>
+                        <div className="text-2xl font-black text-yellow-400 flex items-center justify-center gap-1"><Coins size={16} /> {gameState.runCoins}</div>
                     </div>
                 </div>
 
-                {/* ACTION BUTTONS */}
-                <div className="w-full space-y-3">
+                {/* New High Score Badge */}
+                {isNewHighScore && (
+                    <div className="w-full bg-gradient-to-r from-yellow-900/30 to-yellow-600/30 border border-yellow-500/50 p-3 rounded-xl text-center animate-pulse">
+                        <div className="flex items-center justify-center gap-2 text-yellow-400 font-black uppercase tracking-widest">
+                            <Trophy size={20} /> NOVO RECORDE!
+                        </div>
+                    </div>
+                )}
+
+                {/* Submit Score Section */}
+                {!submitted ? (
+                    <div className="w-full bg-slate-900/50 border border-cyan-900/50 p-4 rounded-xl space-y-3">
+                        <div className="text-center">
+                            <p className="text-cyan-400 text-xs font-bold uppercase tracking-widest mb-1">
+                                <Globe size={14} className="inline mr-1" /> Salvar no Ranking Global
+                            </p>
+                        </div>
+                        <div className="flex gap-2">
+                            <div className="relative flex-1">
+                                <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                                <input
+                                    type="text"
+                                    value={playerName}
+                                    onChange={(e) => setPlayerName(e.target.value.slice(0, 15))}
+                                    placeholder="Seu nome..."
+                                    maxLength={15}
+                                    className="w-full pl-10 pr-3 py-3 bg-slate-950 border border-slate-700 rounded-lg text-white text-sm font-bold focus:border-cyan-500 outline-none"
+                                />
+                            </div>
+                            <button
+                                onClick={handleSubmitScore}
+                                disabled={isSubmitting || !playerName.trim()}
+                                className="px-4 py-3 bg-cyan-600 hover:bg-cyan-500 disabled:bg-slate-700 disabled:text-slate-500 text-white font-bold rounded-lg flex items-center gap-2 transition-all"
+                            >
+                                {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
+                            </button>
+                        </div>
+                        <p className="text-slate-600 text-[10px] text-center">Máximo 15 caracteres</p>
+                    </div>
+                ) : (
+                    <div className="w-full bg-green-900/20 border border-green-500/50 p-4 rounded-xl text-center">
+                        <div className="flex items-center justify-center gap-2 text-green-400 font-bold">
+                            <Check size={20} /> Score enviado com sucesso!
+                        </div>
+                    </div>
+                )}
+
+                {/* Action Buttons */}
+                <div className="w-full space-y-2">
                     {menuOptions.map((opt, idx) => (
                         <button
                             key={idx}
                             onClick={opt.action}
-                            className={`w-full py-4 rounded-xl font-black text-lg uppercase tracking-widest flex items-center justify-center gap-3 transition-all ${idx === selectedIndex
-                                ? `bg-${opt.color}-600 text-white shadow-[0_0_20px_rgba(6,182,212,0.4)] scale-105 ring-2 ring-${opt.color}-400`
-                                : `bg-slate-900 border border-slate-800 text-slate-400 hover:bg-slate-800 hover:text-white`
-                                }`}
+                            className={`w-full py-3 rounded-xl font-bold text-sm uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${
+                                idx === selectedIndex
+                                    ? `bg-${opt.color}-600 text-white shadow-[0_0_20px_rgba(6,182,212,0.4)] scale-105`
+                                    : `bg-slate-900 border border-slate-800 text-slate-400 hover:bg-slate-800 hover:text-white`
+                            }`}
                         >
-                            <opt.icon size={20} /> {opt.label}
+                            <opt.icon size={18} /> {opt.label}
                         </button>
                     ))}
                 </div>
