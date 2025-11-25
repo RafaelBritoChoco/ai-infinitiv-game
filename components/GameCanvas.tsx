@@ -64,6 +64,13 @@ const GameCanvas: React.FC = () => {
     const isControlsOpenRef = useRef(false);
     const calibrationRef = useRef({ offset: 0, sensitivity: Constants.GYRO_SENSITIVITY, inverted: false });
 
+    // --- INIT: Responsive UI System ---
+    useEffect(() => {
+        const { initResponsiveUI } = require('./game/responsiveUI');
+        const cleanup = initResponsiveUI();
+        return cleanup;
+    }, []);
+
     // Sync Refs
     useEffect(() => { availableSkinsRef.current = availableSkins; }, [availableSkins]);
     useEffect(() => { isControlsOpenRef.current = isControlsOpen; }, [isControlsOpen]);

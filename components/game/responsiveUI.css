@@ -1,0 +1,80 @@
+/**
+ * Responsive UI Helper Classes
+ * Use these utility classes in your components for automatic scaling
+ */
+
+/* Icon Sizes */
+.icon-sm { font-size: var(--icon-sm, 1rem); }
+.icon-md { font-size: var(--icon-md, 1.5rem); }
+.icon-lg { font-size: var(--icon-lg, 2rem); }
+
+/* Touch Targets (Minimum 44x44px) */
+.touch-target {
+    min-width: var(--touch-target, 44px);
+    min-height: var(--touch-target, 44px);
+}
+
+/* Font Sizes */
+.text-responsive-sm { font-size: var(--font-sm, 12px); }
+.text-responsive-base { font-size: var(--font-base, 14px); }
+.text-responsive-lg { font-size: var(--font-lg, 18px); }
+.text-responsive-xl { font-size: var(--font-xl, 24px); }
+
+/* Spacing */
+.gap-responsive { gap: var(--spacing-base, 8px); }
+.gap-responsive-sm { gap: var(--spacing-sm, 4px); }
+.gap-responsive-md { gap: var(--spacing-md, 12px); }
+.gap-responsive-lg { gap: var(--spacing-lg, 20px); }
+
+.p-responsive { padding: var(--spacing-base, 8px); }
+.p-responsive-sm { padding: var(--spacing-sm, 4px); }
+.p-responsive-md { padding: var(--spacing-md, 12px); }
+.p-responsive-lg { padding: var(--spacing-lg, 20px); }
+
+/* Common UI Elements */
+.button-responsive {
+    height: var(--button-height, 44px);
+    padding-left: var(--spacing-md, 12px);
+    padding-right: var(--spacing-md, 12px);
+    font-size: var(--font-base, 14px);
+}
+
+.modal-responsive {
+    max-width: var(--modal-width, 600px);
+    padding: var(--spacing-lg, 20px);
+}
+
+.sidebar-responsive {
+    width: var(--sidebar-width, 320px);
+}
+
+/* Device-Specific Adjustments */
+.device-mobile .hide-on-mobile { display: none !important; }
+.device-desktop .hide-on-desktop { display: none !important; }
+
+/* Example: Responsive Card */
+.card-responsive {
+    padding: var(--spacing-md, 12px);
+    border-radius: calc(var(--spacing-base, 8px) * 1.5);
+    font-size: var(--font-base, 14px);
+}
+
+.card-responsive .card-icon {
+    font-size: var(--icon-md, 1.5rem);
+}
+
+.card-responsive .card-title {
+    font-size: var(--font-lg, 18px);
+    margin-bottom: var(--spacing-sm, 4px);
+}
+
+/* Responsive Grid (auto-adjusts columns) */
+.grid-responsive {
+    display: grid;
+    gap: var(--spacing-base, 8px);
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+}
+
+.device-mobile .grid-responsive {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
+}
