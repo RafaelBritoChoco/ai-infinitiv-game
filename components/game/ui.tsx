@@ -1823,9 +1823,6 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
             
             {/* RANKING MODAL */}
             <RankingModal isOpen={showRanking} onClose={() => setShowRanking(false)} />
-            
-            {/* ADMIN PANEL - código secreto: chocopro */}
-            {showAdminPanel && <AdminPanel onClose={() => setShowAdminPanel(false)} />}
         </div>
     );
 };

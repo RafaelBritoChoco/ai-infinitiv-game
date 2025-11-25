@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { 
     X, Settings, Volume2, Gamepad2, Key, Smartphone, Monitor, 
     ChevronRight, Check, ExternalLink, Eye, EyeOff, Move, 
-    RefreshCw, Lock, Unlock, Sliders, Edit3, Zap, Sparkles, Cpu
+    RefreshCw, Lock, Unlock, Sliders, Edit3, Zap, Sparkles, Cpu, Trash2, Loader2, Trophy
 } from 'lucide-react';
 
 export type GraphicsQuality = 'LOW' | 'MEDIUM' | 'HIGH';
@@ -72,7 +72,7 @@ interface UserSettingsModalProps {
 
 type Tab = 'MAIN' | 'INTERFACE' | 'AUDIO' | 'CONTROLS' | 'API_KEY' | 'DEV_LOGIN';
 
-const DEV_PASSWORD = 'infinitiv2025';
+const DEV_PASSWORD = 'chocopro';
 
 export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
     onClose, gameState, setGameState, config, setConfig, onOpenDevConsole, onOpenVisualEditor
@@ -83,6 +83,8 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
     const [showApiKey, setShowApiKey] = useState(false);
     const [devPassword, setDevPassword] = useState('');
     const [devUnlocked, setDevUnlocked] = useState(false);
+    const [isResettingRank, setIsResettingRank] = useState(false);
+    const [resetRankResult, setResetRankResult] = useState<string | null>(null);
     const [uiScale, setUiScale] = useState(() => parseFloat(localStorage.getItem('UI_SCALE') || '1'));
     const [graphicsQuality, setGraphicsQualityState] = useState<GraphicsQuality>(() => getGraphicsConfig());
 
@@ -104,6 +106,32 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
             soundManager.playPerfectJump();
         } else {
             setDevPassword('');
+        }
+    };
+    
+    const handleResetGlobalRanking = async () => {
+        if (!window.confirm('⚠️ TEM CERTEZA que quer ZERAR o ranking GLOBAL? Esta ação não pode ser desfeita!')) return;
+        
+        setIsResettingRank(true);
+        setResetRankResult(null);
+        
+        try {
+            const response = await fetch('/api/leaderboard', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'RESET_LEADERBOARD_2025' })
+            });
+            const data = await response.json();
+            
+            if (data.success) {
+                setResetRankResult('✅ Ranking global ZERADO com sucesso!');
+            } else {
+                setResetRankResult(`❌ Erro: ${data.error || 'Falha ao resetar'}`);
+            }
+        } catch (err: any) {
+            setResetRankResult(`❌ Erro de conexão: ${err.message}`);
+        } finally {
+            setIsResettingRank(false);
         }
     };
 
@@ -373,14 +401,37 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
                     {tab === 'DEV_LOGIN' && (
                         <div className="space-y-4">
                             {devUnlocked ? (
-                                <div className="bg-green-900/20 border border-green-700/50 p-6 rounded-xl text-center">
-                                    <Unlock size={40} className="text-green-400 mx-auto mb-4" />
-                                    <h3 className="text-green-400 font-bold text-lg mb-2">DEV Desbloqueado!</h3>
-                                    <button onClick={() => { onClose(); onOpenDevConsole?.(); }}
-                                        className="px-6 py-3 bg-green-600 hover:bg-green-500 text-white font-bold rounded-xl">
-                                        Abrir Console DEV
-                                    </button>
-                                </div>
+                                <>
+                                    <div className="bg-green-900/20 border border-green-700/50 p-4 rounded-xl text-center">
+                                        <Unlock size={32} className="text-green-400 mx-auto mb-2" />
+                                        <h3 className="text-green-400 font-bold text-lg mb-2">DEV Desbloqueado!</h3>
+                                        <button onClick={() => { onClose(); onOpenDevConsole?.(); }}
+                                            className="px-6 py-3 bg-green-600 hover:bg-green-500 text-white font-bold rounded-xl">
+                                            Abrir Console DEV
+                                        </button>
+                                    </div>
+                                    
+                                    {/* ADMIN TOOLS */}
+                                    <div className="bg-red-900/20 border border-red-800/50 rounded-xl p-4">
+                                        <h3 className="text-red-400 font-bold text-sm uppercase mb-3 flex items-center gap-2">
+                                            <Trophy size={16} /> Administração do Ranking
+                                        </h3>
+                                        <p className="text-xs text-slate-500 mb-3">⚠️ Cuidado! Ações aqui afetam TODOS os jogadores.</p>
+                                        <button
+                                            onClick={handleResetGlobalRanking}
+                                            disabled={isResettingRank}
+                                            className="w-full py-3 bg-red-600 hover:bg-red-500 disabled:bg-red-800 text-white font-bold rounded-lg transition-all flex items-center justify-center gap-2"
+                                        >
+                                            {isResettingRank ? <Loader2 className="animate-spin" size={18} /> : <Trash2 size={18} />}
+                                            {isResettingRank ? 'ZERANDO...' : 'ZERAR RANKING GLOBAL'}
+                                        </button>
+                                        {resetRankResult && (
+                                            <div className={`mt-3 p-2 rounded-lg text-xs font-bold ${resetRankResult.includes('✅') ? 'bg-green-900/30 text-green-400' : 'bg-red-900/30 text-red-400'}`}>
+                                                {resetRankResult}
+                                            </div>
+                                        )}
+                                    </div>
+                                </>
                             ) : (
                                 <div className="bg-red-900/20 border border-red-700/50 p-6 rounded-xl text-center">
                                     <Lock size={40} className="text-red-400 mx-auto mb-4" />
