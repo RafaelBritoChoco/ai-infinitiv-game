@@ -1511,23 +1511,40 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
 // ====================================================================================
 export const RankingModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
     const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const [loading, setLoading] = useState(false);
+    const [isOnline, setIsOnline] = useState(false);
 
     useEffect(() => {
         if (isOpen) {
+            // INSTANT: Show local data first
+            const localData = Persistence.loadLeaderboard();
+            if (localData.length > 0) {
+                setLeaderboard(localData);
+            } else {
+                // Show placeholder
+                setLeaderboard([
+                    { id: '1', name: '- - -', score: 0, date: '' },
+                    { id: '2', name: '- - -', score: 0, date: '' },
+                    { id: '3', name: '- - -', score: 0, date: '' },
+                ]);
+            }
             setLoading(true);
-            setError(null);
-            Persistence.fetchGlobalLeaderboard()
+            
+            // Background: Try to fetch global (with 3s timeout)
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 3000);
+            
+            fetch('/api/leaderboard', { signal: controller.signal })
+                .then(res => res.json())
                 .then(data => {
-                    setLeaderboard(data);
-                    setLoading(false);
+                    clearTimeout(timeout);
+                    if (data.success && data.leaderboard?.length > 0) {
+                        setLeaderboard(data.leaderboard);
+                        setIsOnline(true);
+                    }
                 })
-                .catch(err => {
-                    setError('Falha ao carregar ranking');
-                    setLeaderboard(Persistence.loadLeaderboard());
-                    setLoading(false);
-                });
+                .catch(() => {})
+                .finally(() => setLoading(false));
         }
     }, [isOpen]);
 
@@ -1547,62 +1564,47 @@ export const RankingModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: ()
                 <div className="p-4 border-b border-yellow-500/20 bg-gradient-to-r from-yellow-900/20 to-slate-900/50 flex justify-between items-center">
                     <h2 className="text-xl font-black text-white flex items-center gap-3">
                         <Trophy size={24} className="text-yellow-400" />
-                        RANKING GLOBAL
+                        RANKING {isOnline ? 'GLOBAL' : 'LOCAL'}
+                        {loading && <Loader2 size={16} className="animate-spin text-slate-500" />}
                     </h2>
                     <button onClick={onClose} className="p-2 hover:bg-red-900/30 rounded-lg text-slate-400 hover:text-red-400">
                         <X size={22} />
                     </button>
                 </div>
 
-                {/* Content */}
+                {/* Content - Always show immediately */}
                 <div className="flex-1 overflow-y-auto p-4">
-                    {loading ? (
-                        <div className="flex flex-col items-center justify-center py-12">
-                            <Loader2 size={40} className="text-yellow-400 animate-spin mb-4" />
-                            <p className="text-slate-500 text-sm">Carregando ranking...</p>
-                        </div>
-                    ) : error ? (
-                        <div className="text-center py-8">
-                            <p className="text-red-400 text-sm mb-2">{error}</p>
-                            <p className="text-slate-600 text-xs">Mostrando ranking local</p>
-                        </div>
-                    ) : leaderboard.length === 0 ? (
-                        <div className="text-center py-12">
-                            <Trophy size={48} className="text-slate-700 mx-auto mb-4" />
-                            <p className="text-slate-500 text-sm">Nenhum score ainda!</p>
-                            <p className="text-slate-600 text-xs mt-1">Seja o primeiro a entrar no ranking!</p>
-                        </div>
-                    ) : (
-                        <div className="space-y-2">
-                            {leaderboard.slice(0, 10).map((entry, index) => (
-                                <div 
-                                    key={entry.id || index}
-                                    className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${getMedalColor(index)} ${index < 3 ? 'shadow-lg' : ''}`}
-                                >
-                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-lg ${
-                                        index === 0 ? 'bg-yellow-500 text-black' :
-                                        index === 1 ? 'bg-slate-400 text-black' :
-                                        index === 2 ? 'bg-amber-600 text-black' :
-                                        'bg-slate-800 text-slate-400'
-                                    }`}>
-                                        {index < 3 ? <Medal size={20} /> : `#${index + 1}`}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <p className={`font-bold truncate ${index < 3 ? 'text-white' : 'text-slate-300'}`}>{entry.name}</p>
-                                        {entry.date && <p className="text-[10px] text-slate-600">{new Date(entry.date).toLocaleDateString('pt-BR')}</p>}
-                                    </div>
-                                    <div className="text-right">
-                                        <p className={`font-mono font-black text-lg ${index === 0 ? 'text-yellow-400' : index === 1 ? 'text-slate-300' : index === 2 ? 'text-amber-500' : 'text-cyan-400'}`}>
-                                            {entry.score}m
-                                        </p>
-                                    </div>
+                    <div className="space-y-2">
+                        {leaderboard.slice(0, 10).map((entry, index) => (
+                            <div 
+                                key={entry.id || index}
+                                className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${getMedalColor(index)} ${index < 3 ? 'shadow-lg' : ''}`}
+                            >
+                                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-lg ${
+                                    index === 0 ? 'bg-yellow-500 text-black' :
+                                    index === 1 ? 'bg-slate-400 text-black' :
+                                    index === 2 ? 'bg-amber-600 text-black' :
+                                    'bg-slate-800 text-slate-400'
+                                }`}>
+                                    {index < 3 ? <Medal size={20} /> : `#${index + 1}`}
                                 </div>
-                            ))}
-                        </div>
-                    )}
+                                <div className="flex-1 min-w-0">
+                                    <p className={`font-bold truncate ${index < 3 ? 'text-white' : 'text-slate-300'}`}>{entry.name}</p>
+                                    {entry.date && <p className="text-[10px] text-slate-600">{new Date(entry.date).toLocaleDateString('pt-BR')}</p>}
+                                </div>
+                                <div className="text-right">
+                                    <p className={`font-mono font-black text-lg ${index === 0 ? 'text-yellow-400' : index === 1 ? 'text-slate-300' : index === 2 ? 'text-amber-500' : 'text-cyan-400'}`}>
+                                        {entry.score}m
+                                    </p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 </div>
                 <div className="p-3 border-t border-slate-800 bg-slate-900/50 text-center">
-                    <p className="text-slate-600 text-[10px]">Top 10 jogadores globais</p>
+                    <p className="text-slate-600 text-[10px]">
+                        {isOnline ? '🌐 Ranking global atualizado' : '📱 Ranking local (servidor offline)'}
+                    </p>
                 </div>
             </div>
         </div>
@@ -1622,7 +1624,6 @@ export const PortraitLock = ({ locked = true }: { locked?: boolean }) => {
 
 export const GameOverMenu = ({ gameState, handleStart, setGameState, leaderboard, onSaveScore, selectedIndex }: any) => {
     const [playerName, setPlayerName] = useState(() => localStorage.getItem('PLAYER_NAME') || '');
-    const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitted, setSubmitted] = useState(false);
     const [submittedRank, setSubmittedRank] = useState<number | null>(null);
     
@@ -1641,26 +1642,25 @@ export const GameOverMenu = ({ gameState, handleStart, setGameState, leaderboard
             return;
         }
         
-        setIsSubmitting(true);
-        try {
-            // Save name for future use
-            localStorage.setItem('PLAYER_NAME', trimmedName);
-            
-            // Submit to global leaderboard with integer score
-            const result = await Persistence.submitGlobalScore(trimmedName, currentScore);
-            
-            // Sempre marca como enviado (salva localmente de qualquer forma)
-            setSubmitted(true);
-            setSubmittedRank(result.rank || null);
-            soundManager.playPerfectJump();
-            
-        } catch (e) {
-            console.error('Failed to submit score', e);
-            // Ainda marca como enviado (salvo localmente)
-            setSubmitted(true);
-        } finally {
-            setIsSubmitting(false);
-        }
+        // INSTANT: Save locally and show success immediately
+        localStorage.setItem('PLAYER_NAME', trimmedName);
+        Persistence.saveScoreToLeaderboard(trimmedName, currentScore);
+        setSubmitted(true);
+        soundManager.playPerfectJump();
+        
+        // Background: Try to save online (don't wait)
+        fetch('/api/leaderboard', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: trimmedName, score: currentScore })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.rank) {
+                setSubmittedRank(data.rank);
+            }
+        })
+        .catch(() => {}); // Ignore errors, already saved locally
     };
 
     const menuOptions = [
@@ -1719,10 +1719,10 @@ export const GameOverMenu = ({ gameState, handleStart, setGameState, leaderboard
                             </div>
                             <button
                                 onClick={handleSubmitScore}
-                                disabled={isSubmitting || !playerName.trim()}
+                                disabled={!playerName.trim()}
                                 className="px-4 py-3 bg-cyan-600 hover:bg-cyan-500 disabled:bg-slate-700 disabled:text-slate-500 text-white font-bold rounded-lg flex items-center gap-2 transition-all"
                             >
-                                {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
+                                <Send size={18} />
                             </button>
                         </div>
                         <p className="text-slate-600 text-[10px] text-center">Máximo 15 caracteres</p>
@@ -1730,12 +1730,14 @@ export const GameOverMenu = ({ gameState, handleStart, setGameState, leaderboard
                 ) : (
                     <div className="w-full bg-green-900/20 border border-green-500/50 p-4 rounded-xl text-center space-y-1">
                         <div className="flex items-center justify-center gap-2 text-green-400 font-bold">
-                            <Check size={20} /> Score enviado com sucesso!
+                            <Check size={20} /> Score salvo!
                         </div>
-                        {submittedRank && submittedRank <= 10 && (
+                        {submittedRank && submittedRank <= 10 ? (
                             <p className="text-yellow-400 text-sm font-bold animate-pulse">
-                                🏆 Você está no Top {submittedRank}!
+                                🏆 Você está no Top {submittedRank} Global!
                             </p>
+                        ) : (
+                            <p className="text-slate-500 text-xs">Ranking será atualizado em breve</p>
                         )}
                     </div>
                 )}
