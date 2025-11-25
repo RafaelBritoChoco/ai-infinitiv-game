@@ -2,8 +2,60 @@ import React, { useState } from 'react';
 import { 
     X, Settings, Volume2, Gamepad2, Key, Smartphone, Monitor, 
     ChevronRight, Check, ExternalLink, Eye, EyeOff, Move, 
-    RefreshCw, Lock, Unlock, Sliders, Edit3
+    RefreshCw, Lock, Unlock, Sliders, Edit3, Zap, Sparkles, Cpu
 } from 'lucide-react';
+
+export type GraphicsQuality = 'LOW' | 'MEDIUM' | 'HIGH';
+
+export const GRAPHICS_PRESETS: Record<GraphicsQuality, {
+    label: string;
+    desc: string;
+    particles: boolean;
+    shadows: boolean;
+    blur: boolean;
+    animations: boolean;
+    glowEffects: boolean;
+    bgParallax: boolean;
+}> = {
+    LOW: {
+        label: 'Economia',
+        desc: 'Celular fraco / bateria',
+        particles: false,
+        shadows: false,
+        blur: false,
+        animations: false,
+        glowEffects: false,
+        bgParallax: false,
+    },
+    MEDIUM: {
+        label: 'Balanceado',
+        desc: 'Performance e visual',
+        particles: true,
+        shadows: false,
+        blur: false,
+        animations: true,
+        glowEffects: true,
+        bgParallax: true,
+    },
+    HIGH: {
+        label: 'Máximo',
+        desc: 'Todos os efeitos',
+        particles: true,
+        shadows: true,
+        blur: true,
+        animations: true,
+        glowEffects: true,
+        bgParallax: true,
+    }
+};
+
+export const getGraphicsConfig = (): GraphicsQuality => {
+    return (localStorage.getItem('GRAPHICS_QUALITY') as GraphicsQuality) || 'MEDIUM';
+};
+
+export const setGraphicsConfig = (quality: GraphicsQuality) => {
+    localStorage.setItem('GRAPHICS_QUALITY', quality);
+};
 import { GameConfig } from '../../types';
 import * as Constants from '../../constants';
 import { soundManager } from './audioManager';
@@ -32,6 +84,13 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
     const [devPassword, setDevPassword] = useState('');
     const [devUnlocked, setDevUnlocked] = useState(false);
     const [uiScale, setUiScale] = useState(() => parseFloat(localStorage.getItem('UI_SCALE') || '1'));
+    const [graphicsQuality, setGraphicsQualityState] = useState<GraphicsQuality>(() => getGraphicsConfig());
+
+    const handleGraphicsChange = (quality: GraphicsQuality) => {
+        setGraphicsQualityState(quality);
+        setGraphicsConfig(quality);
+        soundManager.playClick();
+    };
 
     const updateConfig = (key: keyof GameConfig, value: any) => {
         const newConfig = { ...localConfig, [key]: value };
@@ -130,6 +189,47 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
                     {/* INTERFACE */}
                     {tab === 'INTERFACE' && (
                         <div className="space-y-4">
+                            {/* GRAPHICS QUALITY */}
+                            <section className="bg-slate-900/50 p-4 rounded-xl border border-slate-800">
+                                <h3 className="text-purple-400 font-bold text-xs uppercase mb-3 flex items-center gap-2">
+                                    <Cpu size={14} /> Qualidade Gráfica
+                                </h3>
+                                <div className="grid grid-cols-3 gap-2">
+                                    {(['LOW', 'MEDIUM', 'HIGH'] as GraphicsQuality[]).map((quality) => {
+                                        const preset = GRAPHICS_PRESETS[quality];
+                                        const isActive = graphicsQuality === quality;
+                                        const colors = {
+                                            LOW: { bg: 'green', icon: Zap },
+                                            MEDIUM: { bg: 'yellow', icon: Sparkles },
+                                            HIGH: { bg: 'purple', icon: Cpu }
+                                        };
+                                        const { bg, icon: Icon } = colors[quality];
+                                        return (
+                                            <button
+                                                key={quality}
+                                                onClick={() => handleGraphicsChange(quality)}
+                                                className={`p-3 rounded-xl border flex flex-col items-center gap-2 transition-all ${
+                                                    isActive
+                                                        ? `bg-${bg}-900/50 border-${bg}-500 text-${bg}-400 shadow-lg shadow-${bg}-500/20`
+                                                        : 'bg-slate-800 border-slate-700 text-slate-500 hover:border-slate-600'
+                                                }`}
+                                            >
+                                                <Icon size={20} className={isActive ? `text-${bg}-400` : ''} />
+                                                <span className="font-bold text-xs">{preset.label}</span>
+                                                <span className="text-[9px] opacity-70">{preset.desc}</span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                                <div className="mt-3 p-2 bg-slate-950 rounded-lg">
+                                    <p className="text-[10px] text-slate-500 text-center">
+                                        {graphicsQuality === 'LOW' && '⚡ Máxima performance, sem efeitos visuais'}
+                                        {graphicsQuality === 'MEDIUM' && '✨ Efeitos básicos com boa performance'}
+                                        {graphicsQuality === 'HIGH' && '🎆 Todos os efeitos: partículas, sombras, blur'}
+                                    </p>
+                                </div>
+                            </section>
+
                             {/* Visual Control Editor Button */}
                             <button 
                                 onClick={() => { onClose(); onOpenVisualEditor?.(); }}
