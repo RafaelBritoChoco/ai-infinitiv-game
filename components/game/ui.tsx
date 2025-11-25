@@ -400,6 +400,19 @@ export const TouchControls = ({ inputRef, mode, layout = { scale: 1, x: 0, y: 0 
         return DEFAULT_CONTROLS_LAYOUT;
     });
 
+    // Perfect jump flash state
+    const [perfectFlash, setPerfectFlash] = React.useState(false);
+
+    // Listen for perfect jump events
+    React.useEffect(() => {
+        const handlePerfectJump = () => {
+            setPerfectFlash(true);
+            setTimeout(() => setPerfectFlash(false), 200);
+        };
+        window.addEventListener('perfectJump', handlePerfectJump);
+        return () => window.removeEventListener('perfectJump', handlePerfectJump);
+    }, []);
+
     // Update when controlsLayout prop changes
     React.useEffect(() => {
         if (controlsLayout) setSavedLayout(controlsLayout);
@@ -419,6 +432,9 @@ export const TouchControls = ({ inputRef, mode, layout = { scale: 1, x: 0, y: 0 
     };
 
     const globalScale = savedLayout.globalScale || 1;
+    
+    // Perfect flash style
+    const perfectStyle = perfectFlash ? 'bg-pink-500/80 border-pink-400 shadow-[0_0_30px_rgba(236,72,153,0.8)]' : '';
 
     // Helper to render a button with custom layout
     const renderButton = (id: 'leftArrow' | 'rightArrow' | 'jumpBtn' | 'jetpackBtn', touchKey: string, icon: React.ReactNode, baseSize: number, colorClass: string) => {
@@ -431,7 +447,7 @@ export const TouchControls = ({ inputRef, mode, layout = { scale: 1, x: 0, y: 0 
         return (
             <button
                 key={id}
-                className={`pointer-events-auto rounded-full flex items-center justify-center active:scale-95 transition-all backdrop-blur-sm ${colorClass}`}
+                className={`pointer-events-auto rounded-full flex items-center justify-center active:scale-95 transition-all backdrop-blur-sm ${perfectFlash ? perfectStyle : colorClass}`}
                 style={{
                     width: `${size}px`,
                     height: `${size}px`,
@@ -497,7 +513,7 @@ export const TouchControls = ({ inputRef, mode, layout = { scale: 1, x: 0, y: 0 
         );
     }
 
-    // --- ARROWS MODE: Only 2 big arrows - tap=jump, hold=jetpack ---
+    // --- ARROWS MODE: Only 2 arrows - tap=jump, hold=jetpack ---
     if (mode === 'ARROWS') {
         const [leftHolding, setLeftHolding] = React.useState(false);
         const [rightHolding, setRightHolding] = React.useState(false);
@@ -543,22 +559,25 @@ export const TouchControls = ({ inputRef, mode, layout = { scale: 1, x: 0, y: 0 
             setHolding(false);
         };
         
-        const buttonSize = 120 * globalScale;
+        const buttonSize = 85 * globalScale; // Smaller size
+        
+        // Get button style based on state
+        const getButtonStyle = (isHolding: boolean) => {
+            if (perfectFlash) return 'bg-pink-500/70 border-pink-400 shadow-[0_0_25px_rgba(236,72,153,0.7)]';
+            if (isHolding) return 'bg-purple-500/60 border-purple-400 shadow-[0_0_20px_rgba(168,85,247,0.5)]';
+            return 'bg-slate-700/50 border-slate-400/40';
+        };
         
         return (
             <div className="absolute inset-0 pointer-events-none z-[100]">
-                {/* LEFT ARROW - Big button on left side */}
+                {/* LEFT ARROW */}
                 <button
-                    className={`pointer-events-auto rounded-2xl flex flex-col items-center justify-center transition-all backdrop-blur-sm absolute ${
-                        leftHolding 
-                            ? 'bg-purple-600/70 border-purple-400 shadow-[0_0_30px_rgba(168,85,247,0.5)]' 
-                            : 'bg-slate-900/70 border-slate-500/50'
-                    } border-3 active:scale-95`}
+                    className={`pointer-events-auto rounded-2xl flex flex-col items-center justify-center transition-all backdrop-blur-sm absolute border-2 active:scale-95 ${getButtonStyle(leftHolding)}`}
                     style={{
                         width: `${buttonSize}px`,
                         height: `${buttonSize}px`,
-                        bottom: '30px',
-                        left: '20px',
+                        bottom: '24px',
+                        left: '16px',
                     }}
                     onTouchStart={(e) => { e.preventDefault(); handlePress('left'); }}
                     onTouchEnd={(e) => { e.preventDefault(); handleRelease('left'); }}
@@ -566,24 +585,17 @@ export const TouchControls = ({ inputRef, mode, layout = { scale: 1, x: 0, y: 0 
                     onMouseUp={() => handleRelease('left')}
                     onMouseLeave={() => handleRelease('left')}
                 >
-                    <ChevronLeft size={60 * globalScale} className={leftHolding ? 'text-purple-200' : 'text-white'} strokeWidth={3} />
-                    <span className={`text-[10px] font-black uppercase mt-1 ${leftHolding ? 'text-purple-300' : 'text-slate-400'}`}>
-                        {leftHolding ? '🚀 FLY' : '← LEFT'}
-                    </span>
+                    <ChevronLeft size={44 * globalScale} className={perfectFlash ? 'text-pink-100' : leftHolding ? 'text-purple-100' : 'text-white'} strokeWidth={2.5} />
                 </button>
                 
-                {/* RIGHT ARROW - Big button on right side */}
+                {/* RIGHT ARROW */}
                 <button
-                    className={`pointer-events-auto rounded-2xl flex flex-col items-center justify-center transition-all backdrop-blur-sm absolute ${
-                        rightHolding 
-                            ? 'bg-purple-600/70 border-purple-400 shadow-[0_0_30px_rgba(168,85,247,0.5)]' 
-                            : 'bg-slate-900/70 border-slate-500/50'
-                    } border-3 active:scale-95`}
+                    className={`pointer-events-auto rounded-2xl flex flex-col items-center justify-center transition-all backdrop-blur-sm absolute border-2 active:scale-95 ${getButtonStyle(rightHolding)}`}
                     style={{
                         width: `${buttonSize}px`,
                         height: `${buttonSize}px`,
-                        bottom: '30px',
-                        right: '20px',
+                        bottom: '24px',
+                        right: '16px',
                     }}
                     onTouchStart={(e) => { e.preventDefault(); handlePress('right'); }}
                     onTouchEnd={(e) => { e.preventDefault(); handleRelease('right'); }}
@@ -591,18 +603,15 @@ export const TouchControls = ({ inputRef, mode, layout = { scale: 1, x: 0, y: 0 
                     onMouseUp={() => handleRelease('right')}
                     onMouseLeave={() => handleRelease('right')}
                 >
-                    <ChevronRight size={60 * globalScale} className={rightHolding ? 'text-purple-200' : 'text-white'} strokeWidth={3} />
-                    <span className={`text-[10px] font-black uppercase mt-1 ${rightHolding ? 'text-purple-300' : 'text-slate-400'}`}>
-                        {rightHolding ? '🚀 FLY' : 'RIGHT →'}
-                    </span>
+                    <ChevronRight size={44 * globalScale} className={perfectFlash ? 'text-pink-100' : rightHolding ? 'text-purple-100' : 'text-white'} strokeWidth={2.5} />
                 </button>
                 
-                {/* Instructions - centered at bottom */}
-                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-center bg-black/50 px-3 py-1 rounded-full">
-                    <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">
-                        Toque = Pular + Mover • Segurar = Jetpack
-                    </p>
-                </div>
+                {/* Status indicator */}
+                {(leftHolding || rightHolding) && (
+                    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-purple-600/80 px-3 py-1 rounded-full">
+                        <p className="text-[10px] text-white font-bold">🚀 JETPACK</p>
+                    </div>
+                )}
             </div>
         );
     }
@@ -612,15 +621,15 @@ export const TouchControls = ({ inputRef, mode, layout = { scale: 1, x: 0, y: 0 
         <div className="absolute inset-0 pointer-events-none z-[100]">
             {/* Arrows */}
             {renderButton('leftArrow', 'left', <ChevronLeft size={32 * globalScale} className="text-white" />, 80, 
-                'bg-slate-900/40 border-2 border-slate-500/50 active:bg-slate-700/50')}
+                'bg-slate-700/50 border-2 border-slate-400/40 active:bg-slate-600/50')}
             {renderButton('rightArrow', 'right', <ChevronRight size={32 * globalScale} className="text-white" />, 80, 
-                'bg-slate-900/40 border-2 border-slate-500/50 active:bg-slate-700/50')}
+                'bg-slate-700/50 border-2 border-slate-400/40 active:bg-slate-600/50')}
             
             {/* Actions */}
             {renderButton('jumpBtn', 'jump', <ArrowUp size={32 * globalScale} className="text-cyan-200" />, 80, 
-                'bg-cyan-900/40 border-2 border-cyan-500/50 active:bg-cyan-500/50')}
+                'bg-cyan-800/50 border-2 border-cyan-500/50 active:bg-cyan-500/50')}
             {renderButton('jetpackBtn', 'jetpack', <Rocket size={32 * globalScale} className="text-purple-200" />, 96, 
-                'bg-purple-900/40 border-2 border-purple-500/50 active:bg-purple-500/50 shadow-[0_0_20px_rgba(168,85,247,0.2)]')}
+                'bg-purple-800/50 border-2 border-purple-500/50 active:bg-purple-500/50 shadow-[0_0_20px_rgba(168,85,247,0.2)]')}
         </div>
     );
 };

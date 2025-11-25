@@ -450,6 +450,8 @@ export const updatePlayerPhysics = (props: PhysicsUpdateProps): void => {
                         setCameraShake(10);
                         setGameState(prev => ({ ...prev, combo: prev.combo + 1, hitStop: 4 }));
                         spawnParticles(particles, p.x + p.width / 2, p.y, 12, '#f472b6', true, cfg);
+                        // Dispatch event for UI flash
+                        window.dispatchEvent(new Event('perfectJump'));
                     }
 
                     if (p.id !== 999) { p.broken = true; p.respawnTimer = 0; }
