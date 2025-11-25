@@ -426,6 +426,7 @@ const GameCanvas: React.FC = () => {
                         controlsLayout={controlsLayout}
                         gameState={gameState}
                         hideMotionDebug={gameState.hideMotionDebug}
+                        playerRef={playerRef}
                     />
 
                     {/* 2. Virtual Joystick */}

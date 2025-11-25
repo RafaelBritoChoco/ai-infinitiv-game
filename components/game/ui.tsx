@@ -381,14 +381,15 @@ const DEFAULT_CONTROLS_LAYOUT: ControlsLayout = {
     globalScale: 1,
 };
 
-export const TouchControls = ({ inputRef, mode, layout = { scale: 1, x: 0, y: 0 }, controlsLayout, gameState, onOpenSettings, hideMotionDebug = false }: { 
+export const TouchControls = ({ inputRef, mode, layout = { scale: 1, x: 0, y: 0 }, controlsLayout, gameState, onOpenSettings, hideMotionDebug = false, playerRef }: { 
     inputRef: any, 
     mode: 'BUTTONS' | 'TILT' | 'JOYSTICK' | 'ARROWS', 
     layout?: any, 
     controlsLayout?: ControlsLayout | null,
     gameState?: any, 
     onOpenSettings?: () => void, 
-    hideMotionDebug?: boolean 
+    hideMotionDebug?: boolean,
+    playerRef?: any
 }) => {
     // Load saved layout or use default
     const [savedLayout, setSavedLayout] = React.useState<ControlsLayout>(() => {
@@ -400,18 +401,22 @@ export const TouchControls = ({ inputRef, mode, layout = { scale: 1, x: 0, y: 0 
         return DEFAULT_CONTROLS_LAYOUT;
     });
 
-    // Perfect jump flash state
-    const [perfectFlash, setPerfectFlash] = React.useState(false);
+    // Check if player can do perfect jump (is grounded)
+    const canPerfectJump = playerRef?.current?.isGrounded === true;
 
-    // Listen for perfect jump events
+    // Perfect jump indicator - shows PINK when player can do perfect jump
+    const [showPerfectIndicator, setShowPerfectIndicator] = React.useState(false);
+    
+    // Update perfect indicator based on grounded state
     React.useEffect(() => {
-        const handlePerfectJump = () => {
-            setPerfectFlash(true);
-            setTimeout(() => setPerfectFlash(false), 200);
+        const checkGrounded = () => {
+            const isGrounded = playerRef?.current?.isGrounded === true;
+            setShowPerfectIndicator(isGrounded);
         };
-        window.addEventListener('perfectJump', handlePerfectJump);
-        return () => window.removeEventListener('perfectJump', handlePerfectJump);
-    }, []);
+        // Check frequently for responsive feedback
+        const interval = setInterval(checkGrounded, 16); // ~60fps
+        return () => clearInterval(interval);
+    }, [playerRef]);
 
     // Update when controlsLayout prop changes
     React.useEffect(() => {
@@ -433,8 +438,8 @@ export const TouchControls = ({ inputRef, mode, layout = { scale: 1, x: 0, y: 0 
 
     const globalScale = savedLayout.globalScale || 1;
     
-    // Perfect flash style
-    const perfectStyle = perfectFlash ? 'bg-pink-500/80 border-pink-400 shadow-[0_0_30px_rgba(236,72,153,0.8)]' : '';
+    // Perfect indicator style - PINK when player is on ground (can perfect jump)
+    const perfectStyle = showPerfectIndicator ? 'bg-pink-500/80 border-pink-400 shadow-[0_0_30px_rgba(236,72,153,0.8)] animate-pulse' : '';
 
     // Helper to render a button with custom layout
     const renderButton = (id: 'leftArrow' | 'rightArrow' | 'jumpBtn' | 'jetpackBtn', touchKey: string, icon: React.ReactNode, baseSize: number, colorClass: string) => {
@@ -447,7 +452,7 @@ export const TouchControls = ({ inputRef, mode, layout = { scale: 1, x: 0, y: 0 
         return (
             <button
                 key={id}
-                className={`pointer-events-auto rounded-full flex items-center justify-center active:scale-95 transition-all backdrop-blur-sm ${perfectFlash ? perfectStyle : colorClass}`}
+                className={`pointer-events-auto rounded-full flex items-center justify-center active:scale-95 transition-all backdrop-blur-sm ${showPerfectIndicator ? perfectStyle : colorClass}`}
                 style={{
                     width: `${size}px`,
                     height: `${size}px`,
@@ -561,9 +566,9 @@ export const TouchControls = ({ inputRef, mode, layout = { scale: 1, x: 0, y: 0 
         
         const buttonSize = 85 * globalScale; // Smaller size
         
-        // Get button style based on state
+        // Get button style based on state - PINK when can perfect jump!
         const getButtonStyle = (isHolding: boolean) => {
-            if (perfectFlash) return 'bg-pink-500/70 border-pink-400 shadow-[0_0_25px_rgba(236,72,153,0.7)]';
+            if (showPerfectIndicator) return 'bg-pink-500/70 border-pink-400 shadow-[0_0_25px_rgba(236,72,153,0.7)] animate-pulse';
             if (isHolding) return 'bg-purple-500/60 border-purple-400 shadow-[0_0_20px_rgba(168,85,247,0.5)]';
             return 'bg-slate-700/50 border-slate-400/40';
         };
@@ -585,7 +590,7 @@ export const TouchControls = ({ inputRef, mode, layout = { scale: 1, x: 0, y: 0 
                     onMouseUp={() => handleRelease('left')}
                     onMouseLeave={() => handleRelease('left')}
                 >
-                    <ChevronLeft size={44 * globalScale} className={perfectFlash ? 'text-pink-100' : leftHolding ? 'text-purple-100' : 'text-white'} strokeWidth={2.5} />
+                    <ChevronLeft size={44 * globalScale} className={showPerfectIndicator ? 'text-pink-100' : leftHolding ? 'text-purple-100' : 'text-white'} strokeWidth={2.5} />
                 </button>
                 
                 {/* RIGHT ARROW */}
@@ -603,11 +608,18 @@ export const TouchControls = ({ inputRef, mode, layout = { scale: 1, x: 0, y: 0 
                     onMouseUp={() => handleRelease('right')}
                     onMouseLeave={() => handleRelease('right')}
                 >
-                    <ChevronRight size={44 * globalScale} className={perfectFlash ? 'text-pink-100' : rightHolding ? 'text-purple-100' : 'text-white'} strokeWidth={2.5} />
+                    <ChevronRight size={44 * globalScale} className={showPerfectIndicator ? 'text-pink-100' : rightHolding ? 'text-purple-100' : 'text-white'} strokeWidth={2.5} />
                 </button>
                 
-                {/* Status indicator */}
-                {(leftHolding || rightHolding) && (
+                {/* Perfect Jump Indicator */}
+                {showPerfectIndicator && (
+                    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-pink-600/90 px-4 py-1.5 rounded-full animate-pulse shadow-[0_0_20px_rgba(236,72,153,0.6)]">
+                        <p className="text-xs text-white font-bold">✨ PULA AGORA!</p>
+                    </div>
+                )}
+                
+                {/* Jetpack indicator */}
+                {(leftHolding || rightHolding) && !showPerfectIndicator && (
                     <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-purple-600/80 px-3 py-1 rounded-full">
                         <p className="text-[10px] text-white font-bold">🚀 JETPACK</p>
                     </div>
