@@ -5,7 +5,7 @@ import {
     ArrowLeft, ShoppingBag, Home, Sparkles, Wand2, Maximize, RotateCcw, ChevronLeft, ChevronRight, ArrowUp, Shield, HelpCircle,
     Layers, Globe, Check, MousePointer2, ArrowDown, Heart, Unlock, Loader2, Medal, Send, User, Eye
 } from 'lucide-react';
-import { CharacterSkin, GameState, LeaderboardEntry, ShopUpgrades, TROPHY_POWERS } from '../../types';
+import { CharacterSkin, GameState, LeaderboardEntry, ShopUpgrades, TROPHY_POWERS, CHARACTER_CHALLENGES, CharacterChallenge } from '../../types';
 import { soundManager } from './audioManager';
 import { Persistence } from './persistence';
 import * as Constants from '../../constants';
@@ -2254,9 +2254,47 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
     const [showAdminPanel, setShowAdminPanel] = useState(false);
     const [secretCode, setSecretCode] = useState('');
     const [showCharacterPreview, setShowCharacterPreview] = useState(false);
+    const [showChallengeModal, setShowChallengeModal] = useState<CharacterChallenge | null>(null);
+    const [unlockedCharacters, setUnlockedCharacters] = useState<string[]>(() => {
+        try {
+            const saved = localStorage.getItem('UNLOCKED_CHARACTERS');
+            return saved ? JSON.parse(saved) : [];
+        } catch { return []; }
+    });
     const [weedMode, setWeedMode] = useState(() => {
         try { return localStorage.getItem('WEED_MODE') === 'true'; } catch { return false; }
     });
+    
+    // Characters that are ALWAYS unlocked (starter pack)
+    const STARTER_CHARACTERS = ['ginger', 'kero']; // GINGER and KERO always unlocked
+    
+    // Check if a skin is locked
+    const isCharacterLocked = (skinId: string): boolean => {
+        // Starter characters are never locked
+        if (STARTER_CHARACTERS.includes(skinId)) return false;
+        // Trophy skins have their own unlock system
+        if (skinId.startsWith('trophy_')) return false;
+        // AI generated skins are never locked
+        if (skinId.startsWith('ai_')) return false;
+        // Check if character has a challenge
+        const challenge = CHARACTER_CHALLENGES.find(c => c.skinId === skinId);
+        if (!challenge) return false; // No challenge = unlocked
+        // Check if unlocked
+        return !unlockedCharacters.includes(skinId);
+    };
+    
+    // Get challenge for a character
+    const getCharacterChallenge = (skinId: string): CharacterChallenge | undefined => {
+        return CHARACTER_CHALLENGES.find(c => c.skinId === skinId);
+    };
+    
+    // Handle clicking on locked character
+    const handleLockedCharacterClick = (skinId: string) => {
+        const challenge = getCharacterChallenge(skinId);
+        if (challenge) {
+            setShowChallengeModal(challenge);
+        }
+    };
     
     // Secret code detection - type "chocopro" to open admin panel
     useEffect(() => {
@@ -2465,15 +2503,36 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
                             <div className="flex gap-2 w-full overflow-x-auto custom-scrollbar pb-2">
                                 {safeSkins.map((skin: any, i: number) => {
                                     const isSelected = gameState.selectedSkin.id === skin.id;
+                                    const isLocked = isCharacterLocked(skin.id);
+                                    const challenge = getCharacterChallenge(skin.id);
+                                    
                                     return (
                                         <button
                                             key={i}
-                                            onClick={() => setGameState((prev: any) => ({ ...prev, selectedSkin: skin }))}
-                                            className={`flex-shrink-0 flex flex-col items-center gap-1 p-1 rounded-lg border-2 transition-all ${isSelected ? 'border-cyan-400 bg-cyan-900/30 shadow-[0_0_10px_rgba(6,182,212,0.3)]' : 'border-slate-800 bg-slate-900/50 hover:border-slate-600'}`}
+                                            onClick={() => {
+                                                if (isLocked) {
+                                                    handleLockedCharacterClick(skin.id);
+                                                } else {
+                                                    setGameState((prev: any) => ({ ...prev, selectedSkin: skin }));
+                                                }
+                                            }}
+                                            className={`flex-shrink-0 flex flex-col items-center gap-1 p-1 rounded-lg border-2 transition-all relative ${
+                                                isLocked 
+                                                    ? 'border-red-800/50 bg-red-950/30 hover:border-red-600' 
+                                                    : isSelected 
+                                                        ? 'border-cyan-400 bg-cyan-900/30 shadow-[0_0_10px_rgba(6,182,212,0.3)]' 
+                                                        : 'border-slate-800 bg-slate-900/50 hover:border-slate-600'
+                                            }`}
                                         >
-                                            <span className="text-[8px] font-bold text-slate-300 uppercase tracking-wider">{skin.name || skin.id}</span>
-                                            <div className={`w-10 h-10 ${isSelected ? 'animate-bounce' : ''}`} style={{ animationDuration: '0.6s' }}>
-                                                <svg viewBox={`0 0 ${skin.pixels?.length > 16 ? 24 : 16} ${skin.pixels?.length > 16 ? 24 : 16}`} className="w-full h-full" shapeRendering="crispEdges">
+                                            <span className={`text-[8px] font-bold uppercase tracking-wider ${isLocked ? 'text-red-400' : 'text-slate-300'}`}>
+                                                {isLocked ? '🔒' : ''} {skin.name || skin.id}
+                                            </span>
+                                            <div className={`w-10 h-10 relative ${isSelected && !isLocked ? 'animate-bounce' : ''}`} style={{ animationDuration: '0.6s' }}>
+                                                <svg 
+                                                    viewBox={`0 0 ${skin.pixels?.length > 16 ? 24 : 16} ${skin.pixels?.length > 16 ? 24 : 16}`} 
+                                                    className={`w-full h-full ${isLocked ? 'grayscale opacity-40' : ''}`} 
+                                                    shapeRendering="crispEdges"
+                                                >
                                                     {(skin?.pixels || []).map((row: number[], y: number) =>
                                                         row.map((val: number, x: number) => {
                                                             if (val === 0) return null;
@@ -2487,7 +2546,17 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
                                                         })
                                                     )}
                                                 </svg>
+                                                {/* Lock overlay */}
+                                                {isLocked && (
+                                                    <div className="absolute inset-0 flex items-center justify-center">
+                                                        <Lock size={14} className="text-red-500 drop-shadow-[0_0_4px_rgba(239,68,68,0.8)]" />
+                                                    </div>
+                                                )}
                                             </div>
+                                            {/* Challenge hint */}
+                                            {isLocked && challenge && (
+                                                <span className="text-[6px] text-red-400 mt-0.5">{challenge.emoji}</span>
+                                            )}
                                         </button>
                                     );
                                 })}
@@ -2830,6 +2899,91 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
                     onSelectSkin={(skin) => setGameState((prev: any) => ({ ...prev, selectedSkin: skin }))}
                     allSkins={safeSkins}
                 />
+            )}
+            
+            {/* CHALLENGE MODAL - shows when clicking locked character */}
+            {showChallengeModal && (
+                <div className="fixed inset-0 z-[250] bg-black/95 flex items-center justify-center p-4" onClick={() => setShowChallengeModal(null)}>
+                    <div className="bg-gradient-to-br from-slate-900 to-slate-950 border-2 border-red-500/50 rounded-2xl p-6 max-w-sm w-full shadow-[0_0_40px_rgba(239,68,68,0.3)] animate-in zoom-in-90 duration-200" onClick={e => e.stopPropagation()}>
+                        {/* Lock icon */}
+                        <div className="flex justify-center mb-4">
+                            <div className="p-4 rounded-full bg-red-900/40 border-2 border-red-500/50">
+                                <Lock size={32} className="text-red-400" />
+                            </div>
+                        </div>
+                        
+                        {/* Character preview */}
+                        {(() => {
+                            const skin = safeSkins.find((s: any) => s.id === showChallengeModal.skinId);
+                            return skin ? (
+                                <div className="flex justify-center mb-4">
+                                    <div className="w-16 h-16 grayscale opacity-50">
+                                        <svg viewBox={`0 0 ${skin.pixels?.length > 16 ? 24 : 16} ${skin.pixels?.length > 16 ? 24 : 16}`} className="w-full h-full" shapeRendering="crispEdges">
+                                            {(skin?.pixels || []).map((row: number[], y: number) =>
+                                                row.map((val: number, x: number) => {
+                                                    if (val === 0) return null;
+                                                    let color = skin?.color || '#f97316';
+                                                    if (val === 1) color = '#0f172a';
+                                                    else if (val === 3) color = '#ffffff';
+                                                    return <rect key={`${x}-${y}`} x={x} y={y} width="1" height="1" fill={color} />;
+                                                })
+                                            )}
+                                        </svg>
+                                    </div>
+                                </div>
+                            ) : null;
+                        })()}
+                        
+                        {/* Title */}
+                        <h2 className="text-xl font-black text-center text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-orange-400 mb-2">
+                            {showChallengeModal.emoji} {showChallengeModal.title}
+                        </h2>
+                        
+                        {/* Character name */}
+                        <p className="text-center text-slate-400 text-sm mb-4 uppercase tracking-wider">
+                            Desbloquear: <span className="text-white font-bold">{safeSkins.find((s: any) => s.id === showChallengeModal.skinId)?.name || showChallengeModal.skinId}</span>
+                        </p>
+                        
+                        {/* Challenge description */}
+                        <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700 mb-4">
+                            <p className="text-center text-lg font-bold text-yellow-400">
+                                🎯 DESAFIO
+                            </p>
+                            <p className="text-center text-white mt-2 text-sm">
+                                {showChallengeModal.description}
+                            </p>
+                        </div>
+                        
+                        {/* Difficulty indicator */}
+                        <div className="flex justify-center gap-1 mb-4">
+                            {[1, 2, 3].map((i) => {
+                                const difficulty = 
+                                    showChallengeModal.requirement === 'world_record' ? 3 :
+                                    showChallengeModal.targetValue >= 1000 ? 3 :
+                                    showChallengeModal.targetValue >= 100 ? 2 : 1;
+                                return (
+                                    <div 
+                                        key={i}
+                                        className={`w-3 h-3 rounded-full ${i <= difficulty ? 'bg-red-500' : 'bg-slate-700'}`}
+                                    />
+                                );
+                            })}
+                            <span className="text-[10px] text-slate-500 ml-2">
+                                {showChallengeModal.requirement === 'world_record' ? 'LENDÁRIO' :
+                                 showChallengeModal.targetValue >= 1000 ? 'DIFÍCIL' :
+                                 showChallengeModal.targetValue >= 100 ? 'MÉDIO' : 'FÁCIL'}
+                            </span>
+                        </div>
+                        
+                        {/* Close button */}
+                        <button
+                            onClick={() => setShowChallengeModal(null)}
+                            className="w-full py-3 bg-gradient-to-r from-red-600 to-orange-600 text-white font-bold rounded-xl hover:from-red-500 hover:to-orange-500 transition-all"
+                        >
+                            ACEITAR DESAFIO 💪
+                        </button>
+                    </div>
+                </div>
             )}
         </div>
     );
@@ -3261,15 +3415,187 @@ const getUnlockedTrophySkins = () => {
     return skins;
 };
 
+// ============================================================================
+// UNLOCK NOTIFICATION - Shows in corner when character unlocked
+// ============================================================================
+const UnlockNotification = ({ challenge, onClose }: { challenge: CharacterChallenge; onClose: () => void }) => {
+    const skin = SKINS.find(s => s.id === challenge.skinId);
+    
+    useEffect(() => {
+        // Play unlock sound
+        soundManager.playPerfectJump();
+        setTimeout(() => soundManager.playPerfectJump(), 200);
+        
+        // Auto close after 4 seconds
+        const timer = setTimeout(onClose, 4000);
+        return () => clearTimeout(timer);
+    }, [onClose]);
+    
+    return (
+        <div className="fixed bottom-4 left-4 z-[300] animate-in slide-in-from-left-10 duration-500">
+            <div className="bg-gradient-to-r from-emerald-900 to-teal-900 border-2 border-emerald-400 rounded-xl p-3 shadow-[0_0_30px_rgba(16,185,129,0.5)] flex items-center gap-3 min-w-[200px]">
+                {/* Character preview */}
+                <div className="w-12 h-12 bg-emerald-800/50 rounded-lg p-1 border border-emerald-500/50 animate-bounce" style={{ animationDuration: '0.5s' }}>
+                    {skin && (
+                        <svg viewBox={`0 0 ${skin.pixels?.length > 16 ? 24 : 16} ${skin.pixels?.length > 16 ? 24 : 16}`} className="w-full h-full" shapeRendering="crispEdges">
+                            {(skin?.pixels || []).map((row: number[], y: number) =>
+                                row.map((val: number, x: number) => {
+                                    if (val === 0) return null;
+                                    let color = skin?.color || '#f97316';
+                                    if (val === 1) color = '#0f172a';
+                                    else if (val === 3) color = '#ffffff';
+                                    else if (val === 4) color = '#ffffff';
+                                    else if (val === 5) color = '#000000';
+                                    else if (val === 6) color = '#facc15';
+                                    return <rect key={`${x}-${y}`} x={x} y={y} width="1" height="1" fill={color} />;
+                                })
+                            )}
+                        </svg>
+                    )}
+                </div>
+                
+                {/* Text */}
+                <div className="flex-1">
+                    <div className="flex items-center gap-1 text-emerald-300 text-xs font-bold uppercase tracking-wider">
+                        <Unlock size={12} /> DESBLOQUEADO!
+                    </div>
+                    <div className="text-white font-black text-sm">
+                        {challenge.emoji} {skin?.name || challenge.skinId}
+                    </div>
+                </div>
+                
+                {/* Close button */}
+                <button onClick={onClose} className="text-emerald-400 hover:text-white">
+                    <X size={16} />
+                </button>
+            </div>
+        </div>
+    );
+};
+
+// Helper function to check challenge completion and save unlock
+const checkAndUnlockCharacters = (gameData: {
+    score: number;
+    maxCombo: number;
+    runCoins: number;
+    totalCoins: number;
+    jetpackTime: number;
+    perfectJumps: number;
+    noDamageAltitude: number;
+    gameTime: number;
+    globalRank?: number;
+    totalGames: number;
+}): CharacterChallenge[] => {
+    const unlocked: CharacterChallenge[] = [];
+    
+    // Load existing unlocks
+    let unlockedChars: string[] = [];
+    try {
+        const saved = localStorage.getItem('UNLOCKED_CHARACTERS');
+        unlockedChars = saved ? JSON.parse(saved) : [];
+    } catch {}
+    
+    // Check each challenge
+    for (const challenge of CHARACTER_CHALLENGES) {
+        // Skip already unlocked
+        if (unlockedChars.includes(challenge.skinId)) continue;
+        
+        let completed = false;
+        
+        switch (challenge.requirement) {
+            case 'world_record':
+                completed = gameData.globalRank === 1;
+                break;
+            case 'altitude':
+                completed = gameData.score >= challenge.targetValue;
+                break;
+            case 'coins':
+                // Check both run coins and total coins depending on target
+                completed = challenge.targetValue >= 1000 
+                    ? gameData.totalCoins >= challenge.targetValue 
+                    : gameData.runCoins >= challenge.targetValue;
+                break;
+            case 'games':
+                completed = gameData.totalGames >= challenge.targetValue;
+                break;
+            case 'combo':
+                completed = gameData.maxCombo >= challenge.targetValue;
+                break;
+            case 'no_damage':
+                completed = gameData.noDamageAltitude >= challenge.targetValue;
+                break;
+            case 'jetpack':
+                completed = gameData.jetpackTime >= challenge.targetValue;
+                break;
+            case 'perfect_jumps':
+                completed = gameData.perfectJumps >= challenge.targetValue;
+                break;
+            case 'speed':
+                // Speed challenge: reach altitude in time (seconds)
+                completed = gameData.score >= challenge.targetValue && gameData.gameTime <= 180;
+                break;
+        }
+        
+        if (completed) {
+            unlocked.push(challenge);
+            unlockedChars.push(challenge.skinId);
+        }
+    }
+    
+    // Save newly unlocked
+    if (unlocked.length > 0) {
+        try {
+            localStorage.setItem('UNLOCKED_CHARACTERS', JSON.stringify(unlockedChars));
+        } catch {}
+    }
+    
+    return unlocked;
+};
+
 export const GameOverMenu = ({ gameState, handleStart, setGameState, leaderboard, onSaveScore, selectedIndex }: any) => {
     const [playerName, setPlayerName] = useState(() => localStorage.getItem('PLAYER_NAME') || '');
     const [submitted, setSubmitted] = useState(false);
     const [submittedRank, setSubmittedRank] = useState<number | null>(null);
     const [showCelebration, setShowCelebration] = useState(false);
     const [bonusGiven, setBonusGiven] = useState(false);
+    const [newUnlocks, setNewUnlocks] = useState<CharacterChallenge[]>([]);
+    const [currentUnlockIndex, setCurrentUnlockIndex] = useState(0);
     
     const isNewHighScore = gameState.score > gameState.highScore;
     const currentScore = Math.floor(gameState.score); // Ensure integer
+    
+    // Increment total games count on mount
+    useEffect(() => {
+        try {
+            const totalGames = parseInt(localStorage.getItem('TOTAL_GAMES') || '0') + 1;
+            localStorage.setItem('TOTAL_GAMES', String(totalGames));
+        } catch {}
+    }, []);
+
+    // Check for character unlocks on game over
+    useEffect(() => {
+        let totalGames = 1;
+        try {
+            totalGames = parseInt(localStorage.getItem('TOTAL_GAMES') || '1');
+        } catch {}
+        
+        const unlocked = checkAndUnlockCharacters({
+            score: currentScore,
+            maxCombo: gameState.maxCombo || 0,
+            runCoins: gameState.runCoins || 0,
+            totalCoins: gameState.totalCoins || 0,
+            jetpackTime: gameState.jetpackTime || 0,
+            perfectJumps: gameState.perfectJumps || 0,
+            noDamageAltitude: gameState.noDamageAltitude || 0,
+            gameTime: gameState.gameTime || 0,
+            globalRank: submittedRank || undefined,
+            totalGames: totalGames,
+        });
+        
+        if (unlocked.length > 0) {
+            setNewUnlocks(unlocked);
+        }
+    }, [currentScore, gameState, submittedRank]);
 
     // Handle Top 3 celebration and rewards - DIFFERENT rewards per rank
     useEffect(() => {
@@ -3456,6 +3782,21 @@ export const GameOverMenu = ({ gameState, handleStart, setGameState, leaderboard
                     ))}
                 </div>
             </div>
+            
+            {/* UNLOCK NOTIFICATION - Shows unlocked characters */}
+            {newUnlocks.length > 0 && currentUnlockIndex < newUnlocks.length && (
+                <UnlockNotification 
+                    challenge={newUnlocks[currentUnlockIndex]} 
+                    onClose={() => {
+                        if (currentUnlockIndex < newUnlocks.length - 1) {
+                            setCurrentUnlockIndex(prev => prev + 1);
+                        } else {
+                            setNewUnlocks([]);
+                            setCurrentUnlockIndex(0);
+                        }
+                    }}
+                />
+            )}
         </div>
     );
 };
