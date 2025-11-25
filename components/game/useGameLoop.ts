@@ -95,14 +95,7 @@ export const useGameLoop = (props: GameLoopProps) => {
         passedRecordsRef.current = new Set();
         recordCelebrationRef.current = { active: false, rank: 0, timer: 0, position: 0 };
 
-        // TUTORIAL PHASE TEXT - Clearer Instructions
-        if (gameState.isPlaying && gameState.score === 0) {
-            floatingTextsRef.current.push(
-                { id: 1, x: (configRef.current.VIEWPORT_WIDTH || 1200) / 2, y: -80, text: "HOLD SPACE TO GLIDE", color: "#22d3ee", life: 9999, velocity: 0, size: 20 },
-                { id: 2, x: (configRef.current.VIEWPORT_WIDTH || 1200) / 2, y: -180, text: "GREEN = STICKY (JUMP TO BREAK)", color: "#84cc16", life: 9999, velocity: 0, size: 20 },
-                { id: 3, x: (configRef.current.VIEWPORT_WIDTH || 1200) / 2, y: -280, text: "PERFECT TIMING = NO STICK", color: "#f472b6", life: 9999, velocity: 0, size: 20 }
-            );
-        }
+        // Tutorial removed - now available in character preview modal
 
         if (gameState.isPlaying) {
             playerRef.current.isGrounded = false;

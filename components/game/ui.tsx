@@ -442,20 +442,40 @@ export const TouchControls = ({ inputRef, mode, layout = { scale: 1, x: 0, y: 0 
     // Perfect indicator style - PINK SUAVE when player is on ground (can perfect jump)
     const perfectStyle = showPerfectIndicator ? 'bg-pink-400/30 border-pink-300/50 shadow-[0_0_12px_rgba(236,72,153,0.3)]' : '';
 
-    // Radial indicator for perfect jump timing - renders a circle that fills up
+    // SPEEDRUN-STYLE Perfect Jump Indicator - Fast fill, clear visual feedback
     const RadialPerfectIndicator = ({ size, isReady }: { size: number; isReady: boolean }) => {
         const [fillProgress, setFillProgress] = React.useState(0);
+        const [isPerfect, setIsPerfect] = React.useState(false);
+        const [pulseScale, setPulseScale] = React.useState(1);
         
         React.useEffect(() => {
             if (isReady) {
-                // When ready, animate fill to 100%
+                // SPEEDRUN STYLE: Fast fill (400ms) for quick reactions
                 const startTime = Date.now();
-                const duration = 800; // 0.8 seconds to fill
+                const duration = 400; // Fast! 0.4 seconds to fill
+                
                 const animate = () => {
                     const elapsed = Date.now() - startTime;
                     const progress = Math.min(elapsed / duration, 1);
-                    setFillProgress(progress);
-                    if (progress < 1) {
+                    
+                    // Easing function - starts slow, ends fast (anticipation)
+                    const eased = progress < 0.5 
+                        ? 2 * progress * progress 
+                        : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+                    
+                    setFillProgress(eased);
+                    
+                    if (progress >= 1) {
+                        setIsPerfect(true);
+                        // Pulse animation when ready
+                        let pulseFrame = 0;
+                        const pulseAnimate = () => {
+                            pulseFrame++;
+                            setPulseScale(1 + Math.sin(pulseFrame * 0.15) * 0.08);
+                            if (isReady) requestAnimationFrame(pulseAnimate);
+                        };
+                        pulseAnimate();
+                    } else {
                         requestAnimationFrame(animate);
                     }
                 };
@@ -465,6 +485,8 @@ export const TouchControls = ({ inputRef, mode, layout = { scale: 1, x: 0, y: 0 
                 soundManager.startPerfectCharge();
             } else {
                 setFillProgress(0);
+                setIsPerfect(false);
+                setPulseScale(1);
                 // Stop charging sound
                 soundManager.stopPerfectCharge();
             }
@@ -476,62 +498,63 @@ export const TouchControls = ({ inputRef, mode, layout = { scale: 1, x: 0, y: 0 
         
         if (!isReady && fillProgress === 0) return null;
         
-        const radius = size / 2 - 4;
+        const radius = size / 2 - 6;
         const circumference = 2 * Math.PI * radius;
         const strokeDashoffset = circumference * (1 - fillProgress);
         
+        // Color transitions: cyan -> pink -> gold when perfect
+        const getColor = () => {
+            if (isPerfect) return '#fbbf24'; // GOLD when perfect!
+            if (fillProgress > 0.7) return '#ec4899'; // Pink near ready
+            return '#06b6d4'; // Cyan while charging
+        };
+        
         return (
-            <svg 
-                className="absolute inset-0 pointer-events-none" 
-                width={size} 
-                height={size}
-                style={{ transform: 'rotate(-90deg)' }}
+            <div 
+                className="absolute inset-0 pointer-events-none flex items-center justify-center"
+                style={{ transform: `scale(${pulseScale})`, transition: 'transform 0.1s ease-out' }}
             >
-                {/* Background circle - very low opacity */}
-                <circle
-                    cx={size / 2}
-                    cy={size / 2}
-                    r={radius}
-                    fill="none"
-                    stroke="rgba(236, 72, 153, 0.1)"
-                    strokeWidth="4"
-                />
-                {/* Progress circle - fills up */}
-                <circle
-                    cx={size / 2}
-                    cy={size / 2}
-                    r={radius}
-                    fill="none"
-                    stroke={`rgba(236, 72, 153, ${0.3 + fillProgress * 0.5})`}
-                    strokeWidth="4"
-                    strokeDasharray={circumference}
-                    strokeDashoffset={strokeDashoffset}
-                    strokeLinecap="round"
-                    style={{ transition: 'stroke-dashoffset 0.05s linear' }}
-                />
-                {/* Glow when full */}
-                {fillProgress >= 1 && (
+                <svg 
+                    width={size} 
+                    height={size}
+                    style={{ transform: 'rotate(-90deg)' }}
+                >
+                    {/* Background ring */}
                     <circle
                         cx={size / 2}
                         cy={size / 2}
                         r={radius}
                         fill="none"
-                        stroke="rgba(236, 72, 153, 0.8)"
-                        strokeWidth="2"
-                        className="animate-pulse"
-                        filter="url(#glow)"
+                        stroke="rgba(255,255,255,0.1)"
+                        strokeWidth="5"
                     />
+                    {/* Progress arc - thick and visible */}
+                    <circle
+                        cx={size / 2}
+                        cy={size / 2}
+                        r={radius}
+                        fill="none"
+                        stroke={getColor()}
+                        strokeWidth="5"
+                        strokeDasharray={circumference}
+                        strokeDashoffset={strokeDashoffset}
+                        strokeLinecap="round"
+                        style={{ 
+                            transition: 'stroke-dashoffset 0.05s linear, stroke 0.2s ease',
+                            filter: isPerfect ? 'drop-shadow(0 0 8px #fbbf24)' : `drop-shadow(0 0 4px ${getColor()})`
+                        }}
+                    />
+                </svg>
+                {/* PERFECT! indicator when ready */}
+                {isPerfect && (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="text-[9px] font-black text-yellow-400 animate-pulse"
+                              style={{ textShadow: '0 0 8px #fbbf24, 0 0 16px #f59e0b' }}>
+                            ⚡
+                        </span>
+                    </div>
                 )}
-                <defs>
-                    <filter id="glow">
-                        <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
-                        <feMerge>
-                            <feMergeNode in="coloredBlur"/>
-                            <feMergeNode in="SourceGraphic"/>
-                        </feMerge>
-                    </filter>
-                </defs>
-            </svg>
+            </div>
         );
     };
 
@@ -2793,15 +2816,23 @@ const getSkinById = (skinId?: string): CharacterSkin | null => {
     return null;
 };
 
-// Mini character renderer for leaderboard
+// Mini character renderer for leaderboard - with fallback
 const MiniCharacter = ({ skinId, size = 24 }: { skinId?: string; size?: number }) => {
     const skin = getSkinById(skinId);
-    if (!skin) return <User size={size} className="text-slate-500" />;
     
-    const viewBoxSize = skin.pixels?.length > 16 ? 24 : 16;
+    // Fallback: show colored user icon if no valid skin
+    if (!skin || !skin.pixels || skin.pixels.length === 0) {
+        return (
+            <div className="flex items-center justify-center w-full h-full bg-slate-800 rounded">
+                <User size={size * 0.7} className="text-cyan-400" />
+            </div>
+        );
+    }
+    
+    const viewBoxSize = skin.pixels.length > 16 ? 24 : 16;
     return (
         <svg viewBox={`0 0 ${viewBoxSize} ${viewBoxSize}`} width={size} height={size} shapeRendering="crispEdges">
-            {(skin.pixels || []).map((row: number[], y: number) =>
+            {skin.pixels.map((row: number[], y: number) =>
                 row.map((val: number, x: number) => {
                     if (val === 0) return null;
                     let color = skin.color || '#f97316';
