@@ -1,6 +1,6 @@
 
 import React, { useRef, useState, useCallback, useEffect } from 'react';
-import { GameState, Player, Platform, PlatformType, Particle, GameConfig, CharacterSkin, LeaderboardEntry, ShopUpgrades, SaveNode } from '../../../types';
+import { GameState, Player, Platform, PlatformType, Particle, GameConfig, CharacterSkin, LeaderboardEntry, ShopUpgrades, SaveNode, TROPHY_POWERS, TrophyPowers } from '../../../types';
 import * as Constants from '../../../constants';
 import { getWorldWidthAtHeight, getWorldPos } from '../utils';
 import { createPlatform } from '../platforms';
@@ -123,10 +123,11 @@ export const useGameController = (props: GameControllerProps) => {
             lastPlatformYRef.current = 100;
 
             const diffMult = levelIndex === 2 ? Constants.LVL2_GAP_MULT : 1.0;
+            const coinMult = stateRef.current.coinSpawnMultiplier || 1.0;
             for (let i = 0; i < 6; i++) {
                 const p = createPlatform(
                     lastPlatformYRef.current, cfg, stateRef.current.gameMode,
-                    platformGenCountRef.current + 1, undefined, 0, diffMult, false, levelType
+                    platformGenCountRef.current + 1, undefined, 0, diffMult, false, levelType, coinMult
                 );
                 platformGenCountRef.current += 1;
                 platformsRef.current.push(p);
@@ -243,6 +244,7 @@ export const useGameController = (props: GameControllerProps) => {
         // Check Trophy Skins - now separate for gold/silver/bronze
         let activeSkin = currentState.selectedSkin;
         const skinId = currentState.selectedSkin?.id;
+        let activeTrophyPowers: TrophyPowers | null = null;
         
         // Only decrement if user selected a trophy skin
         if (skinId === 'trophy_gold' || skinId === 'trophy_silver' || skinId === 'trophy_bronze') {
@@ -257,10 +259,17 @@ export const useGameController = (props: GameControllerProps) => {
                         skins[key] -= 1;
                         localStorage.setItem('TROPHY_SKINS', JSON.stringify(skins));
                         
-                        // Use correct trophy skin
-                        if (skinId === 'trophy_gold') activeSkin = TROPHY_GOLD;
-                        else if (skinId === 'trophy_silver') activeSkin = TROPHY_SILVER;
-                        else activeSkin = TROPHY_BRONZE;
+                        // Use correct trophy skin and apply powers
+                        if (skinId === 'trophy_gold') {
+                            activeSkin = TROPHY_GOLD;
+                            activeTrophyPowers = TROPHY_POWERS.trophy_gold;
+                        } else if (skinId === 'trophy_silver') {
+                            activeSkin = TROPHY_SILVER;
+                            activeTrophyPowers = TROPHY_POWERS.trophy_silver;
+                        } else {
+                            activeSkin = TROPHY_BRONZE;
+                            activeTrophyPowers = TROPHY_POWERS.trophy_bronze;
+                        }
                     } else {
                         // No uses left, use default skin
                         activeSkin = currentState.skins?.[0] || currentState.selectedSkin;
@@ -270,6 +279,11 @@ export const useGameController = (props: GameControllerProps) => {
                 console.error('Error checking trophy skin:', e);
             }
         }
+
+        // Calculate health based on trophy powers
+        const baseHealth = cfg.MAX_HEALTH;
+        const extraLives = activeTrophyPowers?.extraLives || 0;
+        const totalHealth = baseHealth + extraLives;
 
         const newRunId = `run-${Date.now()}-${Math.random()}`;
         const newState: GameState = {
@@ -286,11 +300,14 @@ export const useGameController = (props: GameControllerProps) => {
             score: 0,
             runCoins: 0,
             fuel: 0,
-            health: cfg.MAX_HEALTH,
-            maxHealth: cfg.MAX_HEALTH,
+            health: totalHealth,
+            maxHealth: totalHealth,
             combo: 0,
             hitStop: 0,
-            selectedSkin: activeSkin
+            selectedSkin: activeSkin,
+            activeTrophyPowers: activeTrophyPowers,
+            coinValueMultiplier: activeTrophyPowers?.coinValueMultiplier || 1.0,
+            coinSpawnMultiplier: activeTrophyPowers?.coinSpawnMultiplier || 1.0
         };
         setGameState(newState);
         stateRef.current = newState;

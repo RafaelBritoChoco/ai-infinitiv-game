@@ -12,7 +12,8 @@ export const createPlatform = (
     luckLevel: number = 0,
     difficultyMultiplier: number = 1.0,
     hasJetpack: boolean = false,
-    levelType: 'CAMPAIGN' | 'RANDOM' = 'CAMPAIGN'
+    levelType: 'CAMPAIGN' | 'RANDOM' = 'CAMPAIGN',
+    coinSpawnMultiplier: number = 1.0
 ): Platform => {
     const heightMeters = Math.abs(refY) / 10;
     const currentLevel = Math.floor(heightMeters / (config.LEVEL_HEIGHT || 800)) + 1;
@@ -132,7 +133,9 @@ export const createPlatform = (
     }
 
     let collectible: Collectible | undefined = undefined;
-    const spawnChance = 0.20 + (luckLevel * Constants.UPGRADE_LUCK_BONUS);
+    // Apply coin spawn multiplier from trophy powers
+    const baseSpawnChance = 0.20 + (luckLevel * Constants.UPGRADE_LUCK_BONUS);
+    const spawnChance = Math.min(0.95, baseSpawnChance * coinSpawnMultiplier); // Cap at 95%
 
     if (gameMode !== 'TEST' && width > 60 && r6 < spawnChance) {
         // Determine collectible type

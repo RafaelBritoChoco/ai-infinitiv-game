@@ -29,6 +29,35 @@ export enum PlatformType {
 
 export type CollectibleType = 'FUEL' | 'COIN' | 'HEART';
 
+// Trophy Powers System
+export interface TrophyPowers {
+  extraLives: number;        // Additional lives (0-2)
+  coinValueMultiplier: number;  // Multiplier for coin value (1.0 = normal)
+  coinSpawnMultiplier: number;  // Multiplier for coin spawn rate (1.0 = normal)
+  description: string;       // Power description for UI
+}
+
+export const TROPHY_POWERS: { [key: string]: TrophyPowers } = {
+  trophy_gold: {
+    extraLives: 2,
+    coinValueMultiplier: 0.9,  // 10% less per coin (balanced)
+    coinSpawnMultiplier: 2.0,  // 100% more coins spawn
+    description: '👑 5 VIDAS • 2x MOEDAS • -10% VALOR'
+  },
+  trophy_silver: {
+    extraLives: 1,
+    coinValueMultiplier: 0.95,  // 5% less per coin
+    coinSpawnMultiplier: 1.5,   // 50% more coins spawn
+    description: '🥈 4 VIDAS • 1.5x MOEDAS • -5% VALOR'
+  },
+  trophy_bronze: {
+    extraLives: 0,
+    coinValueMultiplier: 0.97,  // 3% less per coin
+    coinSpawnMultiplier: 1.25,  // 25% more coins spawn
+    description: '🥉 3 VIDAS • 1.25x MOEDAS • -3% VALOR'
+  }
+};
+
 export interface Collectible {
   id: string;
   type: CollectibleType;
@@ -147,6 +176,9 @@ export interface GameState {
   godMode?: boolean; // Debug: Invincibility
   hideMotionDebug?: boolean; // Hide motion visual indicators during gameplay
   invertMotion?: boolean; // Invert motion controls for rotated screen
+  activeTrophyPowers?: TrophyPowers | null; // Trophy powers for current run
+  coinValueMultiplier?: number; // Active coin value multiplier
+  coinSpawnMultiplier?: number; // Active coin spawn multiplier
 }
 
 export interface Player {

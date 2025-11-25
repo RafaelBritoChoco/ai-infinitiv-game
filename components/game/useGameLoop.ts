@@ -245,6 +245,7 @@ export const useGameLoop = (props: GameLoopProps) => {
 
                 const diffMult = state.levelIndex === 2 ? (cfg.LVL2_GAP_MULT || 1.1) : 1.0;
                 const hasJetpack = state.upgrades.maxFuel > 0;
+                const coinMult = state.coinSpawnMultiplier || 1.0;
 
                 for (let i = 0; i < 6; i++) {
                     const p = createPlatform(
@@ -256,7 +257,8 @@ export const useGameLoop = (props: GameLoopProps) => {
                         state.upgrades.luck,
                         diffMult,
                         hasJetpack,
-                        state.levelType // PASS LEVEL TYPE
+                        state.levelType, // PASS LEVEL TYPE
+                        coinMult // PASS COIN SPAWN MULTIPLIER
                     );
                     platformGenCountRef.current += 1;
                     platformsRef.current.push(p);
@@ -289,6 +291,7 @@ export const useGameLoop = (props: GameLoopProps) => {
                 const lastP = platformsRef.current[platformsRef.current.length - 1];
                 const diffMult = state.levelIndex === 2 ? (cfg.LVL2_GAP_MULT || 1.1) : 1.0;
                 const hasJetpack = state.upgrades.maxFuel > 0;
+                const coinMult = state.coinSpawnMultiplier || 1.0;
 
                 const p = createPlatform(
                     lastPlatformYRef.current,
@@ -299,7 +302,8 @@ export const useGameLoop = (props: GameLoopProps) => {
                     state.upgrades.luck,
                     diffMult,
                     hasJetpack,
-                    state.levelType // PASS LEVEL TYPE
+                    state.levelType, // PASS LEVEL TYPE
+                    coinMult // PASS COIN SPAWN MULTIPLIER
                 );
                 platformGenCountRef.current += 1;
                 platformsRef.current.push(p);

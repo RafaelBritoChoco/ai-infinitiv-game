@@ -256,11 +256,14 @@ export const updatePlayerPhysics = (props: PhysicsUpdateProps): void => {
                         });
                     }
                 } else {
-                    setGameState(prev => ({ ...prev, runCoins: prev.runCoins + cfg.COIN_VALUE }));
+                    // Apply coin value multiplier from trophy powers
+                    const coinMultiplier = gameState.coinValueMultiplier || 1.0;
+                    const coinValue = Math.floor(cfg.COIN_VALUE * coinMultiplier);
+                    setGameState(prev => ({ ...prev, runCoins: prev.runCoins + coinValue }));
                     soundManager.playCollect();
                     spawnParticles(particles, cX, cY, 15, '#eab308', true, cfg);
                     floatingTextsRef.current.push({
-                        id: Date.now() + Math.random(), x: cX, y: cY, text: `+ ${cfg.COIN_VALUE}`, color: "#facc15", life: 1.0, velocity: -2, size: 24
+                        id: Date.now() + Math.random(), x: cX, y: cY, text: `+ ${coinValue}`, color: "#facc15", life: 1.0, velocity: -2, size: 24
                     });
                 }
             }

@@ -5,7 +5,7 @@ import {
     ArrowLeft, ShoppingBag, Home, Sparkles, Wand2, Maximize, RotateCcw, ChevronLeft, ChevronRight, ArrowUp, Shield, HelpCircle,
     Layers, Globe, Check, MousePointer2, ArrowDown, Heart, Unlock, Loader2, Medal, Send, User
 } from 'lucide-react';
-import { CharacterSkin, GameState, LeaderboardEntry, ShopUpgrades } from '../../types';
+import { CharacterSkin, GameState, LeaderboardEntry, ShopUpgrades, TROPHY_POWERS } from '../../types';
 import { soundManager } from './audioManager';
 import { Persistence } from './persistence';
 import * as Constants from '../../constants';
@@ -1715,16 +1715,82 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
                                         </button>
                                     );
                                 })}
+                                
+                                {/* GLITCH - AI Create Button */}
+                                <button
+                                    onClick={() => setShowAiInput(true)}
+                                    className="flex-shrink-0 flex flex-col items-center gap-1 p-1 rounded-lg border-2 transition-all border-purple-500/50 bg-purple-900/20 hover:border-purple-400 hover:bg-purple-900/40 relative overflow-hidden group"
+                                >
+                                    <span className="text-[8px] font-bold text-purple-400 uppercase tracking-wider animate-pulse">+ AI</span>
+                                    <div className="w-10 h-10 relative">
+                                        {/* Glitch character - distorted humanoid */}
+                                        <svg viewBox="0 0 16 16" className="w-full h-full animate-pulse" shapeRendering="crispEdges">
+                                            {/* Glitchy body with random colors */}
+                                            {[
+                                                [0,0,0,0,0,0,2,2,2,2,0,0,0,0,0,0],
+                                                [0,0,0,0,0,2,3,3,3,3,2,0,0,0,0,0],
+                                                [0,0,0,0,2,3,1,3,3,1,3,2,0,0,0,0],
+                                                [0,0,0,0,2,3,3,3,3,3,3,2,0,0,0,0],
+                                                [0,0,0,0,0,2,2,2,2,2,2,0,0,0,0,0],
+                                                [0,0,0,0,0,0,2,2,2,2,0,0,0,0,0,0],
+                                                [0,0,0,0,2,2,2,2,2,2,2,2,0,0,0,0],
+                                                [0,0,0,2,2,2,2,2,2,2,2,2,2,0,0,0],
+                                                [0,0,2,2,2,2,2,2,2,2,2,2,2,2,0,0],
+                                                [0,0,2,0,0,2,2,2,2,2,2,0,0,2,0,0],
+                                                [0,0,2,0,0,2,2,2,2,2,2,0,0,2,0,0],
+                                                [0,0,0,0,0,2,2,0,0,2,2,0,0,0,0,0],
+                                                [0,0,0,0,0,2,2,0,0,2,2,0,0,0,0,0],
+                                                [0,0,0,0,2,2,2,0,0,2,2,2,0,0,0,0],
+                                                [0,0,0,0,2,2,0,0,0,0,2,2,0,0,0,0],
+                                                [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                                            ].map((row, y) =>
+                                                row.map((val, x) => {
+                                                    if (val === 0) return null;
+                                                    // Glitch colors - random between magenta, cyan, lime
+                                                    const glitchColors = ['#ff00ff', '#00ffff', '#00ff00', '#ff0000', '#ffff00'];
+                                                    let color = glitchColors[(x + y) % glitchColors.length];
+                                                    if (val === 1) color = '#ffffff'; // eyes
+                                                    if (val === 3) color = '#000000'; // face details
+                                                    return <rect key={`g-${x}-${y}`} x={x} y={y} width="1" height="1" fill={color} className="animate-pulse" style={{ animationDelay: `${(x + y) * 50}ms` }} />;
+                                                })
+                                            )}
+                                        </svg>
+                                        {/* Glitch effect overlay lines */}
+                                        <div className="absolute inset-0 pointer-events-none">
+                                            <div className="absolute top-1/4 left-0 right-0 h-px bg-cyan-400 opacity-50 animate-pulse" style={{ animationDuration: '0.2s' }}></div>
+                                            <div className="absolute top-1/2 left-0 right-0 h-px bg-magenta-400 opacity-50 animate-pulse" style={{ animationDuration: '0.3s' }}></div>
+                                            <div className="absolute top-3/4 left-0 right-0 h-px bg-lime-400 opacity-50 animate-pulse" style={{ animationDuration: '0.15s' }}></div>
+                                        </div>
+                                    </div>
+                                    {/* Sparkle icon */}
+                                    <Sparkles size={10} className="absolute top-0 right-0 text-purple-400 animate-spin" style={{ animationDuration: '3s' }} />
+                                </button>
                             </div>
                             
                             {/* Trophy Skins Section - Prizes */}
                             {(() => {
                                 const unlockedTrophies = getUnlockedTrophySkins();
+                                const selectedTrophyId = gameState.selectedSkin?.id;
+                                const selectedTrophyPower = selectedTrophyId && TROPHY_POWERS[selectedTrophyId];
+                                
                                 return (
                                     <div className="mt-3 w-full">
                                         <div className="text-[10px] font-bold text-yellow-400 uppercase tracking-wider mb-2 flex items-center gap-1">
                                             🏆 Prêmios TOP 3
                                         </div>
+                                        
+                                        {/* Show selected trophy powers */}
+                                        {selectedTrophyPower && (
+                                            <div className="mb-2 p-2 rounded-lg bg-gradient-to-r from-yellow-900/40 to-orange-900/40 border border-yellow-500/30 animate-pulse">
+                                                <div className="text-[10px] font-bold text-yellow-300 text-center">
+                                                    ⚡ PODERES ATIVOS ⚡
+                                                </div>
+                                                <div className="text-[9px] text-yellow-200 text-center mt-1">
+                                                    {selectedTrophyPower.description}
+                                                </div>
+                                            </div>
+                                        )}
+                                        
                                         <div className="flex gap-2 flex-wrap">
                                             {/* GOLD - 1st Place */}
                                             {(() => {
@@ -1740,6 +1806,7 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
                                                             'border-slate-800 bg-slate-900/50 opacity-50'
                                                         }`}
                                                         disabled={!hasGold}
+                                                        title={TROPHY_POWERS.trophy_gold.description}
                                                     >
                                                         <span className="text-[8px] font-bold text-yellow-400 uppercase">👑 1º</span>
                                                         <div className={`w-10 h-10 ${isGoldSelected ? 'animate-bounce' : ''}`} style={{ animationDuration: '0.5s' }}>
@@ -1780,6 +1847,7 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
                                                             'border-slate-800 bg-slate-900/50 opacity-50'
                                                         }`}
                                                         disabled={!hasSilver}
+                                                        title={TROPHY_POWERS.trophy_silver.description}
                                                     >
                                                         <span className="text-[8px] font-bold text-slate-300 uppercase">🥈 2º</span>
                                                         <div className={`w-10 h-10 ${isSilverSelected ? 'animate-bounce' : ''}`} style={{ animationDuration: '0.5s' }}>
@@ -1819,6 +1887,7 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
                                                             'border-slate-800 bg-slate-900/50 opacity-50'
                                                         }`}
                                                         disabled={!hasBronze}
+                                                        title={TROPHY_POWERS.trophy_bronze.description}
                                                     >
                                                         <span className="text-[8px] font-bold text-orange-400 uppercase">🥉 3º</span>
                                                         <div className={`w-10 h-10 ${isBronzeSelected ? 'animate-bounce' : ''}`} style={{ animationDuration: '0.5s' }}>
