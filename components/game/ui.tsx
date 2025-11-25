@@ -1200,7 +1200,7 @@ export const LeftSidebar = ({ gameState, config, gamepadConnected, leaderboard }
             </div>
             <div className="mt-6 border-t border-white/10 pt-3">
                 <div className="text-xs text-slate-500 font-bold tracking-[0.2em] uppercase mb-3 flex items-center gap-2">
-                    <Crown size={14} className="text-yellow-500" /> Top Agents
+                    <Crown size={14} className="text-yellow-500" /> GLOBAL RANKING
                 </div>
                 <div className="space-y-2">
                     {leaderboard && leaderboard.length > 0 ? (
@@ -3085,7 +3085,7 @@ export const RankingModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: ()
     const [localLeaderboard, setLocalLeaderboard] = useState<LeaderboardEntry[]>([]);
     const [globalLeaderboard, setGlobalLeaderboard] = useState<LeaderboardEntry[]>([]);
     const [loading, setLoading] = useState(false);
-    const [activeTab, setActiveTab] = useState<'local' | 'global'>('local');
+    const [activeTab, setActiveTab] = useState<'local' | 'global'>('global');
     const [globalStatus, setGlobalStatus] = useState<string>('');
 
     const fetchLeaderboard = async () => {

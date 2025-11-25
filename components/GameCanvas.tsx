@@ -170,12 +170,20 @@ const GameCanvas: React.FC = () => {
         const isMobile = typeof window !== 'undefined' && (window.innerWidth < 768 || 'ontouchstart' in window);
         const defaultMode = 'ARROWS'; // Default to ARROWS as requested
 
+        // MIGRATION: Force ARROWS for V3.1.0
+        let finalControlMode = savedControlMode || defaultMode;
+        if (typeof localStorage !== 'undefined' && !localStorage.getItem('MIGRATED_V3_CONTROLS')) {
+            finalControlMode = 'ARROWS';
+            localStorage.setItem('MIGRATED_V3_CONTROLS', 'true');
+            Persistence.saveControlMode('ARROWS');
+        }
+
         setGameState(prev => ({
             ...prev,
             highScore: savedHighScore,
             maxAltitude: savedMaxAlt,
             totalCoins: savedCoins,
-            mobileControlMode: savedControlMode || defaultMode,
+            mobileControlMode: finalControlMode,
             upgrades: { ...prev.upgrades, ...savedUpgrades },
             hideMotionDebug: savedHideMotionDebug,
             invertMotion: savedInvertMotion
