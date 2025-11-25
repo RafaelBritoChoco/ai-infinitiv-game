@@ -324,7 +324,7 @@ const GameCanvas: React.FC = () => {
                     <ControlsModal
                         onClose={() => setIsControlsOpen(false)}
                         currentMode={gameState.mobileControlMode}
-                        setMobileControlMode={async (mode: 'BUTTONS' | 'TILT') => {
+                        setMobileControlMode={async (mode: 'BUTTONS' | 'TILT' | 'ARROWS') => {
                             if (mode === 'TILT') {
                                 // Request motion permission first
                                 if (typeof DeviceOrientationEvent !== 'undefined' && typeof (DeviceOrientationEvent as any).requestPermission === 'function') {
