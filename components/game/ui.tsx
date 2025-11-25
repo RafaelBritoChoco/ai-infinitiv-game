@@ -1365,6 +1365,9 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
     const [lang, setLang] = useState<'EN' | 'PT'>('EN');
     const [showSensorDebug, setShowSensorDebug] = useState(false);
     const [showRanking, setShowRanking] = useState(false);
+    const [weedMode, setWeedMode] = useState(() => {
+        try { return localStorage.getItem('WEED_MODE') === 'true'; } catch { return false; }
+    });
 
     const t = {
         EN: {
@@ -1416,23 +1419,51 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
 
 
 
+    // Weed mode translations
+    const weedT = {
+        title: weedMode ? '420 INFINITIV 🌿' : 'AI INFINITIV',
+        subtitle: weedMode ? 'Pega a Brisa Protocol 💨' : 'Vertical Ascent Protocol',
+        start: weedMode ? '🔥 ACENDE ESSA 🔥' : t[lang].start,
+        skin: weedMode ? '🌿 ESCOLHE TEU BECK' : t[lang].skin,
+        highScore: weedMode ? 'MAIOR VIAGEM' : t[lang].highScore,
+        coins: weedMode ? 'BECK COINS' : t[lang].coins,
+        motion: weedMode ? 'BALANÇA' : 'MOTION',
+        controls: weedMode ? 'CONTROLA' : t[lang].controls,
+        ranking: weedMode ? '🏆 OS MAIS CHAPADOS' : 'RANKING GLOBAL',
+    };
+
+    const toggleWeedMode = () => {
+        const newMode = !weedMode;
+        setWeedMode(newMode);
+        try { localStorage.setItem('WEED_MODE', String(newMode)); } catch {}
+    };
+
     return (
-        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/90 backdrop-blur-md overflow-y-auto custom-scrollbar">
+        <div className={`absolute inset-0 z-50 flex flex-col items-center justify-center backdrop-blur-md overflow-y-auto custom-scrollbar ${weedMode ? 'bg-green-950/95' : 'bg-black/90'}`}>
+            {/* WEED MODE TOGGLE */}
+            <button 
+                onClick={toggleWeedMode}
+                className={`absolute top-4 right-4 z-50 px-3 py-2 rounded-full font-bold text-xs flex items-center gap-2 transition-all ${weedMode ? 'bg-green-600 text-white shadow-[0_0_20px_rgba(34,197,94,0.5)]' : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700/50'}`}
+            >
+                🌿 {weedMode ? 'ON' : 'OFF'}
+            </button>
+
             {/* HEADER */}
             <div className="mb-4 md:mb-8 text-center relative shrink-0">
-                <div className="absolute -inset-10 bg-cyan-500/20 blur-3xl rounded-full animate-pulse"></div>
-                <h1 className="text-4xl md:text-8xl font-black italic tracking-tighter text-white relative z-10 drop-shadow-[0_0_15px_rgba(6,182,212,0.8)]">
-                    AI <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-500">INFINITIV</span>
+                <div className={`absolute -inset-10 blur-3xl rounded-full animate-pulse ${weedMode ? 'bg-green-500/30' : 'bg-cyan-500/20'}`}></div>
+                <h1 className={`text-4xl md:text-8xl font-black italic tracking-tighter text-white relative z-10 ${weedMode ? 'drop-shadow-[0_0_15px_rgba(34,197,94,0.8)]' : 'drop-shadow-[0_0_15px_rgba(6,182,212,0.8)]'}`}>
+                    {weedMode ? '420 ' : 'AI '}<span className={`text-transparent bg-clip-text ${weedMode ? 'bg-gradient-to-r from-green-400 via-lime-400 to-green-500' : 'bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-500'}`}>{weedMode ? 'INFINITIV 🌿' : 'INFINITIV'}</span>
                 </h1>
-                <p className="text-cyan-500 font-mono tracking-[0.5em] text-[10px] md:text-sm mt-2 font-bold uppercase">Vertical Ascent Protocol <span className="text-xs text-slate-500 ml-2">{Constants.APP_VERSION}</span></p>
+                <p className={`font-mono tracking-[0.5em] text-[10px] md:text-sm mt-2 font-bold uppercase ${weedMode ? 'text-green-500' : 'text-cyan-500'}`}>{weedT.subtitle} <span className="text-xs text-slate-500 ml-2">{Constants.APP_VERSION}</span></p>
+                <p className="text-slate-600 text-[10px] mt-1 font-mono">Criado por <span className="text-cyan-400">AI</span> & <span className="text-purple-400">ChocoPro</span></p>
             </div>
 
             {/* MAIN MENU GRID */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 w-full max-w-4xl px-4 md:px-8 relative z-10 pb-32">
 
                 {/* LEFT COLUMN - CHARACTER */}
-                <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6 backdrop-blur-sm flex flex-col items-center">
-                    <h3 className="text-slate-400 text-xs font-bold tracking-[0.2em] mb-4 uppercase">{t[lang].skin}</h3>
+                <div className={`border rounded-2xl p-6 backdrop-blur-sm flex flex-col items-center ${weedMode ? 'bg-green-900/30 border-green-700' : 'bg-slate-900/50 border-slate-800'}`}>
+                    <h3 className={`text-xs font-bold tracking-[0.2em] mb-4 uppercase ${weedMode ? 'text-green-400' : 'text-slate-400'}`}>{weedT.skin}</h3>
 
                     <div className="relative w-32 h-32 mb-4 group cursor-pointer" onClick={() => setShowAiInput(!showAiInput)}>
                         <div className="absolute inset-0 bg-gradient-to-br from-cyan-500 to-purple-600 rounded-xl opacity-20 group-hover:opacity-40 transition-opacity"></div>
@@ -1510,9 +1541,9 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
                     {/* START BUTTON */}
                     <button
                         onClick={() => handleStart('NORMAL')}
-                        className={`w-full py-4 md:py-6 bg-cyan-600 hover:bg-cyan-500 text-white font-black text-xl md:text-2xl rounded-2xl shadow-[0_0_30px_rgba(6,182,212,0.4)] hover:shadow-[0_0_50px_rgba(6,182,212,0.6)] transition-all transform hover:scale-[1.02] flex items-center justify-center gap-3 border border-cyan-400/30 ${selectedIndex === 0 ? 'ring-2 ring-white scale-[1.02]' : ''}`}
+                        className={`w-full py-4 md:py-6 font-black text-xl md:text-2xl rounded-2xl transition-all transform hover:scale-[1.02] flex items-center justify-center gap-3 border ${weedMode ? 'bg-gradient-to-r from-green-600 to-lime-500 hover:from-green-500 hover:to-lime-400 shadow-[0_0_30px_rgba(34,197,94,0.5)] text-white border-green-400/30' : 'bg-cyan-600 hover:bg-cyan-500 text-white shadow-[0_0_30px_rgba(6,182,212,0.4)] hover:shadow-[0_0_50px_rgba(6,182,212,0.6)] border-cyan-400/30'} ${selectedIndex === 0 ? 'ring-2 ring-white scale-[1.02]' : ''}`}
                     >
-                        <Play size={24} className="md:w-7 md:h-7" fill="currentColor" /> {t[lang].start}
+                        <Play size={24} className="md:w-7 md:h-7" fill="currentColor" /> {weedT.start}
                     </button>
 
                     {/* SHOP BUTTON */}
@@ -1613,22 +1644,22 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
                     {/* RANKING BUTTON */}
                     <button 
                         onClick={() => setShowRanking(true)} 
-                        className="w-full py-3 bg-gradient-to-r from-yellow-900/50 to-amber-900/50 border border-yellow-600/50 rounded-lg text-xs font-bold text-yellow-400 hover:text-white hover:border-yellow-400 transition-all flex items-center justify-center gap-2"
+                        className={`w-full py-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 ${weedMode ? 'bg-gradient-to-r from-green-900/50 to-lime-900/50 border border-green-600/50 text-green-400 hover:text-white hover:border-green-400' : 'bg-gradient-to-r from-yellow-900/50 to-amber-900/50 border border-yellow-600/50 text-yellow-400 hover:text-white hover:border-yellow-400'}`}
                     >
-                        <Trophy size={16} /> RANKING GLOBAL
+                        <Trophy size={16} /> {weedT.ranking}
                     </button>
                 </div>
             </div>
 
             {/* FOOTER STATS */}
-            <div className="mt-8 flex gap-8 text-slate-500 font-mono text-xs font-bold">
+            <div className={`mt-8 flex gap-8 font-mono text-xs font-bold ${weedMode ? 'text-green-600' : 'text-slate-500'}`}>
                 <div className="flex items-center gap-2">
-                    <Trophy size={14} className="text-yellow-600" />
-                    <span>{t[lang].highScore}: <span className="text-yellow-500">{gameState.highScore}m</span></span>
+                    <Trophy size={14} className={weedMode ? 'text-green-500' : 'text-yellow-600'} />
+                    <span>{weedT.highScore}: <span className={weedMode ? 'text-green-400' : 'text-yellow-500'}>{gameState.highScore}m</span></span>
                 </div>
                 <div className="flex items-center gap-2">
-                    <Coins size={14} className="text-yellow-600" />
-                    <span>{t[lang].coins}: <span className="text-yellow-500">{gameState.totalCoins}</span></span>
+                    <Coins size={14} className={weedMode ? 'text-green-500' : 'text-yellow-600'} />
+                    <span>{weedT.coins}: <span className={weedMode ? 'text-green-400' : 'text-yellow-500'}>{gameState.totalCoins}</span></span>
                 </div>
             </div>
 
