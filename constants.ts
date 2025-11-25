@@ -110,7 +110,7 @@ export const ENABLE_SCREEN_EFFECTS: boolean = true;
 export const ENABLE_BACKDROP_BLUR: boolean = true;
 
 // Application version
-export const APP_VERSION = 'v5.2.0';
+export const APP_VERSION = 'v5.2.1';
 
 // --- Z-INDEX LAYERS ---
 export const Z_LAYERS = {

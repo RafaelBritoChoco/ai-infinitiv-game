@@ -1649,18 +1649,15 @@ export const GameOverMenu = ({ gameState, handleStart, setGameState, leaderboard
             // Submit to global leaderboard with integer score
             const result = await Persistence.submitGlobalScore(trimmedName, currentScore);
             
-            if (result.success) {
-                setSubmitted(true);
-                setSubmittedRank(result.rank || null);
-                soundManager.playPerfectJump();
-            } else {
-                // Still mark as submitted if saved locally
-                setSubmitted(true);
-                alert('Score salvo localmente. Erro ao enviar online: ' + (result.error || 'desconhecido'));
-            }
+            // Sempre marca como enviado (salva localmente de qualquer forma)
+            setSubmitted(true);
+            setSubmittedRank(result.rank || null);
+            soundManager.playPerfectJump();
+            
         } catch (e) {
             console.error('Failed to submit score', e);
-            alert('Erro ao enviar score. Tente novamente.');
+            // Ainda marca como enviado (salvo localmente)
+            setSubmitted(true);
         } finally {
             setIsSubmitting(false);
         }

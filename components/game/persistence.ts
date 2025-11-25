@@ -77,7 +77,13 @@ export const Persistence = {
 
     fetchGlobalLeaderboard: async (): Promise<LeaderboardEntry[]> => {
         try {
-            const res = await fetch('/api/leaderboard');
+            // Timeout de 5 segundos
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 5000);
+            
+            const res = await fetch('/api/leaderboard', { signal: controller.signal });
+            clearTimeout(timeout);
+            
             if (!res.ok) throw new Error('API Error');
             const data = await res.json();
             
@@ -91,38 +97,57 @@ export const Persistence = {
             // Map API format to LeaderboardEntry
             return entries.map((item: any, index: number) => ({
                 id: item.id || `global-${index}`,
-                name: item.name || 'Unknown',
+                name: item.name || '???',
                 score: typeof item.score === 'number' ? item.score : parseInt(item.score) || 0,
-                date: item.date || new Date().toISOString()
+                date: item.date || null
             }));
         } catch (e) {
             console.warn("Global leaderboard fetch failed, using local.", e);
-            return Persistence.loadLeaderboard();
+            // Retorna placeholder se não tem local
+            const local = Persistence.loadLeaderboard();
+            if (local.length === 0) {
+                return [
+                    { id: '1', name: '???', score: 0, date: '' },
+                    { id: '2', name: '???', score: 0, date: '' },
+                    { id: '3', name: '???', score: 0, date: '' },
+                ];
+            }
+            return local;
         }
     },
 
-    submitGlobalScore: async (name: string, score: number): Promise<{ success: boolean; rank?: number; error?: string }> => {
+    submitGlobalScore: async (name: string, score: number): Promise<{ success: boolean; rank?: number; error?: string; offline?: boolean }> => {
+        // Sempre salva localmente primeiro
+        Persistence.saveScoreToLeaderboard(name, score);
+        
         try {
+            // Timeout de 5 segundos
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 5000);
+            
             const res = await fetch('/api/leaderboard', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, score: Number(score) })
+                body: JSON.stringify({ name, score: Math.floor(Number(score)) }),
+                signal: controller.signal
             });
+            clearTimeout(timeout);
+            
             const data = await res.json();
             
-            if (!res.ok || !data.success) {
-                throw new Error(data.error || 'Failed to submit');
+            // Mesmo se offline=true, consideramos sucesso
+            if (data.success) {
+                return { 
+                    success: true, 
+                    rank: data.rank,
+                    offline: data.offline || false
+                };
             }
             
-            // Also save locally
-            Persistence.saveScoreToLeaderboard(name, score);
-            
-            return { success: true, rank: data.rank };
+            throw new Error(data.error || 'Failed to submit');
         } catch (e) {
             console.error("Failed to submit global score", e);
-            // Save locally as fallback
-            Persistence.saveScoreToLeaderboard(name, score);
-            return { success: false, error: (e as Error).message };
+            return { success: true, offline: true, error: 'Salvo localmente' };
         }
     },
 
