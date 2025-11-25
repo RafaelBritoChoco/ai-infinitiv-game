@@ -544,59 +544,63 @@ export const TouchControls = ({ inputRef, mode, layout = { scale: 1, x: 0, y: 0 
         );
     }
 
-    // --- ARROWS MODE: Only 2 arrows - tap=jump, hold=jetpack ---
+    // --- ARROWS MODE: Only 2 arrows - tap=jump, BOTH=jetpack ---
     // Controles em uma BARRA FIXA na parte de baixo para não atrapalhar visão
     if (mode === 'ARROWS') {
-        const [leftHolding, setLeftHolding] = React.useState(false);
-        const [rightHolding, setRightHolding] = React.useState(false);
-        const leftTimerRef = React.useRef<NodeJS.Timeout | null>(null);
-        const rightTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+        const [leftPressed, setLeftPressed] = React.useState(false);
+        const [rightPressed, setRightPressed] = React.useState(false);
+        const [jetpackActive, setJetpackActive] = React.useState(false);
+        
+        // Check if both buttons are pressed
+        React.useEffect(() => {
+            if (leftPressed && rightPressed) {
+                // Both pressed = JETPACK!
+                inputRef.current.jetpack = true;
+                setJetpackActive(true);
+            } else {
+                inputRef.current.jetpack = false;
+                setJetpackActive(false);
+            }
+        }, [leftPressed, rightPressed]);
         
         const handlePress = (side: 'left' | 'right') => {
             // Set direction
-            if (side === 'left') inputRef.current.left = true;
-            if (side === 'right') inputRef.current.right = true;
+            if (side === 'left') {
+                inputRef.current.left = true;
+                setLeftPressed(true);
+            }
+            if (side === 'right') {
+                inputRef.current.right = true;
+                setRightPressed(true);
+            }
             
             // Trigger jump immediately
             inputRef.current.jumpIntent = true;
             inputRef.current.jumpPressedTime = Date.now();
-            
-            // Start hold timer for jetpack (250ms)
-            const timerRef = side === 'left' ? leftTimerRef : rightTimerRef;
-            const setHolding = side === 'left' ? setLeftHolding : setRightHolding;
-            
-            timerRef.current = setTimeout(() => {
-                inputRef.current.jetpack = true;
-                setHolding(true);
-            }, 250);
         };
         
         const handleRelease = (side: 'left' | 'right') => {
             // Clear direction
-            if (side === 'left') inputRef.current.left = false;
-            if (side === 'right') inputRef.current.right = false;
+            if (side === 'left') {
+                inputRef.current.left = false;
+                setLeftPressed(false);
+            }
+            if (side === 'right') {
+                inputRef.current.right = false;
+                setRightPressed(false);
+            }
             
             // Clear jump
             inputRef.current.jumpIntent = false;
-            
-            // Clear hold timer and jetpack
-            const timerRef = side === 'left' ? leftTimerRef : rightTimerRef;
-            const setHolding = side === 'left' ? setLeftHolding : setRightHolding;
-            
-            if (timerRef.current) {
-                clearTimeout(timerRef.current);
-                timerRef.current = null;
-            }
-            inputRef.current.jetpack = false;
-            setHolding(false);
         };
         
         const buttonSize = 80 * globalScale;
         
-        // Get button style based on state - ROSA quando pode pular perfeito! Opacidade baixa
-        const getButtonStyle = (isHolding: boolean) => {
+        // Get button style based on state - ROSA quando pode pular perfeito, ROXO quando jetpack ativo
+        const getButtonStyle = (isPressed: boolean) => {
+            if (jetpackActive) return 'bg-purple-600/50 border-purple-400/60 shadow-[0_0_20px_rgba(168,85,247,0.5)]';
             if (showPerfectIndicator) return 'bg-pink-500/30 border-pink-400/50 shadow-[0_0_15px_rgba(236,72,153,0.4)]';
-            if (isHolding) return 'bg-purple-500/40 border-purple-400/50 shadow-[0_0_15px_rgba(168,85,247,0.3)]';
+            if (isPressed) return 'bg-cyan-500/40 border-cyan-400/50 shadow-[0_0_15px_rgba(6,182,212,0.3)]';
             return 'bg-slate-800/30 border-slate-500/30';
         };
         
@@ -607,7 +611,7 @@ export const TouchControls = ({ inputRef, mode, layout = { scale: 1, x: 0, y: 0 
                 <div className="h-[100px] flex items-center justify-between px-4 pointer-events-auto">
                     {/* LEFT ARROW */}
                     <button
-                        className={`rounded-2xl flex items-center justify-center transition-all border-2 active:scale-95 ${getButtonStyle(leftHolding)}`}
+                        className={`rounded-2xl flex items-center justify-center transition-all border-2 active:scale-95 ${getButtonStyle(leftPressed)}`}
                         style={{
                             width: `${buttonSize}px`,
                             height: `${buttonSize}px`,
@@ -618,15 +622,22 @@ export const TouchControls = ({ inputRef, mode, layout = { scale: 1, x: 0, y: 0 
                         onMouseUp={() => handleRelease('left')}
                         onMouseLeave={() => handleRelease('left')}
                     >
-                        <ChevronLeft size={48 * globalScale} className={showPerfectIndicator ? 'text-pink-200/70' : leftHolding ? 'text-purple-100/70' : 'text-white/50'} strokeWidth={2.5} />
+                        <ChevronLeft size={48 * globalScale} className={jetpackActive ? 'text-purple-100/90' : showPerfectIndicator ? 'text-pink-200/70' : leftPressed ? 'text-cyan-100/70' : 'text-white/50'} strokeWidth={2.5} />
                     </button>
                     
-                    {/* Centro - Vazio para não cobrir */}
-                    <div className="flex-1" />
+                    {/* Centro - Indicador de JETPACK */}
+                    <div className="flex-1 flex items-center justify-center">
+                        {jetpackActive && (
+                            <div className="flex items-center gap-2 bg-purple-600/50 px-3 py-1.5 rounded-full border border-purple-400/50 animate-pulse">
+                                <Rocket size={16} className="text-purple-200" />
+                                <span className="text-[10px] font-bold text-purple-200 uppercase">JETPACK</span>
+                            </div>
+                        )}
+                    </div>
                     
                     {/* RIGHT ARROW */}
                     <button
-                        className={`rounded-2xl flex items-center justify-center transition-all border-2 active:scale-95 ${getButtonStyle(rightHolding)}`}
+                        className={`rounded-2xl flex items-center justify-center transition-all border-2 active:scale-95 ${getButtonStyle(rightPressed)}`}
                         style={{
                             width: `${buttonSize}px`,
                             height: `${buttonSize}px`,
@@ -637,7 +648,7 @@ export const TouchControls = ({ inputRef, mode, layout = { scale: 1, x: 0, y: 0 
                         onMouseUp={() => handleRelease('right')}
                         onMouseLeave={() => handleRelease('right')}
                     >
-                        <ChevronRight size={48 * globalScale} className={showPerfectIndicator ? 'text-pink-200/70' : rightHolding ? 'text-purple-100/70' : 'text-white/50'} strokeWidth={2.5} />
+                        <ChevronRight size={48 * globalScale} className={jetpackActive ? 'text-purple-100/90' : showPerfectIndicator ? 'text-pink-200/70' : rightPressed ? 'text-cyan-100/70' : 'text-white/50'} strokeWidth={2.5} />
                     </button>
                 </div>
             </div>
@@ -1384,6 +1395,81 @@ export const LayoutEditorModal = ({ onClose, layout, onSave }: any) => {
     );
 };
 
+// ====================================================================================
+// ADMIN PANEL - Protected by secret code
+// ====================================================================================
+export const AdminPanel = ({ onClose }: { onClose: () => void }) => {
+    const [isResetting, setIsResetting] = useState(false);
+    const [resetResult, setResetResult] = useState<string | null>(null);
+
+    const handleResetLeaderboard = async () => {
+        if (!window.confirm('⚠️ TEM CERTEZA que quer ZERAR o ranking global? Esta ação não pode ser desfeita!')) return;
+        
+        setIsResetting(true);
+        setResetResult(null);
+        
+        try {
+            const response = await fetch('/api/leaderboard', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'RESET_LEADERBOARD_2025' })
+            });
+            const data = await response.json();
+            
+            if (data.success) {
+                setResetResult('✅ Ranking global ZERADO com sucesso!');
+            } else {
+                setResetResult(`❌ Erro: ${data.error || 'Falha ao resetar'}`);
+            }
+        } catch (err: any) {
+            setResetResult(`❌ Erro de conexão: ${err.message}`);
+        } finally {
+            setIsResetting(false);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 z-[500] bg-black/95 flex items-center justify-center p-4">
+            <div className="bg-slate-900 border-2 border-red-500 rounded-2xl p-6 max-w-md w-full shadow-[0_0_50px_rgba(239,68,68,0.5)]">
+                <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-xl font-black text-red-400 flex items-center gap-2">
+                        <Shield size={24} /> ADMIN PANEL
+                    </h2>
+                    <button onClick={onClose} className="text-slate-500 hover:text-white">
+                        <X size={24} />
+                    </button>
+                </div>
+                
+                <p className="text-slate-400 text-sm mb-6">⚠️ Área restrita para administradores. Ações aqui afetam TODOS os jogadores.</p>
+                
+                {/* RESET LEADERBOARD */}
+                <div className="bg-red-900/20 border border-red-800/50 rounded-xl p-4 mb-4">
+                    <h3 className="text-red-400 font-bold mb-2 flex items-center gap-2">
+                        <Trash2 size={18} /> Zerar Ranking Global
+                    </h3>
+                    <p className="text-xs text-slate-500 mb-3">Remove TODAS as pontuações do ranking mundial. Isso não pode ser desfeito!</p>
+                    <button
+                        onClick={handleResetLeaderboard}
+                        disabled={isResetting}
+                        className="w-full py-3 bg-red-600 hover:bg-red-500 disabled:bg-red-800 text-white font-bold rounded-lg transition-all flex items-center justify-center gap-2"
+                    >
+                        {isResetting ? <Loader2 className="animate-spin" size={18} /> : <Trash2 size={18} />}
+                        {isResetting ? 'ZERANDO...' : 'ZERAR RANKING'}
+                    </button>
+                </div>
+                
+                {resetResult && (
+                    <div className={`p-3 rounded-lg text-sm font-bold ${resetResult.includes('✅') ? 'bg-green-900/30 text-green-400' : 'bg-red-900/30 text-red-400'}`}>
+                        {resetResult}
+                    </div>
+                )}
+                
+                <p className="text-[10px] text-slate-600 mt-4 text-center">ChocoPro Admin v1.0</p>
+            </div>
+        </div>
+    );
+};
+
 export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInput, setShowAiInput, aiPrompt, setAiPrompt, isGeneratingSkin, handleGenerateSkin, handleStart, onOpenControls, onOpenCalibration, onOpenSettings, selectedIndex, gyroEnabled, setGyroEnabled }: any) => {
     // SAFETY: Ensure availableSkins is always an array
     const safeSkins = Array.isArray(availableSkins) ? availableSkins : [];
@@ -1391,9 +1477,25 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
     const [lang, setLang] = useState<'EN' | 'PT'>('EN');
     const [showSensorDebug, setShowSensorDebug] = useState(false);
     const [showRanking, setShowRanking] = useState(false);
+    const [showAdminPanel, setShowAdminPanel] = useState(false);
+    const [secretCode, setSecretCode] = useState('');
     const [weedMode, setWeedMode] = useState(() => {
         try { return localStorage.getItem('WEED_MODE') === 'true'; } catch { return false; }
     });
+    
+    // Secret code detection - type "chocopro" to open admin panel
+    useEffect(() => {
+        const handleKeyPress = (e: KeyboardEvent) => {
+            const newCode = (secretCode + e.key).slice(-8);
+            setSecretCode(newCode);
+            if (newCode === 'chocopro') {
+                setShowAdminPanel(true);
+                setSecretCode('');
+            }
+        };
+        window.addEventListener('keypress', handleKeyPress);
+        return () => window.removeEventListener('keypress', handleKeyPress);
+    }, [secretCode]);
 
     const t = {
         EN: {
@@ -1721,6 +1823,9 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
             
             {/* RANKING MODAL */}
             <RankingModal isOpen={showRanking} onClose={() => setShowRanking(false)} />
+            
+            {/* ADMIN PANEL - código secreto: chocopro */}
+            {showAdminPanel && <AdminPanel onClose={() => setShowAdminPanel(false)} />}
         </div>
     );
 };
