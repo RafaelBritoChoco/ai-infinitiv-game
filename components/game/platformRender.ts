@@ -1,4 +1,3 @@
-
 import { GameState, Platform, PlatformType, Player, GameConfig } from '../../types';
 import * as Constants from '../../constants';
 
@@ -34,17 +33,18 @@ export const drawPlatformTexture = (
     gameState: GameState,
     selectedPlatformId: number | null,
     config: GameConfig, // Using GameConfig now
-    player?: Player
+    player?: Player,
+    weedMode?: boolean
 ) => {
     // PERFORMANCE MODE: Simple rendering
     if (config.PERFORMANCE_MODE === 'low' || !config.ENABLE_PLATFORM_TEXTURES) {
-        let simpleColor = '#06b6d4'; // Default Cyan
+        let simpleColor = weedMode ? '#22c55e' : '#06b6d4'; // Green in 420 mode
         if (p.type === PlatformType.MOVING) {
-            simpleColor = '#e879f9'; // Fuchsia
+            simpleColor = weedMode ? '#a855f7' : '#e879f9'; // Purple
         } else if (p.type === PlatformType.SWAYING) {
-            simpleColor = '#22c55e'; // Green
+            simpleColor = weedMode ? '#facc15' : '#22c55e'; // Yellow
         } else if (p.type === PlatformType.STICKY) {
-            simpleColor = '#84cc16'; // Lime Green
+            simpleColor = weedMode ? '#ef4444' : '#84cc16'; // Red
             if (p.isCrumbling && p.crumbleTimer !== undefined) {
                 const ratio = p.crumbleTimer / (p.maxCrumbleTimer || 1.5);
                 if (ratio < 0.3) simpleColor = '#ef4444'; // Red
@@ -68,18 +68,18 @@ export const drawPlatformTexture = (
     }
 
     // HIGH QUALITY RENDERING
-    let mainColor = '#06b6d4'; // Default Cyan
-    let glowColor = 'rgba(6, 182, 212, 0.5)';
+    let mainColor = weedMode ? '#22c55e' : '#06b6d4'; // Default Green/Cyan
+    let glowColor = weedMode ? 'rgba(34, 197, 94, 0.5)' : 'rgba(6, 182, 212, 0.5)';
 
     if (p.type === PlatformType.MOVING) {
-        mainColor = '#e879f9'; // Fuchsia
-        glowColor = 'rgba(232, 121, 249, 0.5)';
+        mainColor = weedMode ? '#a855f7' : '#e879f9'; // Purple
+        glowColor = weedMode ? 'rgba(168, 85, 247, 0.5)' : 'rgba(232, 121, 249, 0.5)';
     } else if (p.type === PlatformType.SWAYING) {
-        mainColor = '#22c55e'; // Green
-        glowColor = 'rgba(34, 197, 94, 0.5)';
+        mainColor = weedMode ? '#facc15' : '#22c55e'; // Yellow
+        glowColor = weedMode ? 'rgba(250, 204, 21, 0.5)' : 'rgba(34, 197, 94, 0.5)';
     } else if (p.type === PlatformType.STICKY) {
-        mainColor = '#84cc16'; // Lime Green
-        glowColor = 'rgba(132, 204, 22, 0.5)';
+        mainColor = weedMode ? '#ef4444' : '#84cc16'; // Red
+        glowColor = weedMode ? 'rgba(239, 68, 68, 0.5)' : 'rgba(132, 204, 22, 0.5)';
 
         // CRUMBLE COLOR SHIFT
         if (p.isCrumbling && p.crumbleTimer !== undefined) {
@@ -94,6 +94,14 @@ export const drawPlatformTexture = (
     } else if (p.broken) {
         mainColor = '#ef4444'; // Red
         glowColor = 'rgba(239, 68, 68, 0.5)';
+    } else if (p.type === PlatformType.LATERAL_BOUNCE) {
+        mainColor = weedMode ? '#10b981' : '#8b5cf6'; // Emerald/Violet
+        glowColor = weedMode ? 'rgba(16, 185, 129, 0.5)' : 'rgba(139, 92, 246, 0.5)';
+    } else if (p.type === PlatformType.GLITCH) {
+        // Glitch color flickers
+        const flicker = Math.random() > 0.8;
+        mainColor = flicker ? '#ffffff' : '#171717'; // White/Black flicker
+        glowColor = 'rgba(255, 255, 255, 0.3)';
     }
 
     // CRUMBLE SHAKE
@@ -171,6 +179,31 @@ export const drawPlatformTexture = (
                 }
             }
         }
+    }
+
+    // --- ARROW INDICATOR FOR LATERAL BOUNCE ---
+    if (p.type === PlatformType.LATERAL_BOUNCE) {
+        // Draw Arrow
+        ctx.fillStyle = '#ffffff';
+        ctx.globalAlpha = 0.8;
+        const arrowSize = 12 * scale;
+        const cx = drawX + pw / 2;
+        const cy = drawY + ph / 2;
+        const dir = p.bounceDirection || 1; // Default right
+
+        ctx.beginPath();
+        // Arrow pointing Left or Right
+        if (dir === 1) { // Right
+            ctx.moveTo(cx - arrowSize/2, cy - arrowSize/2);
+            ctx.lineTo(cx + arrowSize/2, cy);
+            ctx.lineTo(cx - arrowSize/2, cy + arrowSize/2);
+        } else { // Left
+            ctx.moveTo(cx + arrowSize/2, cy - arrowSize/2);
+            ctx.lineTo(cx - arrowSize/2, cy);
+            ctx.lineTo(cx + arrowSize/2, cy + arrowSize/2);
+        }
+        ctx.fill();
+        ctx.globalAlpha = 1.0;
     }
 
     // 1. Glow Effect (Shadow)

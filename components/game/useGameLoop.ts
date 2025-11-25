@@ -53,6 +53,7 @@ interface GameLoopProps {
     highScoreEntryStatusRef: React.MutableRefObject<'NONE' | 'PENDING' | 'SUBMITTED'>;
     onGameOver: (score: number) => void;
     onMenuUpdate?: () => void;
+    weedMode?: boolean;
 }
 
 export const useGameLoop = (props: GameLoopProps) => {
@@ -65,7 +66,7 @@ export const useGameLoop = (props: GameLoopProps) => {
         setShowGameOverMenu, editorTool, selectedPlatformId,
         damageFlash, showGameOverMenu, saveNodesRef,
         jetpackModeRef, damageFlashRef, leaderboard, leaderboardRef, jetpackAllowedRef,
-        highScoreEntryStatusRef, onGameOver, onMenuUpdate
+        highScoreEntryStatusRef, onGameOver, onMenuUpdate, weedMode
     } = props;
 
     const lastTimeRef = useRef<number>(0);
@@ -83,6 +84,12 @@ export const useGameLoop = (props: GameLoopProps) => {
 
     const onMenuUpdateRef = useRef(onMenuUpdate);
     useEffect(() => { onMenuUpdateRef.current = onMenuUpdate; }, [onMenuUpdate]);
+
+    useEffect(() => {
+        // Reset passed records when leaderboard changes (e.g. reset)
+        passedRecordsRef.current = new Set();
+        recordCelebrationRef.current = { active: false, rank: 0, timer: 0, position: 0 };
+    }, [leaderboard]);
 
     useEffect(() => {
         isProcessingDeathRef.current = false;
@@ -440,20 +447,21 @@ export const useGameLoop = (props: GameLoopProps) => {
 
         const currentMaxFuel = (cfg.JETPACK_FUEL_MAX || 0) + (state.upgrades.maxFuel * (cfg.UPGRADE_FUEL_BONUS || 25));
 
-        drawBackground(ctx, backgroundRef.current, cameraRef.current.y, scale, getScreenY, worldToScreenX, width, height, timeElapsedRef.current);
+        drawBackground(ctx, backgroundRef.current, cameraRef.current.y, scale, getScreenY, worldToScreenX, width, height, timeElapsedRef.current, weedMode);
 
         const groundScreenY = getScreenY(100);
         if (groundScreenY < height) {
-            ctx.fillStyle = '#06b6d4';
+            ctx.fillStyle = weedMode ? '#22c55e' : '#06b6d4';
             ctx.fillRect(0, groundScreenY, width, 4 * scale);
-            ctx.fillStyle = '#020617';
+            ctx.fillStyle = weedMode ? '#022c22' : '#020617';
             ctx.fillRect(0, groundScreenY + (4 * scale), width, height - (groundScreenY + 4 * scale));
         }
 
         if (leaderboard && leaderboard.length > 0) {
             const playerAltitude = Math.abs(Math.min(0, playerRef.current.y));
             
-            leaderboard.forEach((entry, index) => {
+            // Only show top 3 in gameplay
+            leaderboard.slice(0, 3).forEach((entry, index) => {
                 const entryWorldY = -(entry.score * 10);
                 const screenEntryY = getScreenY(entryWorldY);
 
@@ -527,31 +535,46 @@ export const useGameLoop = (props: GameLoopProps) => {
                     ctx.lineTo(width, screenEntryY + 3 * scale);
                     ctx.stroke();
 
-                    // Left side banner
-                    const bannerWidth = 220 * scale;
-                    const bannerHeight = 40 * scale;
-                    ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
-                    ctx.fillRect(10 * scale, screenEntryY - bannerHeight / 2, bannerWidth, bannerHeight);
+                    // Left side - compact pill with emoji + name
+                    const pillWidth = Math.max(120, (entry.name?.length || 5) * 10 + 60) * scale;
+                    const pillHeight = 28 * scale;
+                    const pillX = 10 * scale;
+                    const pillY = screenEntryY - pillHeight / 2;
+                    
+                    // Pill background with gradient
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+                    ctx.beginPath();
+                    ctx.roundRect(pillX, pillY, pillWidth, pillHeight, pillHeight / 2);
+                    ctx.fill();
+                    
+                    // Pill border
                     ctx.strokeStyle = color;
                     ctx.lineWidth = 2 * scale;
                     ctx.setLineDash([]);
                     ctx.shadowColor = color;
-                    ctx.shadowBlur = 15;
-                    ctx.strokeRect(10 * scale, screenEntryY - bannerHeight / 2, bannerWidth, bannerHeight);
-
-                    // Label text
                     ctx.shadowBlur = 10;
-                    ctx.fillStyle = color;
-                    ctx.font = `900 ${16 * scale}px "Rajdhani", sans-serif`;
-                    ctx.textAlign = 'left';
-                    ctx.fillText(label, 20 * scale, screenEntryY + 5 * scale);
+                    ctx.stroke();
+                    ctx.shadowBlur = 0;
                     
-                    // Right side - Name and Score
+                    // Emoji + Name
+                    const emoji = index === 0 ? '👑' : index === 1 ? '🥈' : index === 2 ? '🥉' : '•';
+                    ctx.font = `${14 * scale}px sans-serif`;
+                    ctx.textAlign = 'left';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(emoji, pillX + 8 * scale, screenEntryY);
+                    
+                    // Player name
+                    ctx.fillStyle = color;
+                    ctx.font = `800 ${12 * scale}px "Rajdhani", sans-serif`;
+                    ctx.fillText(entry.name || '???', pillX + 28 * scale, screenEntryY - 1 * scale);
+                    
+                    // Right side - Score only (compact)
                     ctx.textAlign = 'right';
-                    ctx.font = `700 ${14 * scale}px "Rajdhani", sans-serif`;
+                    ctx.font = `700 ${12 * scale}px "Rajdhani", sans-serif`;
                     ctx.fillStyle = '#ffffff';
+                    ctx.shadowColor = color;
                     ctx.shadowBlur = 5;
-                    ctx.fillText(`${entry.name}: ${entry.score}m`, width - (20 * scale), screenEntryY + 5 * scale);
+                    ctx.fillText(`${entry.score}m`, width - (15 * scale), screenEntryY);
                     
                     ctx.restore();
                 }
@@ -583,7 +606,8 @@ export const useGameLoop = (props: GameLoopProps) => {
                 state,
                 selectedPlatformId,
                 cfg,
-                playerRef.current
+                playerRef.current,
+                weedMode
             );
 
             if (p.collectible && !p.collectible.collected) {
@@ -638,7 +662,7 @@ export const useGameLoop = (props: GameLoopProps) => {
         trailRef.current.forEach(t => {
             ctx.globalAlpha = t.life * 0.5;
             const ts = (cfg.PLAYER_SIZE || 80) * scale;
-            drawCharacter(ctx, t.skin, worldToScreenX(t.x), getScreenY(t.y), ts, t.scaleY, t.facingRight, 0, 1000, true);
+            drawCharacter(ctx, t.skin, worldToScreenX(t.x), getScreenY(t.y), ts, t.scaleY, t.facingRight, 0, 1000, true, false, weedMode);
         });
         ctx.globalAlpha = 1.0;
 
@@ -685,12 +709,12 @@ export const useGameLoop = (props: GameLoopProps) => {
 
             // Pass isSticky if waiting for first jump or if cooldown is active
             const isStuck = state.waitingForFirstJump || (player.jumpCooldown > 0 && player.isGrounded);
-            drawCharacter(ctx, state.selectedSkin, plx, ply, pls, player.squashY, player.facingRight, player.vy, player.eyeBlinkTimer, false, isStuck);
+            drawCharacter(ctx, state.selectedSkin, plx, ply, pls, player.squashY, player.facingRight, player.vy, player.eyeBlinkTimer, false, isStuck, weedMode);
 
             if (player.x < 100) {
-                drawCharacter(ctx, state.selectedSkin, worldToScreenX(player.x + currentWorldWidth), ply, pls, player.squashY, player.facingRight, player.vy, player.eyeBlinkTimer, false, isStuck);
+                drawCharacter(ctx, state.selectedSkin, worldToScreenX(player.x + currentWorldWidth), ply, pls, player.squashY, player.facingRight, player.vy, player.eyeBlinkTimer, false, isStuck, weedMode);
             } else if (player.x > currentWorldWidth - 100) {
-                drawCharacter(ctx, state.selectedSkin, worldToScreenX(player.x - currentWorldWidth), ply, pls, player.squashY, player.facingRight, player.vy, player.eyeBlinkTimer, false, isStuck);
+                drawCharacter(ctx, state.selectedSkin, worldToScreenX(player.x - currentWorldWidth), ply, pls, player.squashY, player.facingRight, player.vy, player.eyeBlinkTimer, false, isStuck, weedMode);
             }
         }
 
@@ -815,66 +839,55 @@ export const useGameLoop = (props: GameLoopProps) => {
 
             ctx.restore();
             
-            // RECORD CELEBRATION EFFECT - Big banner when passing a record
+            // RECORD CELEBRATION EFFECT - Small trophy in corner (NOT blocking gameplay)
             if (recordCelebrationRef.current.active) {
                 const cel = recordCelebrationRef.current;
-                const fadeIn = Math.min(1, (180 - cel.timer) / 30); // Fade in over 0.5 seconds
-                const fadeOut = cel.timer < 60 ? cel.timer / 60 : 1; // Fade out last second
+                const fadeIn = Math.min(1, (180 - cel.timer) / 20); // Quick fade in
+                const fadeOut = cel.timer < 40 ? cel.timer / 40 : 1; // Fade out
                 const alpha = fadeIn * fadeOut;
                 
                 ctx.save();
                 ctx.globalAlpha = alpha;
                 
-                // Full screen flash
-                const flashAlpha = Math.max(0, (180 - cel.timer) / 180) * 0.15;
-                const flashColor = cel.rank === 1 ? 'rgba(255, 215, 0,' : cel.rank === 2 ? 'rgba(192, 192, 192,' : 'rgba(205, 127, 50,';
-                ctx.fillStyle = flashColor + flashAlpha + ')';
-                ctx.fillRect(0, 0, width, height);
+                // Small trophy box in BOTTOM RIGHT corner (like achievement popup)
+                const boxWidth = 160 * scale;
+                const boxHeight = 60 * scale;
+                const boxX = width - boxWidth - 15 * scale;
+                const boxY = height - boxHeight - 15 * scale;
+                const bounce = Math.sin(timeElapsedRef.current * 8) * 3 * scale;
                 
-                // Big center banner
-                const bannerWidth = 400 * scale;
-                const bannerHeight = 100 * scale;
-                const bannerX = width / 2 - bannerWidth / 2;
-                const bannerY = height / 2 - bannerHeight / 2;
+                // Background
+                const bgColor = cel.rank === 1 ? 'rgba(234, 179, 8, 0.9)' : cel.rank === 2 ? 'rgba(148, 163, 184, 0.9)' : 'rgba(180, 83, 9, 0.9)';
+                ctx.fillStyle = bgColor;
+                ctx.beginPath();
+                ctx.roundRect(boxX, boxY + bounce, boxWidth, boxHeight, 10 * scale);
+                ctx.fill();
                 
-                // Banner background with gradient
-                const gradient = ctx.createLinearGradient(bannerX, bannerY, bannerX + bannerWidth, bannerY + bannerHeight);
-                if (cel.rank === 1) {
-                    gradient.addColorStop(0, 'rgba(234, 179, 8, 0.95)');
-                    gradient.addColorStop(0.5, 'rgba(255, 215, 0, 0.95)');
-                    gradient.addColorStop(1, 'rgba(234, 179, 8, 0.95)');
-                } else if (cel.rank === 2) {
-                    gradient.addColorStop(0, 'rgba(100, 116, 139, 0.95)');
-                    gradient.addColorStop(0.5, 'rgba(192, 192, 192, 0.95)');
-                    gradient.addColorStop(1, 'rgba(100, 116, 139, 0.95)');
-                } else {
-                    gradient.addColorStop(0, 'rgba(180, 83, 9, 0.95)');
-                    gradient.addColorStop(0.5, 'rgba(205, 127, 50, 0.95)');
-                    gradient.addColorStop(1, 'rgba(180, 83, 9, 0.95)');
-                }
-                ctx.fillStyle = gradient;
-                ctx.fillRect(bannerX, bannerY, bannerWidth, bannerHeight);
-                
-                // Border
+                // Border glow
                 ctx.strokeStyle = cel.rank === 1 ? '#ffd700' : cel.rank === 2 ? '#e5e5e5' : '#f59e0b';
-                ctx.lineWidth = 4 * scale;
+                ctx.lineWidth = 3 * scale;
                 ctx.shadowColor = ctx.strokeStyle;
-                ctx.shadowBlur = 20;
-                ctx.strokeRect(bannerX, bannerY, bannerWidth, bannerHeight);
+                ctx.shadowBlur = 15;
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+                
+                // Trophy icon
+                const emoji = cel.rank === 1 ? '🏆' : cel.rank === 2 ? '🥈' : '🥉';
+                ctx.font = `${28 * scale}px sans-serif`;
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(emoji, boxX + 10 * scale, boxY + bounce + boxHeight / 2);
                 
                 // Text
                 ctx.fillStyle = '#000000';
-                ctx.font = `900 ${36 * scale}px "Rajdhani", sans-serif`;
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.shadowBlur = 0;
+                ctx.font = `900 ${14 * scale}px "Rajdhani", sans-serif`;
+                ctx.textAlign = 'left';
+                const text = cel.rank === 1 ? 'TOP 1!' : cel.rank === 2 ? 'TOP 2!' : 'TOP 3!';
+                ctx.fillText(text, boxX + 45 * scale, boxY + bounce + 22 * scale);
                 
-                const emoji = cel.rank === 1 ? '👑' : cel.rank === 2 ? '🥈' : '🥉';
-                const text = cel.rank === 1 ? 'NOVO CAMPEÃO!' : cel.rank === 2 ? 'TOP 2 MUNDIAL!' : 'TOP 3 MUNDIAL!';
-                ctx.fillText(`${emoji} ${text} ${emoji}`, width / 2, bannerY + 35 * scale);
-                
-                ctx.font = `700 ${24 * scale}px "Rajdhani", sans-serif`;
-                ctx.fillText(`Passou ${cel.position}m!`, width / 2, bannerY + 70 * scale);
+                ctx.font = `600 ${11 * scale}px "Rajdhani", sans-serif`;
+                ctx.fillStyle = '#1e293b';
+                ctx.fillText(`Passou ${cel.position}m`, boxX + 45 * scale, boxY + bounce + 42 * scale);
                 
                 ctx.restore();
             }

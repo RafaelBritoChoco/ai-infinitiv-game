@@ -86,7 +86,8 @@ export const drawBackground = (
     worldToScreenX: (x: number) => number,
     width: number, 
     height: number,
-    timeElapsed: number
+    timeElapsed: number,
+    weedMode?: boolean
 ) => {
     // --- DYNAMIC ATMOSPHERE CALCULATION ---
     const altitude = Math.max(0, Math.min(1, -cameraY / 20000));
@@ -102,13 +103,19 @@ export const drawBackground = (
     const gradient = ctx.createLinearGradient(0, 0, 0, height);
     if (altitude < 0.5) {
         // Synthwave Sunset
-        gradient.addColorStop(0, '#0f172a'); // Deep Blue top
-        gradient.addColorStop(0.5, '#312e81'); 
-        gradient.addColorStop(1, '#4c1d95'); // Purple horizon
+        if (weedMode) {
+            gradient.addColorStop(0, '#022c22'); // Deep Green top
+            gradient.addColorStop(0.5, '#14532d'); 
+            gradient.addColorStop(1, '#3f6212'); // Lime/Olive horizon
+        } else {
+            gradient.addColorStop(0, '#0f172a'); // Deep Blue top
+            gradient.addColorStop(0.5, '#312e81'); 
+            gradient.addColorStop(1, '#4c1d95'); // Purple horizon
+        }
     } else {
         // Deep Space
         gradient.addColorStop(0, '#000000'); 
-        gradient.addColorStop(1, '#1e1b4b'); 
+        gradient.addColorStop(1, weedMode ? '#022c22' : '#1e1b4b'); 
     }
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, width, height);
@@ -140,12 +147,17 @@ export const drawBackground = (
              sunGrad.addColorStop(0, '#ffffff'); // White Core
              sunGrad.addColorStop(1, '#ef4444'); // Red Rim
         } else {
-             sunGrad.addColorStop(0, '#facc15'); // Yellow
-             sunGrad.addColorStop(1, '#db2777'); // Pink
+             if (weedMode) {
+                 sunGrad.addColorStop(0, '#facc15'); // Yellow
+                 sunGrad.addColorStop(1, '#16a34a'); // Green
+             } else {
+                 sunGrad.addColorStop(0, '#facc15'); // Yellow
+                 sunGrad.addColorStop(1, '#db2777'); // Pink
+             }
         }
 
         ctx.save();
-        ctx.shadowColor = dangerRatio > 0.5 ? '#ef4444' : '#db2777';
+        ctx.shadowColor = dangerRatio > 0.5 ? '#ef4444' : (weedMode ? '#22c55e' : '#db2777');
         ctx.shadowBlur = 40 + (dangerRatio * 20); // Pulse more in danger
         ctx.fillStyle = sunGrad;
         ctx.beginPath();
@@ -155,7 +167,12 @@ export const drawBackground = (
 
         // Sun Stripes (Cuts)
         // The cuts color matches the horizon (Purple in Sec 1, Black/Red in Sec 2)
-        ctx.fillStyle = altitude < 0.5 ? (dangerRatio > 0.5 ? '#450a0a' : '#4c1d95') : '#020617';
+        let cutColor = '#020617';
+        if (altitude < 0.5) {
+            if (dangerRatio > 0.5) cutColor = '#450a0a';
+            else cutColor = weedMode ? '#3f6212' : '#4c1d95';
+        }
+        ctx.fillStyle = cutColor;
         
         for(let i=0; i<8; i++) {
             const cutHeight = (i * 4 + 10) * scale;
@@ -181,7 +198,7 @@ export const drawBackground = (
                  const twinkle = Math.random() > 0.95 ? 0 : 1;
                  ctx.globalAlpha = Math.max(0, altitude - 0.1) * twinkle;
                  // Stars turn slightly reddish in danger zone
-                 ctx.fillStyle = dangerRatio > 0.5 ? '#fca5a5' : '#ffffff';
+                 ctx.fillStyle = dangerRatio > 0.5 ? '#fca5a5' : (weedMode ? '#86efac' : '#ffffff');
                  ctx.fillRect(sx, sy, bg.width * scale, bg.height * scale);
                  ctx.globalAlpha = 1.0;
              }
@@ -198,7 +215,7 @@ export const drawBackground = (
              }
              ctx.closePath();
 
-             ctx.fillStyle = bg.color;
+             ctx.fillStyle = weedMode ? '#064e3b' : bg.color; // Dark Green in weed mode
              
              // Tint Buildings Red in Danger Zone
              if (dangerRatio > 0.1) {
@@ -216,7 +233,10 @@ export const drawBackground = (
              // Neon Rim Light
              if (bg.type === 'SKYLINE_NEAR') {
                  // Rim turns form Cyan to Red
-                 ctx.strokeStyle = dangerRatio > 0.5 ? 'rgba(239, 68, 68, 0.4)' : 'rgba(6, 182, 212, 0.3)';
+                 let rimColor = weedMode ? 'rgba(34, 197, 94, 0.3)' : 'rgba(6, 182, 212, 0.3)';
+                 if (dangerRatio > 0.5) rimColor = 'rgba(239, 68, 68, 0.4)';
+                 
+                 ctx.strokeStyle = rimColor;
                  ctx.lineWidth = 2 * scale;
                  ctx.stroke();
              }
@@ -233,7 +253,10 @@ export const drawBackground = (
         
         ctx.beginPath();
         // Grid turns Pink to Red
-        ctx.strokeStyle = dangerRatio > 0.5 ? 'rgba(220, 38, 38, 0.5)' : 'rgba(236, 72, 153, 0.4)';
+        let gridColor = weedMode ? 'rgba(34, 197, 94, 0.4)' : 'rgba(236, 72, 153, 0.4)';
+        if (dangerRatio > 0.5) gridColor = 'rgba(220, 38, 38, 0.5)';
+        
+        ctx.strokeStyle = gridColor;
         ctx.lineWidth = 1 * scale;
 
         // Vertical Lines (Perspective)

@@ -61,6 +61,7 @@ const GameCanvas: React.FC = () => {
     const [showSensorDebug, setShowSensorDebug] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
     const [showDevEditor, setShowDevEditor] = useState(false);
+    const [weedMode, setWeedMode] = useState(() => localStorage.getItem('WEED_MODE') === 'true');
 
     // Shadow Refs for Loop Stability
     const jetpackModeRef = useRef<'IDLE' | 'BURST' | 'GLIDE'>('IDLE');
@@ -167,7 +168,7 @@ const GameCanvas: React.FC = () => {
 
         // Detectar se é PC ou mobile para default
         const isMobile = typeof window !== 'undefined' && (window.innerWidth < 768 || 'ontouchstart' in window);
-        const defaultMode = isMobile ? 'ARROWS' : 'JOYSTICK';
+        const defaultMode = 'ARROWS'; // Default to ARROWS as requested
 
         setGameState(prev => ({
             ...prev,
@@ -227,7 +228,8 @@ const GameCanvas: React.FC = () => {
         setJetpackMode, handleStart, gamepadConnected, setGamepadConnected,
         setShowGameOverMenu, editorTool, selectedPlatformId, damageFlash, showGameOverMenu,
         saveNodesRef, jetpackModeRef, damageFlashRef, jetpackAllowedRef: useRef(true),
-        leaderboard, leaderboardRef, highScoreEntryStatusRef, onGameOver: handleGameOver, onMenuUpdate: updateMenuNavigation
+        leaderboard, leaderboardRef, highScoreEntryStatusRef, onGameOver: handleGameOver, onMenuUpdate: updateMenuNavigation,
+        weedMode // Pass weedMode to GameLoop
     });
 
     return (
@@ -266,7 +268,7 @@ const GameCanvas: React.FC = () => {
                             <button
                                 onMouseEnter={() => soundManager.playHover()}
                                 onClick={() => { soundManager.playClick(); setGameState(p => ({ ...p, isPaused: !p.isPaused })); }}
-                                className="p-3 bg-black/50 backdrop-blur text-cyan-400 rounded-full border border-cyan-500/50 hover:bg-cyan-900/50 transition-all shadow-[0_0_10px_#06b6d4]">
+                                className={`p-3 bg-black/50 backdrop-blur rounded-full border transition-all ${weedMode ? 'text-green-400 border-green-500/50 hover:bg-green-900/50 shadow-[0_0_10px_#22c55e]' : 'text-cyan-400 border-cyan-500/50 hover:bg-cyan-900/50 shadow-[0_0_10px_#06b6d4]'}`}>
                                 {gameState.isPaused ? <Play size={24} /> : <Pause size={24} />}
                             </button>
                             <button
@@ -305,6 +307,7 @@ const GameCanvas: React.FC = () => {
                         selectedIndex={menuIndex}
                         onOpenCalibration={() => setShowCalibration(true)}
                         onOpenSettings={() => setShowSettings(true)}
+                        weedMode={weedMode}
                     />
                 )}
 
@@ -320,6 +323,8 @@ const GameCanvas: React.FC = () => {
                         selectedIndex={menuIndex}
                         gyroEnabled={gyroEnabled}
                         setGyroEnabled={setGyroEnabled}
+                        weedMode={weedMode}
+                        setWeedMode={setWeedMode}
                     />
                 )}
 
@@ -476,6 +481,7 @@ const GameCanvas: React.FC = () => {
                         setShowSettings(false);
                         setShowVisualEditor(true);
                     }}
+                    onLeaderboardReset={() => setLeaderboard([])}
                 />
             )}
 

@@ -24,7 +24,8 @@ export enum PlatformType {
   SWAYING = 'SWAYING', // Leaf-like sine wave movement
   BREAKABLE = 'BREAKABLE', // Breaks on impact
   STICKY = 'STICKY', // Glues player on contact
-  LATERAL_BOUNCE = 'LATERAL_BOUNCE' // NEW: Launches player sideways in parabolic arc
+  LATERAL_BOUNCE = 'LATERAL_BOUNCE', // NEW: Launches player sideways in parabolic arc
+  GLITCH = 'GLITCH' // NEW: Randomly disappears or gives low jump
 }
 
 export type CollectibleType = 'FUEL' | 'COIN' | 'HEART';
@@ -140,6 +141,7 @@ export interface Platform {
   crumbleTimer?: number; // Current countdown
   maxCrumbleTimer?: number; // Total time before breaking (if sticky & high level)
   isCrumbling?: boolean; // Is the countdown active?
+  bounceDirection?: number; // -1 (Left) or 1 (Right) for LATERAL_BOUNCE
 }
 
 export interface Particle {
@@ -201,7 +203,7 @@ export interface GameState {
   gameMode: 'NORMAL' | 'TEST';
   levelIndex: 1 | 2; // 1 = Sector 1 (Init), 2 = Sector 2 (Hard)
   levelType: 'CAMPAIGN' | 'RANDOM'; // New: Deterministic vs Chaos
-  mobileControlMode: 'BUTTONS' | 'TILT'; // NEW: Preference
+  mobileControlMode: 'BUTTONS' | 'TILT' | 'ARROWS' | 'JOYSTICK'; // NEW: Preference
   score: number;
   GYRO_SENSITIVITY: number;
   MOBILE_SENSITIVITY_MULTIPLIER: number;

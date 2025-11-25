@@ -407,7 +407,8 @@ export const updatePlayerPhysics = (props: PhysicsUpdateProps): void => {
                     // --- LATERAL BOUNCE (PARABOLIC ARC) ---
                     const playerCenter = player.x + player.width / 2;
                     const platformCenter = p.x + p.width / 2;
-                    const direction = playerCenter < platformCenter ? -1 : 1; // Left or Right
+                    // Use stored direction if available, else calculate based on center
+                    const direction = p.bounceDirection || (playerCenter < platformCenter ? -1 : 1);
 
                     const angleInDegrees = Math.random() * 30 + 30; // 30° to 60°
                     const angleInRadians = angleInDegrees * (Math.PI / 180);
@@ -416,16 +417,6 @@ export const updatePlayerPhysics = (props: PhysicsUpdateProps): void => {
                     player.vx = direction * Math.cos(angleInRadians) * magnitude;
                     player.vy = -Math.sin(angleInRadians) * magnitude; // Negative = upward
 
-                    // Visual feedback
-                    // Debug hitbox for enemy/tile
-                    if (gameState.showHitboxes) {
-                        // Note: ctx, t.skin, worldToScreenX, getScreenY, ts, etc. are not available in updatePlayerPhysics.
-                        // This code snippet seems intended for a rendering loop (e.g., useGameLoop).
-                        // Inserting as-is per instruction, but it will cause a runtime error.
-                        // ctx.strokeStyle = '#ff00ff';
-                        // ctx.lineWidth = 1;
-                        // ctx.strokeRect(worldToScreenX(t.x), getScreenY(t.y), ts, ts);
-                    }
                     spawnParticles(particles, platformCenter, p.y, 20, p.color, true, cfg);
                     soundManager.playPerfectJump();
                     setCameraShake(15);
@@ -434,6 +425,28 @@ export const updatePlayerPhysics = (props: PhysicsUpdateProps): void => {
                         text: direction > 0 ? "→ →" : "← ←",
                         color: "#f97316", life: 1.0, velocity: -3, size: 32
                     });
+                } else if (p.type === PlatformType.GLITCH) {
+                    // --- GLITCH PLATFORM ---
+                    // 1. Chance to disappear immediately (30%)
+                    if (Math.random() < 0.3) {
+                        p.broken = true; // Mark as broken so it disappears/stops colliding
+                        spawnParticles(particles, p.x + p.width/2, p.y, 15, '#ffffff', true, cfg);
+                        // soundManager.playGlitch(); // If available
+                    }
+                    
+                    // 2. Jump logic - Chance for "Bem Baixo" (Very Low) jump
+                    let bounceForce = baseJump;
+                    if (Math.random() < 0.4) {
+                        // "Bem baixo" jump (Very low)
+                        bounceForce = cfg.WEAK_JUMP_FORCE * 0.3;
+                        floatingTextsRef.current.push({
+                           id: Date.now(), x: player.x, y: player.y - 50,
+                           text: "GLITCH!", color: "#ffffff", life: 0.5, velocity: -1, size: 20
+                       });
+                    } else {
+                        bounceForce = baseJump + jumpBonus;
+                    }
+                    player.vy = -bounceForce;
                 } else {
                     let bounceForce = baseJump;
                     if (!input.jumpIntent) {

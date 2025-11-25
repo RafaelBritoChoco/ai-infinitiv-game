@@ -10,6 +10,7 @@ import { soundManager } from './audioManager';
 import { Persistence } from './persistence';
 import * as Constants from '../../constants';
 import { SKINS } from './assets';
+import { drawPlatformTexture } from './platformRender';
 
 export const SensorDebugModal = ({ onClose }: { onClose: () => void }) => {
     const [orientation, setOrientation] = useState<any>({});
@@ -987,10 +988,10 @@ export const DevConsole = ({ isOpen, onClose, configRef }: DevConsoleProps) => {
                                     onChange={(e) => setMoveSpeed(parseFloat(e.target.value))}
                                     className="w-full accent-cyan-500 h-2 bg-slate-700 rounded-lg"
                                 />
-                                <div className="flex justify-between text-[10px] text-slate-600 mt-1">
-                                    <span>Slow</span>
-                                    <span>Default (1.8)</span>
-                                    <span>Fast</span>
+                                <div className="flex justify-between text-[10px] text-slate-600 mt-1 font-bold">
+                                    <span className={moveSpeed < 1.0 ? "text-green-400" : ""}>Slow</span>
+                                    <span className={moveSpeed >= 1.0 && moveSpeed <= 2.5 ? "text-green-400" : ""}>Default (1.8)</span>
+                                    <span className={moveSpeed > 2.5 ? "text-green-400" : ""}>Fast</span>
                                 </div>
                             </div>
 
@@ -1137,10 +1138,10 @@ export const CalibrationModal = ({ isOpen, onClose, configRef }: { isOpen: boole
                             onChange={(e) => setSensitivity(parseInt(e.target.value))}
                             className="w-full accent-cyan-500 h-2 bg-slate-700 rounded-lg cursor-pointer"
                         />
-                        <div className="flex justify-between text-[10px] text-slate-600 mt-2">
-                            <span>LOW</span>
-                            <span>DEFAULT (35)</span>
-                            <span>HIGH</span>
+                        <div className="flex justify-between text-[10px] text-slate-600 mt-2 font-bold">
+                            <span className={sensitivity < 25 ? "text-green-400" : ""}>LOW</span>
+                            <span className={sensitivity >= 25 && sensitivity <= 45 ? "text-green-400" : ""}>DEFAULT (35)</span>
+                            <span className={sensitivity > 45 ? "text-green-400" : ""}>HIGH</span>
                         </div>
                     </div>
 
@@ -1382,24 +1383,38 @@ export const ShopModal = ({ gameState, setGameState, selectedIndex = -1 }: any) 
     );
 };
 
-export const PauseMenu = ({ setGameState, handleStart, selectedIndex = 0, onOpenCalibration, onOpenSettings }: any) => (
-    <div className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl flex items-center justify-center">
+export const PauseMenu = ({ setGameState, handleStart, selectedIndex = 0, onOpenCalibration, onOpenSettings, weedMode }: any) => (
+    <div className={`fixed inset-0 z-[100] ${weedMode ? 'bg-green-950/95' : 'bg-black/95'} backdrop-blur-xl flex items-center justify-center`}>
         <div className="max-w-md w-full mx-4">
             {/* TITLE */}
             <div className="text-center mb-8">
                 <h2 className="text-5xl font-black italic text-white mb-2 tracking-tight">
-                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500">PAUSED</span>
+                    <span className={`text-transparent bg-clip-text ${weedMode ? 'bg-gradient-to-r from-green-400 to-lime-500' : 'bg-gradient-to-r from-cyan-400 to-purple-500'}`}>
+                        {weedMode ? 'CHAPOU?' : 'PAUSED'}
+                    </span>
                 </h2>
-                <p className="text-slate-400 text-sm uppercase tracking-widest">Mission On Hold</p>
+                <p className={`text-sm uppercase tracking-widest ${weedMode ? 'text-green-400' : 'text-slate-400'}`}>
+                    {weedMode ? 'Pausa pra respirar' : 'Mission On Hold'}
+                </p>
             </div>
 
             {/* MENU BUTTONS */}
             <div className="space-y-3">
                 <button
                     onClick={() => setGameState((prev: any) => ({ ...prev, isPaused: false }))}
-                    className="w-full py-4 bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-500 hover:to-cyan-400 text-white font-black text-lg uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-cyan-500/30"
+                    className={`w-full py-4 font-black text-lg uppercase tracking-widest rounded-xl transition-all shadow-lg ${weedMode ? 'bg-gradient-to-r from-green-600 to-lime-500 hover:from-green-500 hover:to-lime-400 text-white shadow-green-500/30' : 'bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-500 hover:to-cyan-400 text-white shadow-cyan-500/30'}`}
                 >
-                    ▶ CONTINUAR
+                    ▶ {weedMode ? 'VOLTAR PRA BRISA' : 'CONTINUAR'}
+                </button>
+
+                <button
+                    onClick={() => {
+                        setGameState((prev: any) => ({ ...prev, isPaused: false }));
+                        handleStart(0); // Restart game
+                    }}
+                    className="w-full py-4 bg-yellow-600 hover:bg-yellow-500 border-2 border-yellow-400 text-white font-bold uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-2"
+                >
+                    <RotateCcw size={20} /> REINICIAR
                 </button>
 
                 <button
@@ -1432,15 +1447,15 @@ export const ControlsModal = ({ onClose, currentMode, setMobileControlMode, onCa
                 </div>
                 <div className="p-6 space-y-6">
                     <div className="p-4 bg-slate-800/50 rounded-xl border border-slate-700">
-                        <div className="flex justify-between items-center mb-2">
+                        <div className="flex justify-between mb-2">
                             <span className="text-white font-bold uppercase tracking-widest flex items-center gap-2"><Smartphone size={16} /> Touch Control Mode</span>
                         </div>
                         <div className="flex gap-2 flex-wrap">
-                            <button onClick={() => setMobileControlMode('BUTTONS')} className={`px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all border ${currentMode === 'BUTTONS' ? 'bg-cyan-600 text-white border-cyan-500 shadow-lg' : 'bg-slate-700 text-slate-300 border-slate-600'}`}>
-                                BUTTONS
-                            </button>
                             <button onClick={() => setMobileControlMode('ARROWS')} className={`px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all border ${currentMode === 'ARROWS' ? 'bg-green-600 text-white border-green-500 shadow-lg' : 'bg-slate-700 text-slate-300 border-slate-600'}`}>
                                 ARROWS
+                            </button>
+                            <button onClick={() => setMobileControlMode('BUTTONS')} className={`px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all border ${currentMode === 'BUTTONS' ? 'bg-cyan-600 text-white border-cyan-500 shadow-lg' : 'bg-slate-700 text-slate-300 border-slate-600'}`}>
+                                BUTTONS
                             </button>
                             <button onClick={() => setMobileControlMode('TILT')} className={`px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all border ${currentMode === 'TILT' ? 'bg-purple-600 text-white border-purple-500 shadow-lg' : 'bg-slate-700 text-slate-300 border-slate-600'}`}>
                                 TILT
@@ -1731,7 +1746,8 @@ const CharacterPreviewModal = ({ skin, onClose, onSelectSkin, allSkins }: {
         if (!ctx) return;
         
         const state = stateRef.current;
-        const GRAVITY = 0.5;
+        const GRAVITY = 0.65; // Match game physics
+        const JUMP_FORCE = -14; // Consistent jump force
         const GROUND_Y = 320;
         
         const animate = () => {
@@ -1751,18 +1767,19 @@ const CharacterPreviewModal = ({ skin, onClose, onSelectSkin, allSkins }: {
             
             // ========== TAB-SPECIFIC LOGIC ==========
             if (activeTab === 'preview') {
-                // Auto movement - zigzag
-                if (state.frame % 90 < 45) {
+                // Auto movement - smoother zigzag
+                const movePhase = state.frame % 120;
+                if (movePhase < 60) {
                     state.direction = 1;
-                    state.vx = 2;
+                    state.vx = 1.8;
                 } else {
                     state.direction = -1;
-                    state.vx = -2;
+                    state.vx = -1.8;
                 }
                 
-                // Auto jump when grounded
-                if (state.isGrounded && state.frame % 50 === 0) {
-                    state.vy = -12;
+                // Auto jump when grounded (less frequent, more predictable)
+                if (state.isGrounded && state.frame % 60 === 30) {
+                    state.vy = JUMP_FORCE;
                     state.isGrounded = false;
                     // Jump particles
                     for (let i = 0; i < 5; i++) {
@@ -1775,9 +1792,9 @@ const CharacterPreviewModal = ({ skin, onClose, onSelectSkin, allSkins }: {
                 }
                 
                 // Jetpack occasionally
-                if (state.frame % 180 === 90) {
+                if (state.frame % 200 === 100) {
                     state.jetpackActive = true;
-                    state.jetpackTimer = 40;
+                    state.jetpackTimer = 50;
                 }
             } else if (activeTab === 'jetpack') {
                 // Tutorial: show jetpack crossing gap
@@ -1790,7 +1807,7 @@ const CharacterPreviewModal = ({ skin, onClose, onSelectSkin, allSkins }: {
                 } else if (phase === 1) {
                     // Jump and activate jetpack over gap
                     if (state.tutorialPhase !== 1) {
-                        state.vy = -8;
+                        state.vy = JUMP_FORCE;
                         state.isGrounded = false;
                         state.tutorialPhase = 1;
                     }
@@ -1821,7 +1838,7 @@ const CharacterPreviewModal = ({ skin, onClose, onSelectSkin, allSkins }: {
                 } else if (phase === 1) {
                     // Do perfect jump (high jump)
                     if (state.tutorialPhase !== 1 && state.isGrounded) {
-                        state.vy = -16; // Higher jump!
+                        state.vy = -18; // Higher jump!
                         state.isGrounded = false;
                         state.tutorialPhase = 1;
                         state.perfectJumpReady = false;
@@ -1862,14 +1879,14 @@ const CharacterPreviewModal = ({ skin, onClose, onSelectSkin, allSkins }: {
                 
                 if (state.vy > 0) {
                     // BURST mode - falling, need more force
-                    force = 2.0;
+                    force = 1.8;
                     isBurst = true;
                 } else {
                     // GLIDE mode - ascending, gentle force
                     force = state.vy < -6 ? 0.4 : 0.6;
                 }
                 
-                state.vy = Math.max(state.vy - force, -8);
+                state.vy = Math.max(state.vy - force, -10);
                 
                 if (state.jetpackTimer <= 0 && activeTab !== 'jetpack') {
                     state.jetpackActive = false;
@@ -1877,7 +1894,7 @@ const CharacterPreviewModal = ({ skin, onClose, onSelectSkin, allSkins }: {
                 
                 // Flame particles - different colors for BURST vs GLIDE
                 if (state.frame % 2 === 0) {
-                    const pColor = isBurst ? '#f97316' : '#22d3ee'; // Orange for burst, cyan for glide
+                    const pColor = isBurst ? '#f97316' : '#22d3ee';
                     state.particles.push({
                         x: state.x + (Math.random() - 0.5) * 10, 
                         y: state.y + 24,
@@ -1886,23 +1903,23 @@ const CharacterPreviewModal = ({ skin, onClose, onSelectSkin, allSkins }: {
                         life: isBurst ? 20 : 12, 
                         color: pColor
                     });
-                    // Extra flame for burst mode
                     if (isBurst) {
                         state.particles.push({
                             x: state.x, y: state.y + 24,
                             vx: (Math.random() - 0.5) * 4, 
                             vy: 8 + Math.random() * 8,
                             life: 15, 
-                            color: '#facc15' // Yellow inner flame
+                            color: '#facc15'
                         });
                     }
                 }
             }
             
-            // Gravity
-            if (!state.isGrounded) {
-                state.vy += GRAVITY;
-            }
+            // Gravity - always apply (like real game)
+            state.vy += GRAVITY;
+            
+            // Cap fall speed
+            if (state.vy > 15) state.vy = 15;
             
             // Apply velocity
             state.x += state.vx;
@@ -1927,17 +1944,28 @@ const CharacterPreviewModal = ({ skin, onClose, onSelectSkin, allSkins }: {
                 if (state.x > canvas.width - 20) state.x = canvas.width - 20;
             }
             
-            // Platform collision + dissolve like game
+            // Platform collision - better physics matching the game
             state.isGrounded = false;
-            const playerBottom = state.y + 24;
+            const charHeight = (currentSkin.pixels?.length || 16) * 3;
+            const playerBottom = state.y + charHeight / 2;
+            const playerPrevBottom = playerBottom - state.vy;
+            
             for (const plat of state.platforms) {
                 // Skip fully dissolved platforms
                 if (plat.dissolve !== undefined && plat.dissolve <= 0) continue;
                 
+                const platTop = plat.y;
+                const platLeft = plat.x - 5;
+                const platRight = plat.x + plat.w + 5;
+                
+                // Only collide when falling (vy >= 0) and was above platform before
                 if (state.vy >= 0 && 
-                    playerBottom >= plat.y && playerBottom <= plat.y + 15 &&
-                    state.x >= plat.x - 10 && state.x <= plat.x + plat.w + 10) {
-                    state.y = plat.y - 24;
+                    playerPrevBottom <= platTop + 5 &&
+                    playerBottom >= platTop &&
+                    state.x >= platLeft && 
+                    state.x <= platRight) {
+                    
+                    state.y = platTop - charHeight / 2;
                     state.vy = 0;
                     state.isGrounded = true;
                     
@@ -1946,6 +1974,7 @@ const CharacterPreviewModal = ({ skin, onClose, onSelectSkin, allSkins }: {
                         plat.dissolving = true;
                         plat.dissolve = 1.0;
                     }
+                    break; // Only land on one platform
                 }
             }
             
@@ -1977,28 +2006,41 @@ const CharacterPreviewModal = ({ skin, onClose, onSelectSkin, allSkins }: {
             
             // ========== DRAWING ==========
             
-            // Draw platforms with dissolve effect
+            // Draw platforms using SHARED RENDERER
             for (const plat of state.platforms) {
                 const dissolveAlpha = plat.dissolve !== undefined ? plat.dissolve : 1;
                 if (dissolveAlpha <= 0) continue;
                 
                 ctx.globalAlpha = dissolveAlpha;
                 
-                // Platform shadow
-                ctx.fillStyle = 'rgba(0,0,0,0.3)';
-                ctx.fillRect(plat.x + 4, plat.y + 4, plat.w, 10);
-                
-                // Platform body - color changes when dissolving
-                const isDissolving = plat.dissolving && dissolveAlpha < 1;
-                ctx.shadowColor = isDissolving ? '#ef4444' : '#06b6d4';
-                ctx.shadowBlur = isDissolving ? 12 : 8;
-                ctx.fillStyle = isDissolving ? '#dc2626' : '#0891b2';
-                ctx.fillRect(plat.x, plat.y, plat.w, 10);
-                ctx.shadowBlur = 0;
-                
-                // Platform top
-                ctx.fillStyle = isDissolving ? '#f87171' : '#22d3ee';
-                ctx.fillRect(plat.x, plat.y, plat.w, 3);
+                // Construct mock platform for renderer
+                const mockPlat: any = {
+                    id: 0,
+                    x: plat.x,
+                    y: plat.y,
+                    width: plat.w,
+                    height: 10,
+                    type: PlatformType.STATIC,
+                    color: '#06b6d4',
+                    broken: false,
+                    isCrumbling: plat.dissolving,
+                    crumbleTimer: plat.dissolve, // Hack to affect color
+                    maxCrumbleTimer: 1.0
+                };
+
+                drawPlatformTexture(
+                    ctx, 
+                    mockPlat, 
+                    plat.x, 
+                    plat.y, 
+                    plat.w, 
+                    10, 
+                    1.0, 
+                    state.frame * 16, 
+                    { isEditing: false, showHitboxes: false } as any, 
+                    null, 
+                    Constants as any
+                );
                 
                 ctx.globalAlpha = 1;
             }
@@ -2019,9 +2061,9 @@ const CharacterPreviewModal = ({ skin, onClose, onSelectSkin, allSkins }: {
             const pixels = currentSkin.pixels || [];
             const pixelSize = 3;
             const charWidth = (pixels[0]?.length || 16) * pixelSize;
-            const charHeight = pixels.length * pixelSize;
+            const drawCharHeight = pixels.length * pixelSize;
             const startX = state.x - charWidth / 2;
-            const startY = state.y - charHeight / 2;
+            const startY = state.y - drawCharHeight / 2;
             
             // Perfect jump glow (pink)
             if (state.perfectJumpReady && activeTab === 'perfect') {
@@ -2059,9 +2101,9 @@ const CharacterPreviewModal = ({ skin, onClose, onSelectSkin, allSkins }: {
             // Jetpack flame
             if (state.jetpackActive) {
                 ctx.fillStyle = '#f97316';
-                ctx.fillRect(state.x - 4, state.y + charHeight/2 - 5, 8, 10 + Math.random() * 10);
+                ctx.fillRect(state.x - 4, state.y + drawCharHeight/2 - 5, 8, 10 + Math.random() * 10);
                 ctx.fillStyle = '#facc15';
-                ctx.fillRect(state.x - 2, state.y + charHeight/2, 4, 6 + Math.random() * 10);
+                ctx.fillRect(state.x - 2, state.y + drawCharHeight/2, 4, 6 + Math.random() * 10);
             }
             
             // ========== TUTORIAL TEXT ==========
@@ -2137,7 +2179,7 @@ const CharacterPreviewModal = ({ skin, onClose, onSelectSkin, allSkins }: {
                                 onClick={() => setCurrentSkinIndex(i)}
                                 className={`flex-shrink-0 flex flex-col items-center p-1.5 rounded-lg border-2 transition-all snap-center ${
                                     isSelected 
-                                        ? 'border-cyan-400 bg-cyan-900/40 shadow-[0_0_15px_rgba(6,182,212,0.5)] scale-110' 
+                                        ? 'border-cyan-400 bg-cyan-900/40 shadow-[0_0_15px_rgba(6,182,212,0.5)]' 
                                         : 'border-slate-700 bg-slate-900/60 hover:border-slate-500 opacity-60 hover:opacity-100'
                                 }`}
                                 style={{ minWidth: '50px' }}
@@ -2148,13 +2190,14 @@ const CharacterPreviewModal = ({ skin, onClose, onSelectSkin, allSkins }: {
                                         {(s?.pixels || []).map((row: number[], y: number) =>
                                             row.map((val: number, x: number) => {
                                                 if (val === 0) return null;
-                                                let color = s?.color || '#f97316';
-                                                if (val === 1) color = '#0f172a';
-                                                else if (val === 3) color = '#ffffff';
-                                                else if (val === 4) color = '#ffffff';
-                                                else if (val === 5) color = '#000000';
-                                                else if (val === 6) color = '#facc15';
-                                                return <rect key={`${x}-${y}`} x={x} y={y} width="1" height="1" fill={color} />;
+                                                let fill = '#000000';
+                                                if (val === 1) fill = '#0f172a';
+                                                else if (val === 2) fill = s.color;
+                                                else if (val === 3) fill = '#ffffff';
+                                                else if (val === 4) fill = '#ffffff';
+                                                else if (val === 5) fill = '#000000';
+                                                else if (val === 6) fill = '#facc15';
+                                                return <rect key={`${x}-${y}`} x={x} y={y} width="1" height="1" fill={fill} />;
                                             })
                                         )}
                                     </svg>
@@ -2415,7 +2458,7 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
             <div className="mb-4 md:mb-8 text-center relative shrink-0 mt-12">
                 <div className={`absolute -inset-10 blur-3xl rounded-full animate-pulse ${weedMode ? 'bg-green-500/30' : 'bg-cyan-500/20'}`}></div>
                 <h1 className={`text-4xl md:text-8xl font-black italic tracking-tighter text-white relative z-10 ${weedMode ? 'drop-shadow-[0_0_15px_rgba(34,197,94,0.8)]' : 'drop-shadow-[0_0_15px_rgba(6,182,212,0.8)]'}`}>
-                    {weedMode ? '420 ' : 'AI '}<span className={`text-transparent bg-clip-text ${weedMode ? 'bg-gradient-to-r from-green-400 via-lime-400 to-green-500' : 'bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-500'}`}>INFINITIV</span>
+                    {weedMode ? '420 ' : 'AI '}<span className={`text-transparent bg-clip-text ${weedMode ? 'bg-gradient-to-r from-green-400 to-lime-500' : 'bg-gradient-to-r from-cyan-400 to-purple-500'}`}>INFINITIV</span>
                 </h1>
                 
                 <p className={`font-mono tracking-[0.5em] text-[10px] md:text-sm mt-2 font-bold uppercase ${weedMode ? 'text-green-500' : 'text-cyan-500'}`}>{weedT.subtitle}</p>
@@ -2426,7 +2469,7 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
             <div className="w-full max-w-4xl px-4 md:px-8 mb-4 relative z-10">
                 <button 
                     onClick={() => setShowRanking(true)} 
-                    className={`w-full py-4 rounded-2xl text-lg font-black transition-all flex items-center justify-center gap-3 border-2 ${weedMode ? 'bg-gradient-to-r from-green-800 to-lime-700 border-green-500 text-white shadow-[0_0_30px_rgba(34,197,94,0.5)] hover:shadow-[0_0_50px_rgba(34,197,94,0.7)]' : 'bg-gradient-to-r from-yellow-700 via-amber-600 to-yellow-700 border-yellow-400 text-white shadow-[0_0_30px_rgba(234,179,8,0.5)] hover:shadow-[0_0_50px_rgba(234,179,8,0.7)]'} animate-pulse hover:animate-none`}
+                    className={`w-full py-4 rounded-2xl text-lg font-black transition-all flex items-center justify-center gap-3 border ${weedMode ? 'bg-gradient-to-r from-green-600 to-lime-500 hover:from-green-500 hover:to-lime-400 text-white shadow-green-500/30' : 'bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-500 hover:to-cyan-400 text-white shadow-cyan-500/30'} animate-pulse hover:animate-none`}
                 >
                     <Trophy size={24} className="text-yellow-300" /> {weedT.ranking} <Crown size={20} className="text-yellow-300" />
                 </button>
@@ -2520,14 +2563,14 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
                                                 isLocked 
                                                     ? 'border-red-800/50 bg-red-950/30 hover:border-red-600' 
                                                     : isSelected 
-                                                        ? 'border-cyan-400 bg-cyan-900/30 shadow-[0_0_10px_rgba(6,182,212,0.3)]' 
-                                                        : 'border-slate-800 bg-slate-900/50 hover:border-slate-600'
+                                                        ? 'border-cyan-400 bg-cyan-900/30 shadow-[0_0_15px_rgba(6,182,212,0.5)]' 
+                                                        : 'border-slate-800 bg-slate-900/50 hover:border-slate-500 opacity-60 hover:opacity-100'
                                             }`}
                                         >
                                             <span className={`text-[8px] font-bold uppercase tracking-wider ${isLocked ? 'text-red-400' : 'text-slate-300'}`}>
                                                 {isLocked ? '🔒' : ''} {skin.name || skin.id}
                                             </span>
-                                            <div className={`w-10 h-10 relative ${isSelected && !isLocked ? 'animate-bounce' : ''}`} style={{ animationDuration: '0.6s' }}>
+                                            <div className={`w-10 h-10 ${isSelected ? 'animate-bounce' : ''}`} style={{ animationDuration: '0.6s' }}>
                                                 <svg 
                                                     viewBox={`0 0 ${skin.pixels?.length > 16 ? 24 : 16} ${skin.pixels?.length > 16 ? 24 : 16}`} 
                                                     className={`w-full h-full ${isLocked ? 'grayscale opacity-40' : ''}`} 
@@ -2572,8 +2615,8 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
                                         <svg viewBox="0 0 16 16" className="w-full h-full animate-pulse" shapeRendering="crispEdges">
                                             {/* Glitchy body with random colors */}
                                             {[
-                                                [0,0,0,0,0,0,2,2,2,2,0,0,0,0,0,0],
-                                                [0,0,0,0,0,2,3,3,3,3,2,0,0,0,0,0],
+                                                [0,0,0,0,0,0,0,2,2,2,2,0,0,0,0,0],
+                                                [0,0,0,0,0,0,2,3,3,3,3,2,0,0,0,0],
                                                 [0,0,0,0,2,3,1,3,3,1,3,2,0,0,0,0],
                                                 [0,0,0,0,2,3,3,3,3,3,3,2,0,0,0,0],
                                                 [0,0,0,0,0,2,2,2,2,2,2,0,0,0,0,0],
@@ -2584,9 +2627,9 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
                                                 [0,0,2,0,0,2,2,2,2,2,2,0,0,2,0,0],
                                                 [0,0,2,0,0,2,2,2,2,2,2,0,0,2,0,0],
                                                 [0,0,0,0,0,2,2,0,0,2,2,0,0,0,0,0],
-                                                [0,0,0,0,0,2,2,0,0,2,2,0,0,0,0,0],
-                                                [0,0,0,0,2,2,2,0,0,2,2,2,0,0,0,0],
-                                                [0,0,0,0,2,2,0,0,0,0,2,2,0,0,0,0],
+                                                [0,0,0,0,0,0,1,2,2,1,0,0,0,0,0,0],
+                                                [0,0,0,0,0,1,2,2,2,2,1,0,0,0,0,0],
+                                                [0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0],
                                                 [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
                                             ].map((row, y) =>
                                                 row.map((val, x) => {
@@ -2607,8 +2650,6 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
                                             <div className="absolute top-3/4 left-0 right-0 h-px bg-lime-400 opacity-50 animate-pulse" style={{ animationDuration: '0.15s' }}></div>
                                         </div>
                                     </div>
-                                    {/* Sparkle icon */}
-                                    <Sparkles size={10} className="absolute top-0 right-0 text-purple-400 animate-spin" style={{ animationDuration: '3s' }} />
                                 </button>
                             </div>
                             
@@ -2771,7 +2812,7 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
                     {/* START BUTTON */}
                     <button
                         onClick={() => handleStart('NORMAL')}
-                        className={`w-full py-4 md:py-6 font-black text-xl md:text-2xl rounded-2xl transition-all transform hover:scale-[1.02] flex items-center justify-center gap-3 border ${weedMode ? 'bg-gradient-to-r from-green-600 to-lime-500 hover:from-green-500 hover:to-lime-400 shadow-[0_0_30px_rgba(34,197,94,0.5)] text-white border-green-400/30' : 'bg-cyan-600 hover:bg-cyan-500 text-white shadow-[0_0_30px_rgba(6,182,212,0.4)] hover:shadow-[0_0_50px_rgba(6,182,212,0.6)] border-cyan-400/30'} ${selectedIndex === 0 ? 'ring-2 ring-white scale-[1.02]' : ''}`}
+                        className={`w-full py-4 md:py-6 font-black text-xl md:text-2xl rounded-2xl transition-all transform hover:scale-[1.02] flex items-center justify-center gap-3 border ${weedMode ? 'bg-gradient-to-r from-green-600 to-lime-500 hover:from-green-500 hover:to-lime-400 text-white shadow-green-500/30' : 'bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-500 hover:to-cyan-400 text-white shadow-cyan-500/30'} ${selectedIndex === 0 ? 'ring-2 ring-white scale-[1.02]' : ''}`}
                     >
                         <Play size={24} className="md:w-7 md:h-7" fill="currentColor" /> {weedT.start}
                     </button>
@@ -2779,7 +2820,7 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
                     {/* SHOP BUTTON */}
                     <button
                         onClick={() => setGameState((p: any) => ({ ...p, isShopOpen: true }))}
-                        className="w-full py-3 md:py-4 bg-yellow-600 hover:bg-yellow-500 text-white font-black text-base md:text-lg rounded-xl shadow-[0_0_20px_rgba(202,138,4,0.4)] hover:shadow-[0_0_40px_rgba(202,138,4,0.6)] transition-all transform hover:scale-[1.02] flex items-center justify-center gap-3 border border-yellow-400/30"
+                        className="w-full py-3 md:py-4 bg-yellow-600 hover:bg-yellow-500 text-white font-bold text-base md:text-lg rounded-xl shadow-[0_0_20px_rgba(202,138,4,0.4)] hover:shadow-[0_0_40px_rgba(202,138,4,0.6)] transition-all transform hover:scale-[1.02] flex items-center justify-center gap-3 border border-yellow-400/30"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="md:w-6 md:h-6"><circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" /><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" /></svg>
                         LOJA ({gameState.totalCoins})
@@ -2787,6 +2828,15 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
 
                     {/* CONTROL MODE TOGGLE */}
                     <div className="grid grid-cols-4 gap-1 md:gap-3">
+                        {/* ARROWS MODE */}
+                        <button
+                            onClick={() => setGameState((p: any) => ({ ...p, mobileControlMode: 'ARROWS' }))}
+                            className={`py-2 md:py-4 rounded-xl border-2 font-bold text-[8px] md:text-sm flex flex-col items-center gap-1 transition-all ${gameState.mobileControlMode === 'ARROWS' ? 'bg-green-600 border-green-500 text-green-400 shadow-[0_0_15px_rgba(34,197,94,0.2)]' : 'bg-slate-900/50 border-slate-800 text-slate-500 hover:border-slate-600'}`}
+                        >
+                            <ArrowUp size={18} className="md:w-6 md:h-6" />
+                            ARROWS
+                        </button>
+
                         {/* BUTTONS MODE */}
                         <button
                             onClick={() => setGameState((p: any) => ({ ...p, mobileControlMode: 'BUTTONS' }))}
@@ -2794,15 +2844,6 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
                         >
                             <Gamepad2 size={18} className="md:w-6 md:h-6" />
                             BUTTONS
-                        </button>
-
-                        {/* ARROWS MODE */}
-                        <button
-                            onClick={() => setGameState((p: any) => ({ ...p, mobileControlMode: 'ARROWS' }))}
-                            className={`py-2 md:py-4 rounded-xl border-2 font-bold text-[8px] md:text-sm flex flex-col items-center gap-1 transition-all ${gameState.mobileControlMode === 'ARROWS' ? 'bg-slate-800 border-green-500 text-green-400 shadow-[0_0_15px_rgba(34,197,94,0.2)]' : 'bg-slate-900/50 border-slate-800 text-slate-500 hover:border-slate-600'}`}
-                        >
-                            <ArrowUp size={18} className="md:w-6 md:h-6" />
-                            ARROWS
                         </button>
 
                         {/* JOYSTICK MODE */}
@@ -2860,13 +2901,13 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
 
                     {/* UTILS ROW */}
                     <div className="grid grid-cols-3 gap-2">
-                        <button onClick={() => setLang(lang === 'EN' ? 'PT' : 'EN')} className="py-3 bg-slate-900/80 border border-slate-700 rounded-lg text-xs font-bold text-slate-300 hover:text-white hover:border-slate-500 transition-all">
+                        <button onClick={() => setLang(lang === 'EN' ? 'PT' : 'EN')} className="py-3 bg-slate-900/80 border border-slate-700 rounded-lg text-xs font-bold text-slate-300 hover:text-white hover:bg-slate-800 transition-all">
                             {lang === 'EN' ? '🇺🇸 EN' : '🇧🇷 PT'}
                         </button>
-                        <button onClick={toggleFullscreen} className="py-3 bg-slate-900/80 border border-slate-700 rounded-lg text-xs font-bold text-slate-300 hover:text-white hover:border-slate-500 transition-all flex items-center justify-center gap-1">
+                        <button onClick={toggleFullscreen} className="py-3 bg-slate-900/80 border border-slate-700 rounded-lg text-xs font-bold text-slate-300 hover:text-white hover:bg-slate-800 transition-all flex items-center justify-center gap-1">
                             <Maximize size={14} /> {t[lang].fullscreen}
                         </button>
-                        <button onClick={onOpenSettings} className="py-3 bg-purple-900/80 border border-purple-600 rounded-lg text-xs font-bold text-purple-300 hover:text-white hover:border-purple-400 transition-all flex items-center justify-center gap-1">
+                        <button onClick={onOpenSettings} className="py-3 bg-purple-900/80 border border-purple-600 rounded-lg text-xs font-bold text-purple-300 hover:text-white hover:bg-purple-800 transition-all flex items-center justify-center gap-1">
                             <Settings size={14} /> SET
                         </button>
                     </div>
@@ -3039,6 +3080,8 @@ const MiniCharacter = ({ skinId, size = 24 }: { skinId?: string; size?: number }
 };
 
 export const RankingModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
+    if (!isOpen) return null;
+
     const [localLeaderboard, setLocalLeaderboard] = useState<LeaderboardEntry[]>([]);
     const [globalLeaderboard, setGlobalLeaderboard] = useState<LeaderboardEntry[]>([]);
     const [loading, setLoading] = useState(false);
@@ -3095,8 +3138,6 @@ export const RankingModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: ()
         }
     }, [isOpen]);
 
-    if (!isOpen) return null;
-
     const getMedalColor = (index: number) => {
         if (index === 0) return 'text-yellow-400 bg-yellow-500/20 border-yellow-500/50';
         if (index === 1) return 'text-slate-300 bg-slate-400/20 border-slate-400/50';
@@ -3108,9 +3149,9 @@ export const RankingModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: ()
 
     return (
         <div className="fixed inset-0 z-[200] bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
-            <div className="w-full max-w-md max-h-[85vh] bg-slate-950 border border-yellow-500/30 rounded-2xl shadow-[0_0_50px_rgba(234,179,8,0.2)] flex flex-col overflow-hidden animate-in zoom-in-95">
+            <div className="w-full max-w-md max-h-[85vh] bg-slate-950 border border-yellow-500/30 rounded-2xl shadow-[0_0_50px_rgba(234,179,8,0.2)] flex flex-col overflow-hidden">
                 {/* Header */}
-                <div className="p-4 border-b border-yellow-500/20 bg-gradient-to-r from-yellow-900/20 to-slate-900/50 flex justify-between items-center">
+                <div className="p-4 border-b border-slate-800 bg-gradient-to-r from-yellow-900/20 to-slate-900/50 flex justify-between items-center">
                     <h2 className="text-xl font-black text-white flex items-center gap-3">
                         <Trophy size={24} className="text-yellow-400" />
                         RANKING
@@ -3561,8 +3602,40 @@ export const GameOverMenu = ({ gameState, handleStart, setGameState, leaderboard
     const [newUnlocks, setNewUnlocks] = useState<CharacterChallenge[]>([]);
     const [currentUnlockIndex, setCurrentUnlockIndex] = useState(0);
     
+    // Funny message state
+    const [failureMessage, setFailureMessage] = useState('');
+
     const isNewHighScore = gameState.score > gameState.highScore;
     const currentScore = Math.floor(gameState.score); // Ensure integer
+    const isTooLow = currentScore < 500;
+
+    // Generate funny message on mount if score is low
+    useEffect(() => {
+        if (isTooLow) {
+            const msgs = [
+                "Nem saiu do chão direito... 🐛",
+                "Isso foi um pulo ou um tropeço? 🗿",
+                "A gravidade te ama demais. ❤️",
+                "500m é o mínimo pra ser gente. 📉",
+                "Tenta ligar o monitor na próxima. 📺",
+                "Minha avó sobe mais alto. 👵",
+                "Deu lag no cérebro? 🧠",
+                "Aperta espaço pra pular, tá? ⌨️",
+                "Altitude de formiga. 🐜",
+                "O chão é lava... ah não, você morreu nele. 🔥",
+                "Houston, temos um problema: você. 🚀",
+                "Foi mal, tava olhando o zap? 📱",
+                "Melhor voltar pro tutorial. 📚",
+                "Gravidade: 1, Você: 0. 🍎",
+                "Quase... faltou só 499 metros. 📏"
+            ];
+            // Add specific messages based on upgrades/stats if available
+            if (gameState.upgrades?.jump > 3) msgs.push("Tanto upgrade de pulo pra isso? 🦘");
+            if (gameState.upgrades?.maxFuel > 0) msgs.push("Tem jetpack e morre assim? Vergonha. ⛽");
+            
+            setFailureMessage(msgs[Math.floor(Math.random() * msgs.length)]);
+        }
+    }, [isTooLow]);
     
     // Increment total games count on mount
     useEffect(() => {
@@ -3720,36 +3793,50 @@ export const GameOverMenu = ({ gameState, handleStart, setGameState, leaderboard
                     </div>
                 )}
 
-                {/* Submit Score Section */}
+                {/* Submit Score Section - ONLY IF > 500m */}
                 {!submitted ? (
-                    <div className="w-full bg-slate-900/50 border border-cyan-900/50 p-4 rounded-xl space-y-3">
-                        <div className="text-center">
-                            <p className="text-cyan-400 text-xs font-bold uppercase tracking-widest mb-1">
-                                <Globe size={14} className="inline mr-1" /> Salvar no Ranking Global
+                    isTooLow ? (
+                        <div className="w-full bg-red-900/20 border border-red-500/50 p-4 rounded-xl text-center space-y-2 animate-in slide-in-from-bottom-2">
+                            <div className="text-red-400 font-black uppercase tracking-widest text-xs mb-1">
+                                🚫 SCORE MUITO BAIXO
+                            </div>
+                            <p className="text-white font-bold text-lg italic">
+                                "{failureMessage}"
+                            </p>
+                            <p className="text-slate-500 text-[10px] mt-2">
+                                Mínimo para Ranking: <span className="text-yellow-500 font-bold">500m</span>
                             </p>
                         </div>
-                        <div className="flex gap-2">
-                            <div className="relative flex-1">
-                                <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-                                <input
-                                    type="text"
-                                    value={playerName}
-                                    onChange={(e) => setPlayerName(e.target.value.slice(0, 15))}
-                                    placeholder="Seu nome..."
-                                    maxLength={15}
-                                    className="w-full pl-10 pr-3 py-3 bg-slate-950 border border-slate-700 rounded-lg text-white text-sm font-bold focus:border-cyan-500 outline-none"
-                                />
+                    ) : (
+                        <div className="w-full bg-slate-900/50 border border-cyan-900/50 p-4 rounded-xl space-y-3">
+                            <div className="text-center">
+                                <p className="text-cyan-400 text-xs font-bold uppercase tracking-widest mb-1">
+                                    <Globe size={14} className="inline mr-1" /> Salvar no Ranking Global
+                                </p>
                             </div>
-                            <button
-                                onClick={handleSubmitScore}
-                                disabled={!playerName.trim()}
-                                className="px-4 py-3 bg-cyan-600 hover:bg-cyan-500 disabled:bg-slate-700 disabled:text-slate-500 text-white font-bold rounded-lg flex items-center gap-2 transition-all"
-                            >
-                                <Send size={18} />
-                            </button>
+                            <div className="flex gap-2">
+                                <div className="relative flex-1">
+                                    <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                                    <input
+                                        type="text"
+                                        value={playerName}
+                                        onChange={(e) => setPlayerName(e.target.value.slice(0, 15))}
+                                        placeholder="Seu nome..."
+                                        maxLength={15}
+                                        className="w-full pl-10 pr-3 py-3 bg-slate-950 border border-slate-700 rounded-lg text-white text-sm font-bold focus:border-cyan-500 outline-none"
+                                    />
+                                </div>
+                                <button
+                                    onClick={handleSubmitScore}
+                                    disabled={!playerName.trim()}
+                                    className="px-4 py-3 bg-cyan-600 hover:bg-cyan-500 disabled:bg-slate-700 disabled:text-slate-500 text-white font-bold rounded-lg flex items-center gap-2 transition-all"
+                                >
+                                    <Send size={18} />
+                                </button>
+                            </div>
+                            <p className="text-slate-600 text-[10px] text-center">Máximo 15 caracteres</p>
                         </div>
-                        <p className="text-slate-600 text-[10px] text-center">Máximo 15 caracteres</p>
-                    </div>
+                    )
                 ) : (
                     <div className="w-full bg-green-900/20 border border-green-500/50 p-4 rounded-xl text-center space-y-1">
                         <div className="flex items-center justify-center gap-2 text-green-400 font-bold">

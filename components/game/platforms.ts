@@ -82,6 +82,7 @@ export const createPlatform = (
     let vx = 0;
     let swaySpeed = 0;
     let swayPhase = 0;
+    let bounceDirection: number | undefined = undefined;
 
     if (gameMode === 'TEST') {
         color = '#dc2626';
@@ -129,6 +130,17 @@ export const createPlatform = (
             // LATERAL BOUNCE PLATFORM (Parabolic Launch)
             type = PlatformType.LATERAL_BOUNCE;
             color = r4 > 0.5 ? '#f97316' : '#dc2626'; // Orange or Red
+            
+            // Determine direction: bias towards center if near edges
+            const centerX = currentWorldWidth / 2;
+            if (newX < currentWorldWidth * 0.2) bounceDirection = 1; // Left edge -> Throw Right
+            else if (newX > currentWorldWidth * 0.8) bounceDirection = -1; // Right edge -> Throw Left
+            else bounceDirection = r5 > 0.5 ? 1 : -1; // Middle -> Random
+
+        } else if (heightMeters > 500 && r6 < 0.05) {
+            // GLITCH PLATFORM (Rare, starts early)
+            type = PlatformType.GLITCH;
+            color = '#171717'; // Visuals handled in renderer
         }
     }
 
@@ -168,7 +180,8 @@ export const createPlatform = (
         id: Math.random(),
         x: newX, y: newY, initialX: newX, width, height, type, velocityX: vx, swaySpeed, swayPhase,
         broken: false, respawnTimer: 0, color, collectible,
-        maxCrumbleTimer, crumbleTimer: maxCrumbleTimer, isCrumbling: false
+        maxCrumbleTimer, crumbleTimer: maxCrumbleTimer, isCrumbling: false,
+        bounceDirection
     };
 };
 

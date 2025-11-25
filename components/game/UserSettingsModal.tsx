@@ -68,6 +68,7 @@ interface UserSettingsModalProps {
     setConfig: (config: GameConfig) => void;
     onOpenDevConsole?: () => void;
     onOpenVisualEditor?: () => void;
+    onLeaderboardReset?: () => void;
 }
 
 type Tab = 'MAIN' | 'INTERFACE' | 'AUDIO' | 'CONTROLS' | 'API_KEY' | 'DEV_LOGIN';
@@ -75,7 +76,7 @@ type Tab = 'MAIN' | 'INTERFACE' | 'AUDIO' | 'CONTROLS' | 'API_KEY' | 'DEV_LOGIN'
 const DEV_PASSWORD = 'chocopro';
 
 export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
-    onClose, gameState, setGameState, config, setConfig, onOpenDevConsole, onOpenVisualEditor
+    onClose, gameState, setGameState, config, setConfig, onOpenDevConsole, onOpenVisualEditor, onLeaderboardReset
 }) => {
     const [tab, setTab] = useState<Tab>('MAIN');
     const [localConfig, setLocalConfig] = useState<GameConfig>({ ...config });
@@ -125,6 +126,7 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
             
             if (data.success) {
                 setResetRankResult('✅ Ranking global ZERADO com sucesso!');
+                onLeaderboardReset?.();
             } else {
                 setResetRankResult(`❌ Erro: ${data.error || 'Falha ao resetar'}`);
             }

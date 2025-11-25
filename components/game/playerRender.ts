@@ -69,7 +69,8 @@ export const drawCharacter = (
     playerVy: number,
     eyeBlinkTimer: number,
     isGhost = false,
-    isGlued = false // New Prop for Sticky Start
+    isGlued = false, // New Prop for Sticky Start
+    isWeedMode = false // New Prop for 420 Mode
 ) => {
     if (!skin || !skin.pixels) return; // Safety Check
     const gridLength = skin.pixels.length || 16; // Support 8x8, 12x12 or 16x16 skins
@@ -115,7 +116,7 @@ export const drawCharacter = (
         if (val === 1) ctx.fillStyle = '#0f172a'; // Outline/Dark
         else if (val === 2) ctx.fillStyle = skin.color; // Main
         else if (val === 3) ctx.fillStyle = '#ffffff'; // Highlight
-        else if (val === 4) ctx.fillStyle = '#ffffff'; // Eye White
+        else if (val === 4) ctx.fillStyle = isWeedMode ? '#ef4444' : '#ffffff'; // Eye White (Red in 420 mode)
         else if (val === 5) ctx.fillStyle = '#000000'; // Eye Pupil
         else if (val === 6) ctx.fillStyle = '#facc15'; // Extra
 

@@ -3,7 +3,7 @@
 
 import { Redis } from '@upstash/redis';
 
-const LEADERBOARD_KEY = 'leaderboard:global';
+const LEADERBOARD_KEY = 'leaderboard:season_1';
 const MAX_ENTRIES = 100; // Máximo de entradas no ranking
 
 // Placeholder entries quando não tem dados
@@ -78,6 +78,8 @@ export default async function handler(request, response) {
 
             let scores;
             try {
+                // ZRANGE agora retorna apenas [member, score, member, score...]
+                // member é apenas o NOME do jogador agora
                 scores = await redis.zrange(LEADERBOARD_KEY, 0, 9, { rev: true, withScores: true });
             } catch (e) {
                 console.error('Redis zrange error:', e.message);
@@ -97,59 +99,70 @@ export default async function handler(request, response) {
                 });
             }
 
-            // Debug: ver formato dos scores
-            console.log('Scores raw:', JSON.stringify(scores));
-
             const leaderboard = [];
+            const names = [];
+            const scoreMap = new Map();
+
+            // Processar scores e coletar nomes para buscar metadados
+            // Upstash retorna array alternado [member, score, member, score...] ou objetos dependendo da versão
+            // Vamos normalizar
             
-            // Upstash retorna array de objetos {score, member} ou array alternado [member, score]
-            if (Array.isArray(scores) && scores[0] && typeof scores[0] === 'object' && 'score' in scores[0]) {
-                // Formato: [{score: 297, member: "{...}"}, ...]
-                for (let i = 0; i < scores.length; i++) {
-                    const item = scores[i];
-                    try {
-                        const memberData = typeof item.member === 'string' ? JSON.parse(item.member) : item.member;
-                        leaderboard.push({
-                            name: memberData.name || 'Unknown',
-                            score: Number(item.score),
-                            date: memberData.date || null,
-                            rank: i + 1
-                        });
-                    } catch {
-                        leaderboard.push({
-                            name: String(item.member),
-                            score: Number(item.score),
-                            date: null,
-                            rank: i + 1
-                        });
-                    }
-                }
-            } else {
-                // Formato alternado: [member, score, member, score, ...]
-                for (let i = 0; i < scores.length; i += 2) {
-                    try {
-                        const data = typeof scores[i] === 'string' ? JSON.parse(scores[i]) : scores[i];
-                        leaderboard.push({
-                            name: data.name || 'Unknown',
-                            score: Number(scores[i + 1]),
-                            date: data.date || null,
-                            rank: Math.floor(i / 2) + 1
-                        });
-                    } catch {
-                        leaderboard.push({
-                            name: String(scores[i]),
-                            score: Number(scores[i + 1]),
-                            date: null,
-                            rank: Math.floor(i / 2) + 1
-                        });
+            let processedScores = [];
+            if (Array.isArray(scores) && scores.length > 0) {
+                if (typeof scores[0] === 'object' && 'score' in scores[0]) {
+                    // Formato [{member: 'Rafa', score: 100}, ...]
+                    processedScores = scores;
+                } else {
+                    // Formato ['Rafa', 100, 'Bob', 90]
+                    for (let i = 0; i < scores.length; i += 2) {
+                        processedScores.push({ member: scores[i], score: scores[i+1] });
                     }
                 }
             }
 
+            // Coletar nomes
+            processedScores.forEach(item => {
+                const name = String(item.member);
+                names.push(name);
+                scoreMap.set(name, Number(item.score));
+            });
+
+            // Buscar metadados (datas)
+            let metadata = [];
+            if (names.length > 0) {
+                try {
+                    // HMGET retorna array de valores na mesma ordem das chaves
+                    metadata = await redis.hmget('leaderboard:metadata', ...names);
+                } catch (e) {
+                    console.error('Metadata fetch error:', e);
+                }
+            }
+
+            // Montar leaderboard final
+            processedScores.forEach((item, index) => {
+                const name = String(item.member);
+                let date = null;
+                
+                // Tentar extrair data dos metadados
+                if (metadata && metadata[index]) {
+                    try {
+                        const meta = typeof metadata[index] === 'string' ? JSON.parse(metadata[index]) : metadata[index];
+                        date = meta.date;
+                    } catch {}
+                }
+
+                leaderboard.push({
+                    name: name,
+                    score: Number(item.score),
+                    date: date,
+                    rank: index + 1
+                });
+            });
+
             // Preenche até 3 se tiver menos
             while (leaderboard.length < 3) {
                 leaderboard.push({
-                    name: '???',
+                    name: '- - -',
                     score: 0,
                     date: null,
                     rank: leaderboard.length + 1
@@ -167,6 +180,7 @@ export default async function handler(request, response) {
                     return response.status(200).json({ success: false, error: 'Redis não disponível' });
                 }
                 await redis.del(LEADERBOARD_KEY);
+                await redis.del('leaderboard:metadata'); // Limpar metadados também
                 return response.status(200).json({ success: true, message: 'Leaderboard zerado!' });
             }
 
@@ -198,23 +212,34 @@ export default async function handler(request, response) {
             }
 
             const cleanName = String(name).substring(0, 15).trim();
-            const entry = JSON.stringify({
-                name: cleanName,
-                date: new Date().toISOString(),
-                id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-            });
-
-            // Salvar no Redis
-            await redis.zadd(LEADERBOARD_KEY, { score: Math.floor(score), member: entry });
-
-            // Limpar excesso
-            const total = await redis.zcard(LEADERBOARD_KEY);
-            if (total > MAX_ENTRIES) {
-                await redis.zremrangebyrank(LEADERBOARD_KEY, 0, total - MAX_ENTRIES - 1);
+            
+            // 1. Verificar score atual do jogador
+            const currentScore = await redis.zscore(LEADERBOARD_KEY, cleanName);
+            
+            // Só atualiza se o novo score for maior
+            if (currentScore === null || score > Number(currentScore)) {
+                // Salvar Score (Nome é a chave única)
+                await redis.zadd(LEADERBOARD_KEY, { score: Math.floor(score), member: cleanName });
+                
+                // Salvar Metadados (Data)
+                const meta = JSON.stringify({
+                    date: new Date().toISOString(),
+                    id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+                });
+                await redis.hset('leaderboard:metadata', { [cleanName]: meta });
             }
 
-            // Buscar rank
-            const rank = await redis.zrevrank(LEADERBOARD_KEY, entry);
+            // Limpar excesso (manter top 100)
+            const total = await redis.zcard(LEADERBOARD_KEY);
+            if (total > MAX_ENTRIES) {
+                // Remover os piores
+                const removed = await redis.zremrangebyrank(LEADERBOARD_KEY, 0, total - MAX_ENTRIES - 1);
+                // Nota: Não limpamos o hash de metadados automaticamente para economizar ops, 
+                // mas idealmente limparíamos nomes removidos.
+            }
+
+            // Buscar rank ATUALIZADO
+            const rank = await redis.zrevrank(LEADERBOARD_KEY, cleanName);
             const finalRank = rank !== null ? rank + 1 : null;
 
             // Se entrou no top 3, retorna flag para celebração
