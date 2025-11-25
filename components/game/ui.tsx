@@ -1434,49 +1434,47 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
     };
 
     return (
-        <div className={`absolute inset-0 z-50 flex flex-col items-center justify-center backdrop-blur-md overflow-y-auto custom-scrollbar ${weedMode ? 'bg-green-950/95' : 'bg-black/90'}`}>
-            {/* WEED MODE TOGGLE */}
-            <button 
-                onClick={toggleWeedMode}
-                className={`absolute top-4 right-4 z-50 px-3 py-2 rounded-full font-bold text-xs flex items-center gap-2 transition-all ${weedMode ? 'bg-green-600 text-white shadow-[0_0_20px_rgba(34,197,94,0.5)]' : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700/50'}`}
-            >
-                🌿 {weedMode ? 'ON' : 'OFF'}
-            </button>
-
-            {/* HEADER */}
-            <div className="mb-4 md:mb-8 text-center relative shrink-0">
-                <div className={`absolute -inset-10 blur-3xl rounded-full animate-pulse ${weedMode ? 'bg-green-500/30' : 'bg-cyan-500/20'}`}></div>
-                <h1 className={`text-4xl md:text-8xl font-black italic tracking-tighter text-white relative z-10 ${weedMode ? 'drop-shadow-[0_0_15px_rgba(34,197,94,0.8)]' : 'drop-shadow-[0_0_15px_rgba(6,182,212,0.8)]'}`}>
-                    {weedMode ? '420 ' : 'AI '}<span className={`text-transparent bg-clip-text ${weedMode ? 'bg-gradient-to-r from-green-400 via-lime-400 to-green-500' : 'bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-500'}`}>{weedMode ? 'INFINITIV 🌿' : 'INFINITIV'}</span>
-                </h1>
-                
-                {/* UPDATE BUTTON - Super visible for testers */}
+        <div className={`absolute inset-0 z-50 flex flex-col items-center backdrop-blur-md overflow-y-auto custom-scrollbar ${weedMode ? 'bg-green-950/95' : 'bg-black/90'}`}>
+            {/* UPDATE BUTTON - FIXED AT TOP for mobile visibility */}
+            <div className="w-full sticky top-0 z-[60] bg-gradient-to-b from-black/90 to-transparent pb-4 pt-2 px-4 flex justify-center">
                 <button
                     onClick={async () => {
                         try {
-                            // Clear all caches
                             if ('caches' in window) {
                                 const cacheNames = await caches.keys();
                                 await Promise.all(cacheNames.map(name => caches.delete(name)));
                             }
-                            // Unregister service workers
                             if ('serviceWorker' in navigator) {
                                 const registrations = await navigator.serviceWorker.getRegistrations();
                                 await Promise.all(registrations.map(reg => reg.unregister()));
                             }
-                            // Force reload from server
                             window.location.href = window.location.href.split('?')[0] + '?v=' + Date.now();
                         } catch (e) {
                             window.location.reload();
                         }
                     }}
-                    className="mt-3 px-4 py-2 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-400 hover:to-red-400 text-white font-bold text-xs rounded-full shadow-lg hover:shadow-xl transition-all flex items-center gap-2 mx-auto animate-pulse hover:animate-none"
+                    className="px-4 py-2 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-400 hover:to-red-400 text-white font-bold text-xs rounded-full shadow-lg hover:shadow-xl transition-all flex items-center gap-2 animate-pulse hover:animate-none"
                 >
-                    <RefreshCw size={14} /> 🔄 ATUALIZAR JOGO
+                    <RefreshCw size={14} /> 🔄 ATUALIZAR JOGO • <span className="text-yellow-300">{Constants.APP_VERSION}</span>
                 </button>
+            </div>
+
+            {/* WEED MODE TOGGLE */}
+            <button 
+                onClick={toggleWeedMode}
+                className={`absolute top-14 right-4 z-50 px-3 py-2 rounded-full font-bold text-xs flex items-center gap-2 transition-all ${weedMode ? 'bg-green-600 text-white shadow-[0_0_20px_rgba(34,197,94,0.5)]' : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700/50'}`}
+            >
+                🌿 {weedMode ? 'ON' : 'OFF'}
+            </button>
+
+            {/* HEADER */}
+            <div className="mb-4 md:mb-8 text-center relative shrink-0 mt-2">
+                <div className={`absolute -inset-10 blur-3xl rounded-full animate-pulse ${weedMode ? 'bg-green-500/30' : 'bg-cyan-500/20'}`}></div>
+                <h1 className={`text-4xl md:text-8xl font-black italic tracking-tighter text-white relative z-10 ${weedMode ? 'drop-shadow-[0_0_15px_rgba(34,197,94,0.8)]' : 'drop-shadow-[0_0_15px_rgba(6,182,212,0.8)]'}`}>
+                    {weedMode ? '420 ' : 'AI '}<span className={`text-transparent bg-clip-text ${weedMode ? 'bg-gradient-to-r from-green-400 via-lime-400 to-green-500' : 'bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-500'}`}>{weedMode ? 'INFINITIV 🌿' : 'INFINITIV'}</span>
+                </h1>
                 
                 <p className={`font-mono tracking-[0.5em] text-[10px] md:text-sm mt-2 font-bold uppercase ${weedMode ? 'text-green-500' : 'text-cyan-500'}`}>{weedT.subtitle}</p>
-                <p className="text-slate-500 text-[10px] font-mono mt-1">Versão: <span className="text-yellow-400 font-bold">{Constants.APP_VERSION}</span> • <span className="text-slate-600">Clique em ATUALIZAR para ver nova versão</span></p>
                 <p className="text-slate-600 text-[10px] mt-1 font-mono">Criado por <span className="text-cyan-400">AI</span> & <span className="text-purple-400">ChocoPro</span></p>
             </div>
 
