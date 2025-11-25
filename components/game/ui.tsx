@@ -469,43 +469,77 @@ export const TouchControls = ({ inputRef, mode, layout = { scale: 1, x: 0, y: 0 
         );
     };
 
-    // --- TILT MODE: Bubble Level + Jump Button ONLY ---
+    // --- TILT MODE: Jump centralizado pequeno + Jetpack à direita ---
     if (mode === 'TILT') {
         const tiltX = inputRef.current?.tiltX || 0;
         const bubblePos = Math.max(-50, Math.min(50, tiltX * 50));
         const isLevel = Math.abs(tiltX) < 0.1;
+        
+        const jumpSize = 60 * globalScale;
+        const jetpackSize = 70 * globalScale;
 
         return (
             <div className="absolute inset-0 pointer-events-none z-[100]">
                 {/* Bubble Level Indicator */}
                 {!hideMotionDebug && (
-                    <div className="absolute bottom-32 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-80">
-                        <div className="w-48 h-4 bg-slate-900/80 rounded-full border border-slate-600 relative overflow-hidden shadow-lg backdrop-blur-sm">
-                            <div className="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 w-8 bg-slate-700/50 border-x border-slate-500/30"></div>
+                    <div className="absolute bottom-32 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-50">
+                        <div className="w-48 h-4 bg-slate-900/60 rounded-full border border-slate-600/50 relative overflow-hidden shadow-lg backdrop-blur-sm">
+                            <div className="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 w-8 bg-slate-700/30 border-x border-slate-500/20"></div>
                             <div
-                                className={`absolute top-0.5 bottom-0.5 w-8 rounded-full transition-transform duration-100 ${isLevel ? 'bg-green-400 shadow-[0_0_10px_#4ade80]' : 'bg-cyan-400'}`}
+                                className={`absolute top-0.5 bottom-0.5 w-8 rounded-full transition-transform duration-100 ${isLevel ? 'bg-green-400/80 shadow-[0_0_10px_#4ade80]' : 'bg-cyan-400/80'}`}
                                 style={{ left: '50%', marginLeft: '-16px', transform: `translateX(${bubblePos}px)` }}
                             />
                         </div>
-                        <span className={`text-[10px] font-bold tracking-widest uppercase ${isLevel ? 'text-green-400' : 'text-slate-500'}`}>
+                        <span className={`text-[10px] font-bold tracking-widest uppercase ${isLevel ? 'text-green-400/80' : 'text-slate-500/80'}`}>
                             {isLevel ? 'LEVEL' : 'TILT TO STEER'}
                         </span>
                     </div>
                 )}
 
-                {/* Jump Button ONLY - segura = jetpack */}
-                {renderButton('jumpBtn', 'jump', <ArrowUp size={32 * globalScale} className="text-cyan-200" />, 80, 
-                    'bg-cyan-900/40 border-2 border-cyan-500/50 active:bg-cyan-500/50')}
+                {/* Jump Button - CENTRALIZADO e PEQUENO */}
+                <button
+                    className="absolute pointer-events-auto rounded-full flex items-center justify-center border-2 active:scale-95 bg-cyan-900/30 border-cyan-500/40"
+                    style={{
+                        bottom: '24px',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        width: `${jumpSize}px`,
+                        height: `${jumpSize}px`,
+                    }}
+                    onTouchStart={(e) => { e.preventDefault(); inputRef.current.jumpIntent = true; inputRef.current.jumpPressedTime = Date.now(); }}
+                    onTouchEnd={(e) => { e.preventDefault(); inputRef.current.jumpIntent = false; inputRef.current.jetpack = false; }}
+                    onMouseDown={() => { inputRef.current.jumpIntent = true; inputRef.current.jumpPressedTime = Date.now(); }}
+                    onMouseUp={() => { inputRef.current.jumpIntent = false; inputRef.current.jetpack = false; }}
+                >
+                    <ArrowUp size={24 * globalScale} className="text-cyan-200/70" />
+                </button>
+
+                {/* Jetpack Button - À DIREITA */}
+                <button
+                    className="absolute pointer-events-auto rounded-full flex items-center justify-center border-2 active:scale-95 bg-purple-900/30 border-purple-500/40"
+                    style={{
+                        bottom: '24px',
+                        right: '24px',
+                        width: `${jetpackSize}px`,
+                        height: `${jetpackSize}px`,
+                    }}
+                    onTouchStart={(e) => { e.preventDefault(); inputRef.current.jetpack = true; }}
+                    onTouchEnd={(e) => { e.preventDefault(); inputRef.current.jetpack = false; }}
+                    onMouseDown={() => { inputRef.current.jetpack = true; }}
+                    onMouseUp={() => { inputRef.current.jetpack = false; }}
+                >
+                    <Rocket size={24 * globalScale} className="text-purple-200/70" />
+                </button>
             </div>
         );
     }
 
-    // --- JOYSTICK MODE: Jump Button ONLY (Joystick is separate) ---
+    // --- JOYSTICK MODE: Jump Button ONLY com opacidade baixa ---
     if (mode === 'JOYSTICK') {
         return (
             <div className="absolute inset-0 pointer-events-none z-[100]">
-                {renderButton('jumpBtn', 'jump', <ArrowUp size={32 * globalScale} className="text-cyan-200" />, 80, 
-                    'bg-cyan-900/40 border-2 border-cyan-500/50 active:bg-cyan-500/50')}
+                {renderButton('jumpBtn', 'jump', <ArrowUp size={32 * globalScale} className="text-cyan-200/70" />, 80, 
+                    'bg-cyan-900/30 border-2 border-cyan-500/40 active:bg-cyan-500/40')}
             </div>
         );
     }
@@ -559,11 +593,11 @@ export const TouchControls = ({ inputRef, mode, layout = { scale: 1, x: 0, y: 0 
         
         const buttonSize = 80 * globalScale;
         
-        // Get button style based on state - ROSA quando pode pular perfeito!
+        // Get button style based on state - ROSA quando pode pular perfeito! Opacidade baixa
         const getButtonStyle = (isHolding: boolean) => {
-            if (showPerfectIndicator) return 'bg-pink-500/50 border-pink-400 shadow-[0_0_20px_rgba(236,72,153,0.6)]';
-            if (isHolding) return 'bg-purple-500/60 border-purple-400 shadow-[0_0_20px_rgba(168,85,247,0.5)]';
-            return 'bg-slate-800/70 border-slate-500/50';
+            if (showPerfectIndicator) return 'bg-pink-500/30 border-pink-400/50 shadow-[0_0_15px_rgba(236,72,153,0.4)]';
+            if (isHolding) return 'bg-purple-500/40 border-purple-400/50 shadow-[0_0_15px_rgba(168,85,247,0.3)]';
+            return 'bg-slate-800/30 border-slate-500/30';
         };
         
         // Barra de controle fixa na parte inferior - TRANSPARENTE
@@ -577,7 +611,6 @@ export const TouchControls = ({ inputRef, mode, layout = { scale: 1, x: 0, y: 0 
                         style={{
                             width: `${buttonSize}px`,
                             height: `${buttonSize}px`,
-                            backgroundColor: showPerfectIndicator ? 'rgba(236, 72, 153, 0.5)' : leftHolding ? 'rgba(168, 85, 247, 0.6)' : 'rgba(30, 41, 59, 0.5)',
                         }}
                         onTouchStart={(e) => { e.preventDefault(); handlePress('left'); }}
                         onTouchEnd={(e) => { e.preventDefault(); handleRelease('left'); }}
@@ -585,7 +618,7 @@ export const TouchControls = ({ inputRef, mode, layout = { scale: 1, x: 0, y: 0 
                         onMouseUp={() => handleRelease('left')}
                         onMouseLeave={() => handleRelease('left')}
                     >
-                        <ChevronLeft size={48 * globalScale} className={showPerfectIndicator ? 'text-pink-200' : leftHolding ? 'text-purple-100' : 'text-white/80'} strokeWidth={2.5} />
+                        <ChevronLeft size={48 * globalScale} className={showPerfectIndicator ? 'text-pink-200/70' : leftHolding ? 'text-purple-100/70' : 'text-white/50'} strokeWidth={2.5} />
                     </button>
                     
                     {/* Centro - Vazio para não cobrir */}
@@ -597,7 +630,6 @@ export const TouchControls = ({ inputRef, mode, layout = { scale: 1, x: 0, y: 0 
                         style={{
                             width: `${buttonSize}px`,
                             height: `${buttonSize}px`,
-                            backgroundColor: showPerfectIndicator ? 'rgba(236, 72, 153, 0.5)' : rightHolding ? 'rgba(168, 85, 247, 0.6)' : 'rgba(30, 41, 59, 0.5)',
                         }}
                         onTouchStart={(e) => { e.preventDefault(); handlePress('right'); }}
                         onTouchEnd={(e) => { e.preventDefault(); handleRelease('right'); }}
@@ -605,25 +637,25 @@ export const TouchControls = ({ inputRef, mode, layout = { scale: 1, x: 0, y: 0 
                         onMouseUp={() => handleRelease('right')}
                         onMouseLeave={() => handleRelease('right')}
                     >
-                        <ChevronRight size={48 * globalScale} className={showPerfectIndicator ? 'text-pink-200' : rightHolding ? 'text-purple-100' : 'text-white/80'} strokeWidth={2.5} />
+                        <ChevronRight size={48 * globalScale} className={showPerfectIndicator ? 'text-pink-200/70' : rightHolding ? 'text-purple-100/70' : 'text-white/50'} strokeWidth={2.5} />
                     </button>
                 </div>
             </div>
         );
     }
 
-    // --- BUTTONS MODE: Arrows + Jump (SEM JETPACK separado - segura jump = jetpack) ---
+    // --- BUTTONS MODE: Arrows + Jump com opacidade baixa ---
     return (
         <div className="absolute inset-0 pointer-events-none z-[100]">
             {/* Arrows */}
-            {renderButton('leftArrow', 'left', <ChevronLeft size={32 * globalScale} className="text-white" />, 80, 
-                'bg-slate-700/50 border-2 border-slate-400/40 active:bg-slate-600/50')}
-            {renderButton('rightArrow', 'right', <ChevronRight size={32 * globalScale} className="text-white" />, 80, 
-                'bg-slate-700/50 border-2 border-slate-400/40 active:bg-slate-600/50')}
+            {renderButton('leftArrow', 'left', <ChevronLeft size={32 * globalScale} className="text-white/50" />, 80, 
+                'bg-slate-700/30 border-2 border-slate-400/30 active:bg-slate-600/40')}
+            {renderButton('rightArrow', 'right', <ChevronRight size={32 * globalScale} className="text-white/50" />, 80, 
+                'bg-slate-700/30 border-2 border-slate-400/30 active:bg-slate-600/40')}
             
             {/* Jump Button - segura para jetpack */}
-            {renderButton('jumpBtn', 'jump', <ArrowUp size={32 * globalScale} className="text-cyan-200" />, 80, 
-                'bg-cyan-800/50 border-2 border-cyan-500/50 active:bg-cyan-500/50')}
+            {renderButton('jumpBtn', 'jump', <ArrowUp size={32 * globalScale} className="text-cyan-200/70" />, 80, 
+                'bg-cyan-800/30 border-2 border-cyan-500/40 active:bg-cyan-500/40')}
         </div>
     );
 };

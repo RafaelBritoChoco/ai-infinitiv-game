@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Save, RotateCcw, Plus, Minus, ChevronLeft, ChevronRight, ArrowUp, Rocket, Check, Eye, EyeOff } from 'lucide-react';
+import { X, Save, RotateCcw, Plus, Minus, ChevronLeft, ChevronRight, ArrowUp, Rocket, Check, Eye, EyeOff, Edit3 } from 'lucide-react';
 import * as Constants from '../../constants';
 
 // Individual button layout
@@ -20,12 +20,36 @@ export interface ControlsLayout {
     globalScale: number;
 }
 
-const DEFAULT_LAYOUT: ControlsLayout = {
-    leftArrow: { id: 'leftArrow', x: 24, y: 24, scale: 1, visible: true },
-    rightArrow: { id: 'rightArrow', x: 120, y: 24, scale: 1, visible: true },
-    jumpBtn: { id: 'jumpBtn', x: -140, y: 24, scale: 1, visible: true },
-    jetpackBtn: { id: 'jetpackBtn', x: -48, y: 24, scale: 1.1, visible: true },
-    globalScale: 1,
+// Layouts padrão para cada modo de controle
+const DEFAULT_LAYOUTS: Record<string, ControlsLayout> = {
+    ARROWS: {
+        leftArrow: { id: 'leftArrow', x: 24, y: 24, scale: 1, visible: true },
+        rightArrow: { id: 'rightArrow', x: 120, y: 24, scale: 1, visible: true },
+        jumpBtn: { id: 'jumpBtn', x: -100, y: 24, scale: 0.8, visible: false }, // Não usado em ARROWS
+        jetpackBtn: { id: 'jetpackBtn', x: -48, y: 24, scale: 1, visible: false }, // Não usado em ARROWS
+        globalScale: 1,
+    },
+    BUTTONS: {
+        leftArrow: { id: 'leftArrow', x: 24, y: 24, scale: 1, visible: true },
+        rightArrow: { id: 'rightArrow', x: 120, y: 24, scale: 1, visible: true },
+        jumpBtn: { id: 'jumpBtn', x: -100, y: 24, scale: 1, visible: true },
+        jetpackBtn: { id: 'jetpackBtn', x: -48, y: 24, scale: 1, visible: false },
+        globalScale: 1,
+    },
+    TILT: {
+        leftArrow: { id: 'leftArrow', x: 24, y: 24, scale: 1, visible: false }, // Não usado em TILT
+        rightArrow: { id: 'rightArrow', x: 120, y: 24, scale: 1, visible: false }, // Não usado em TILT
+        jumpBtn: { id: 'jumpBtn', x: 0, y: 24, scale: 0.75, visible: true }, // Centralizado pequeno
+        jetpackBtn: { id: 'jetpackBtn', x: -24, y: 24, scale: 0.85, visible: true }, // À direita
+        globalScale: 1,
+    },
+    JOYSTICK: {
+        leftArrow: { id: 'leftArrow', x: 24, y: 24, scale: 1, visible: false },
+        rightArrow: { id: 'rightArrow', x: 120, y: 24, scale: 1, visible: false },
+        jumpBtn: { id: 'jumpBtn', x: -100, y: 24, scale: 1, visible: true },
+        jetpackBtn: { id: 'jetpackBtn', x: -48, y: 24, scale: 1, visible: false },
+        globalScale: 1,
+    },
 };
 
 type ControlMode = 'BUTTONS' | 'TILT' | 'JOYSTICK' | 'ARROWS';
@@ -39,33 +63,65 @@ interface Props {
     onModeChange?: (mode: ControlMode) => void;
 }
 
-export const VisualControlEditor: React.FC<Props> = ({ isOpen, onClose, onSave, initialLayout, currentMode = 'ARROWS', onModeChange }) => {
-    const [layout, setLayout] = useState<ControlsLayout>(() => {
-        const saved = localStorage.getItem('CONTROLS_LAYOUT');
-        if (saved) {
-            try { return JSON.parse(saved); } catch { }
-        }
-        return initialLayout || DEFAULT_LAYOUT;
-    });
+// Função para carregar layout de um modo específico
+const loadLayoutForMode = (mode: ControlMode): ControlsLayout => {
+    try {
+        const saved = localStorage.getItem(`CONTROLS_LAYOUT_${mode}`);
+        if (saved) return JSON.parse(saved);
+    } catch { }
+    return DEFAULT_LAYOUTS[mode] || DEFAULT_LAYOUTS.ARROWS;
+};
 
-    // Control mode for preview
-    const [previewMode, setPreviewMode] = useState<ControlMode>(currentMode);
+// Função para salvar layout de um modo específico
+const saveLayoutForMode = (mode: ControlMode, layout: ControlsLayout) => {
+    localStorage.setItem(`CONTROLS_LAYOUT_${mode}`, JSON.stringify(layout));
+};
+
+export const VisualControlEditor: React.FC<Props> = ({ isOpen, onClose, onSave, initialLayout, currentMode = 'ARROWS', onModeChange }) => {
+    // Control mode for editing
+    const [editingMode, setEditingMode] = useState<ControlMode>(currentMode);
+    
+    // Layout para o modo sendo editado
+    const [layout, setLayout] = useState<ControlsLayout>(() => loadLayoutForMode(currentMode));
 
     const [selectedBtn, setSelectedBtn] = useState<string | null>(null);
     const [isDragging, setIsDragging] = useState(false);
     const dragStartRef = useRef({ x: 0, y: 0, btnX: 0, btnY: 0 });
     const containerRef = useRef<HTMLDivElement>(null);
 
-    // Button definitions with icons
-    const BUTTONS = [
-        { id: 'leftArrow', label: '◀', icon: ChevronLeft, color: 'slate', size: 80 },
-        { id: 'rightArrow', label: '▶', icon: ChevronRight, color: 'slate', size: 80 },
-        { id: 'jumpBtn', label: 'JUMP', icon: ArrowUp, color: 'cyan', size: 80 },
-        { id: 'jetpackBtn', label: 'FLY', icon: Rocket, color: 'purple', size: 96 },
-    ];
+    // Atualiza layout quando muda o modo de edição
+    useEffect(() => {
+        setLayout(loadLayoutForMode(editingMode));
+        setSelectedBtn(null);
+    }, [editingMode]);
+
+    // Button definitions with icons - variam por modo
+    const getButtonsForMode = (mode: ControlMode) => {
+        const allButtons = [
+            { id: 'leftArrow', label: 'ESQUERDA', icon: ChevronLeft, color: 'slate', size: 80 },
+            { id: 'rightArrow', label: 'DIREITA', icon: ChevronRight, color: 'slate', size: 80 },
+            { id: 'jumpBtn', label: 'PULO', icon: ArrowUp, color: 'cyan', size: 80 },
+            { id: 'jetpackBtn', label: 'JETPACK', icon: Rocket, color: 'purple', size: 96 },
+        ];
+        
+        switch (mode) {
+            case 'ARROWS':
+                return allButtons.filter(b => b.id === 'leftArrow' || b.id === 'rightArrow');
+            case 'TILT':
+                return allButtons.filter(b => b.id === 'jumpBtn' || b.id === 'jetpackBtn');
+            case 'JOYSTICK':
+                return allButtons.filter(b => b.id === 'jumpBtn');
+            case 'BUTTONS':
+                return allButtons.filter(b => b.id !== 'jetpackBtn');
+            default:
+                return allButtons;
+        }
+    };
+
+    const BUTTONS = getButtonsForMode(editingMode);
 
     const getButtonLayout = (id: string): ButtonLayout => {
-        return layout[id as keyof ControlsLayout] as ButtonLayout || DEFAULT_LAYOUT[id as keyof ControlsLayout] as ButtonLayout;
+        return layout[id as keyof ControlsLayout] as ButtonLayout || DEFAULT_LAYOUTS[editingMode][id as keyof ControlsLayout] as ButtonLayout;
     };
 
     const updateButtonLayout = (id: string, updates: Partial<ButtonLayout>) => {
@@ -124,18 +180,20 @@ export const VisualControlEditor: React.FC<Props> = ({ isOpen, onClose, onSave, 
     }, [isDragging, selectedBtn]);
 
     const handleSave = () => {
-        localStorage.setItem('CONTROLS_LAYOUT', JSON.stringify(layout));
-        // Also save selected control mode using Persistence
+        // Salva layout para o modo atual
+        saveLayoutForMode(editingMode, layout);
+        
+        // Também salva o modo de controle selecionado
         if (onModeChange) {
-            localStorage.setItem('NEON_CONTROL_MODE', previewMode);
-            onModeChange(previewMode);
+            localStorage.setItem('NEON_CONTROL_MODE', editingMode);
+            onModeChange(editingMode);
         }
         onSave(layout);
         onClose();
     };
 
     const handleReset = () => {
-        setLayout(DEFAULT_LAYOUT);
+        setLayout(DEFAULT_LAYOUTS[editingMode]);
         setSelectedBtn(null);
     };
 
@@ -143,16 +201,28 @@ export const VisualControlEditor: React.FC<Props> = ({ isOpen, onClose, onSave, 
 
     const selectedBtnData = selectedBtn ? getButtonLayout(selectedBtn) : null;
 
+    // Descrição do modo
+    const getModeDescription = (mode: ControlMode) => {
+        switch (mode) {
+            case 'ARROWS': return 'Setas esquerda/direita. Toque = pulo, segure = jetpack';
+            case 'BUTTONS': return 'Setas + botão de pulo. Segure pulo = jetpack';
+            case 'TILT': return 'Incline o celular. Jump central + Jetpack à direita';
+            case 'JOYSTICK': return 'Joystick analógico + botão de pulo';
+        }
+    };
+
     return (
         <div className="fixed inset-0 z-[300] bg-slate-950/95 flex flex-col">
             {/* HEADER */}
             <div className="flex-shrink-0 p-4 bg-slate-900 border-b border-cyan-500/30 flex justify-between items-center">
                 <div>
-                    <h2 className="text-lg font-black text-white">✏️ Editor de Controles</h2>
-                    <p className="text-xs text-slate-500">Arraste os botões para posicionar</p>
+                    <h2 className="text-lg font-black text-white flex items-center gap-2">
+                        <Edit3 size={20} className="text-cyan-400" /> Editor de Controles
+                    </h2>
+                    <p className="text-xs text-slate-500">Edite cada modo de controle separadamente</p>
                 </div>
                 <div className="flex gap-2">
-                    <button onClick={handleReset} className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-400">
+                    <button onClick={handleReset} className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-400" title="Resetar para padrão">
                         <RotateCcw size={20} />
                     </button>
                     <button onClick={handleSave} className="px-4 py-2 bg-green-600 hover:bg-green-500 rounded-lg text-white font-bold flex items-center gap-2">
@@ -164,30 +234,35 @@ export const VisualControlEditor: React.FC<Props> = ({ isOpen, onClose, onSave, 
                 </div>
             </div>
 
-            {/* CONTROL MODE SELECTOR */}
+            {/* CONTROL MODE SELECTOR - Escolha qual modo editar */}
             <div className="flex-shrink-0 p-3 bg-slate-800/80 border-b border-slate-700">
-                <p className="text-xs text-slate-400 mb-2 uppercase font-bold">Tipo de Controle:</p>
+                <p className="text-xs text-cyan-400 mb-2 uppercase font-bold flex items-center gap-2">
+                    <Edit3 size={14} /> Selecione o modo para editar:
+                </p>
                 <div className="flex gap-2 flex-wrap">
                     {[
-                        { mode: 'ARROWS' as ControlMode, label: 'SETAS', desc: 'Toque = pulo' },
-                        { mode: 'BUTTONS' as ControlMode, label: 'BOTOES', desc: '4 botoes' },
-                        { mode: 'TILT' as ControlMode, label: 'INCLINAR', desc: 'Giroscopio' },
-                        { mode: 'JOYSTICK' as ControlMode, label: 'JOYSTICK', desc: 'Analogico' },
-                    ].map(({ mode, label, desc }) => (
+                        { mode: 'ARROWS' as ControlMode, label: 'SETAS', color: 'green' },
+                        { mode: 'BUTTONS' as ControlMode, label: 'BOTOES', color: 'blue' },
+                        { mode: 'TILT' as ControlMode, label: 'MOTION', color: 'purple' },
+                        { mode: 'JOYSTICK' as ControlMode, label: 'JOYSTICK', color: 'cyan' },
+                    ].map(({ mode, label, color }) => (
                         <button
                             key={mode}
-                            onClick={() => setPreviewMode(mode)}
-                            className={`px-3 py-2 rounded-lg text-xs font-bold transition-all ${
-                                previewMode === mode 
-                                    ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-500/30' 
-                                    : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                            onClick={() => setEditingMode(mode)}
+                            className={`px-4 py-3 rounded-lg text-sm font-bold transition-all border-2 ${
+                                editingMode === mode 
+                                    ? `bg-${color}-600 text-white border-${color}-400 shadow-lg shadow-${color}-500/30 scale-105` 
+                                    : 'bg-slate-700 text-slate-300 border-slate-600 hover:bg-slate-600'
                             }`}
                         >
-                            <div>{label}</div>
-                            <div className="text-[10px] opacity-70">{desc}</div>
+                            {label}
+                            {editingMode === mode && <span className="ml-2 text-xs">(editando)</span>}
                         </button>
                     ))}
                 </div>
+                <p className="text-[10px] text-slate-500 mt-2">
+                    {getModeDescription(editingMode)}
+                </p>
             </div>
 
             {/* MAIN AREA - Simulated Game Screen */}
