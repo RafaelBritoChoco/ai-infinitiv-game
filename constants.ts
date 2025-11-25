@@ -69,7 +69,8 @@ export const PROGRESSION_STEP = 100;
 export const SWAY_AMPLITUDE = 100;
 
 // Controls
-export const GYRO_SENSITIVITY = 15;
+export const GYRO_SENSITIVITY = 35; // Increased from 15 per user request
+export const MOBILE_SENSITIVITY_MULTIPLIER = 2.5; // New multiplier for mobile inputs
 export const GAMEPAD_DEADZONE = 0.1;
 
 // Audio

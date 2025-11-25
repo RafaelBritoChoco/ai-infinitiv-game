@@ -50,17 +50,73 @@ export const useInputController = (props: InputControllerProps) => {
         }
     }, []);
 
-    // 2. Processor (Game Loop - 60fps)
+    // 2. Motion / Tilt Controls
+    useEffect(() => {
+        const handleOrientation = (event: DeviceOrientationEvent) => {
+            if (!gyroEnabled || stateRef.current.mobileControlMode !== 'TILT') return;
+
+            const beta = event.beta || 0; // X-axis tilt (-180 to 180)
+            const gamma = event.gamma || 0; // Y-axis tilt (-90 to 90)
+
+            // Calculate tilt based on orientation (landscape vs portrait)
+            // Assuming landscape for main gameplay, but checking window orientation if possible
+            let tilt = gamma; // Default to gamma for portrait/landscape switch usually handled by OS lock
+
+            // Apply calibration offset
+            tilt -= calibrationRef.current.offset;
+
+            // Apply sensitivity and multiplier
+            // Base sensitivity * Mobile Multiplier
+            const sensitivity = configRef.current.GYRO_SENSITIVITY * (configRef.current.MOBILE_SENSITIVITY_MULTIPLIER || 1);
+
+            // Normalize tilt to -1 to 1 range based on sensitivity
+            // A tilt of 30 degrees with high sensitivity should reach max input
+            const maxTiltAngle = 45; // Degrees to reach full speed at 1x sensitivity
+            const effectiveMaxTilt = maxTiltAngle / (sensitivity / 20); // Higher sensitivity = lower angle needed
+
+            let normalizedTilt = tilt / effectiveMaxTilt;
+
+            // Clamp to -1 to 1
+            normalizedTilt = Math.max(-1, Math.min(1, normalizedTilt));
+
+            // Apply deadzone
+            if (Math.abs(normalizedTilt) < configRef.current.GAMEPAD_DEADZONE) {
+                normalizedTilt = 0;
+            }
+
+            // Invert if needed
+            if (calibrationRef.current.inverted) normalizedTilt *= -1;
+
+            // Update input ref
+            inputRef.current.tiltX = normalizedTilt;
+            inputRef.current.targetTiltX = normalizedTilt;
+
+            // Debug
+            setRawTiltDebug(Math.round(tilt));
+            setTiltDebug(Math.round(normalizedTilt * 100));
+
+            // Map to left/right booleans for digital movement fallback
+            if (normalizedTilt < -0.2) {
+                inputRef.current.left = true;
+                inputRef.current.right = false;
+            } else if (normalizedTilt > 0.2) {
+                inputRef.current.left = false;
+                inputRef.current.right = true;
+            } else {
+                inputRef.current.left = false;
+                inputRef.current.right = false;
+            }
+        };
+
+        window.addEventListener('deviceorientation', handleOrientation);
+        return () => window.removeEventListener('deviceorientation', handleOrientation);
+    }, [gyroEnabled, stateRef.current.mobileControlMode]);
+
+    // 3. Game Loop for Input Smoothing (Optional but good for analog feel)
     useEffect(() => {
         let rAF: number;
         const loop = () => {
-            // Motion logic removed.
-            // This loop is kept if we need it for other continuous input processing in the future,
-            // but for now it's empty regarding motion.
-
-            // We could remove the loop entirely if it only handled motion, 
-            // but let's keep the structure for potential joystick smoothing if needed later.
-
+            // Smooth interpolation for tilt could go here if raw input is jittery
             rAF = requestAnimationFrame(loop);
         };
         rAF = requestAnimationFrame(loop);

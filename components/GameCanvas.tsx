@@ -393,7 +393,8 @@ const GameCanvas: React.FC = () => {
                     <Settings size={14} /> DEV
                 </button>
 
-                <button
+                {/* EDITOR BUTTON DISABLED PER USER REQUEST */}
+                {/* <button
                     onClick={() => {
                         setShowDevEditor(true);
                         // Don't pause - let user edit while seeing the game
@@ -401,7 +402,7 @@ const GameCanvas: React.FC = () => {
                     className="px-3 py-2 bg-red-900/70 border border-red-500/60 rounded-lg backdrop-blur-md text-red-300 font-bold text-xs uppercase tracking-widest hover:bg-red-800/90 hover:shadow-[0_0_20px_rgba(239,68,68,0.5)] transition-all shadow-lg flex items-center gap-1.5"
                 >
                     <Edit size={14} /> EDITOR
-                </button>
+                </button> */}
             </div>
 
             {/* SETTINGS MODAL */}

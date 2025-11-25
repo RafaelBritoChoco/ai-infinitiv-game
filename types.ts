@@ -122,6 +122,9 @@ export interface GameState {
   levelType: 'CAMPAIGN' | 'RANDOM'; // New: Deterministic vs Chaos
   mobileControlMode: 'BUTTONS' | 'TILT'; // NEW: Preference
   score: number;
+  GYRO_SENSITIVITY: number;
+  MOBILE_SENSITIVITY_MULTIPLIER: number;
+  GAMEPAD_DEADZONE: number;
   highScore: number;
   maxAltitude: number; // New: Track all-time max height for unlocks
   totalCoins: number; // Persistent Currency

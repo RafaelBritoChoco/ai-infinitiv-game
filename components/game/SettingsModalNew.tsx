@@ -310,6 +310,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                                     <RotateCcw size={12} /> Sensitivity
                                 </h3>
                                 <div className="bg-slate-950/50 p-3 rounded-lg border border-slate-800 space-y-3">
+                                    <ConfigSlider label="Gyro Sensitivity" configKey="GYRO_SENSITIVITY" min={5} max={100} step={1} format={(v) => v.toFixed(0)} />
+                                    <ConfigSlider label="Mobile Multiplier" configKey="MOBILE_SENSITIVITY_MULTIPLIER" min={1.0} max={5.0} step={0.1} />
                                     <ConfigSlider label="Gamepad Deadzone" configKey="GAMEPAD_DEADZONE" min={0} max={0.5} step={0.01} />
                                 </div>
                             </section>
