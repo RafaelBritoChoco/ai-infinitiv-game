@@ -145,28 +145,74 @@ export const useGameController = (props: GameControllerProps) => {
         jetpackModeRef.current = 'IDLE';
     };
 
-    // Golden Trophy Skin for Champions
-    const TROPHY_SKIN = {
-        id: 'trophy_champion',
-        name: 'CHAMPION',
+    // Trophy Skins - Different for each rank
+    const TROPHY_GOLD = {
+        id: 'trophy_gold',
+        name: '👑 OURO',
         color: '#ffd700',
         pixels: [
-            [0,0,0,0,0,2,2,2,2,2,2,0,0,0,0,0],
-            [0,0,0,2,2,2,2,2,2,2,2,2,2,0,0,0],
-            [0,0,2,2,6,6,6,6,6,6,6,6,2,2,0,0],
-            [0,2,2,6,6,6,6,6,6,6,6,6,6,2,2,0],
-            [0,2,6,6,6,3,3,6,6,3,3,6,6,6,2,0],
-            [2,2,6,6,6,3,3,6,6,3,3,6,6,6,2,2],
-            [2,6,6,6,6,6,6,6,6,6,6,6,6,6,6,2],
-            [2,6,6,6,6,6,6,6,6,6,6,6,6,6,6,2],
-            [2,6,6,6,6,6,1,1,1,1,6,6,6,6,6,2],
-            [2,2,6,6,6,6,6,6,6,6,6,6,6,6,2,2],
-            [0,2,6,6,6,6,6,6,6,6,6,6,6,6,2,0],
-            [0,2,2,6,6,6,6,6,6,6,6,6,6,2,2,0],
-            [0,0,2,2,6,6,6,6,6,6,6,6,2,2,0,0],
-            [0,0,0,2,2,2,6,6,6,6,2,2,2,0,0,0],
-            [0,0,0,0,0,2,2,2,2,2,2,0,0,0,0,0],
-            [0,0,0,0,2,2,2,2,2,2,2,2,0,0,0,0],
+            [0,0,0,1,0,0,0,0,0,0,0,0,1,0,0,0],
+            [0,0,1,6,1,0,1,1,1,1,0,1,6,1,0,0],
+            [0,0,1,6,1,1,6,6,6,6,1,1,6,1,0,0],
+            [0,0,1,6,6,6,6,6,6,6,6,6,6,1,0,0],
+            [0,0,0,1,6,6,6,6,6,6,6,6,1,0,0,0],
+            [0,0,1,2,2,2,2,2,2,2,2,2,2,1,0,0],
+            [0,1,2,2,2,4,4,2,2,4,4,2,2,2,1,0],
+            [0,1,2,2,2,5,4,2,2,5,4,2,2,2,1,0],
+            [0,1,2,2,2,2,2,2,2,2,2,2,2,2,1,0],
+            [0,1,2,2,2,2,1,1,1,1,2,2,2,2,1,0],
+            [0,1,2,2,2,2,2,2,2,2,2,2,2,2,1,0],
+            [0,0,1,2,2,2,2,2,2,2,2,2,2,1,0,0],
+            [0,0,1,2,2,1,1,2,2,1,1,2,2,1,0,0],
+            [0,0,0,1,1,0,0,1,1,0,0,1,1,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+        ]
+    };
+    const TROPHY_SILVER = {
+        id: 'trophy_silver',
+        name: '🥈 PRATA',
+        color: '#c0c0c0',
+        pixels: [
+            [0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,0],
+            [0,0,0,0,1,2,2,2,2,2,2,1,0,0,0,0],
+            [0,0,0,1,2,2,3,3,3,3,2,2,1,0,0,0],
+            [0,0,0,1,2,3,3,3,3,3,3,2,1,0,0,0],
+            [0,0,0,1,2,2,4,4,4,4,2,2,1,0,0,0],
+            [0,0,0,1,2,2,5,4,4,5,2,2,1,0,0,0],
+            [0,0,0,0,1,2,2,2,2,2,2,1,0,0,0,0],
+            [0,0,0,0,1,2,2,1,1,2,2,1,0,0,0,0],
+            [0,0,0,1,2,2,2,2,2,2,2,2,1,0,0,0],
+            [0,0,1,2,2,2,2,2,2,2,2,2,2,1,0,0],
+            [0,0,1,2,2,2,2,2,2,2,2,2,2,1,0,0],
+            [0,0,0,1,2,2,2,2,2,2,2,2,1,0,0,0],
+            [0,0,0,1,2,1,1,2,2,1,1,2,1,0,0,0],
+            [0,0,0,0,1,0,0,1,1,0,0,1,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+        ]
+    };
+    const TROPHY_BRONZE = {
+        id: 'trophy_bronze',
+        name: '🥉 BRONZE',
+        color: '#cd7f32',
+        pixels: [
+            [0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0],
+            [0,0,0,0,0,1,2,2,2,2,1,0,0,0,0,0],
+            [0,0,0,0,1,2,2,3,3,2,2,1,0,0,0,0],
+            [0,0,0,0,1,2,3,3,3,3,2,1,0,0,0,0],
+            [0,0,0,0,1,2,4,4,4,4,2,1,0,0,0,0],
+            [0,0,0,0,1,2,5,4,4,5,2,1,0,0,0,0],
+            [0,0,0,0,0,1,2,2,2,2,1,0,0,0,0,0],
+            [0,0,0,0,0,1,2,1,1,2,1,0,0,0,0,0],
+            [0,0,0,0,1,2,2,2,2,2,2,1,0,0,0,0],
+            [0,0,0,1,2,2,2,2,2,2,2,2,1,0,0,0],
+            [0,0,0,1,2,2,2,2,2,2,2,2,1,0,0,0],
+            [0,0,0,0,1,2,2,2,2,2,2,1,0,0,0,0],
+            [0,0,0,0,1,1,1,2,2,1,1,1,0,0,0,0],
+            [0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
         ]
     };
 
@@ -194,26 +240,35 @@ export const useGameController = (props: GameControllerProps) => {
         const currentState = stateRef.current;
         initGameWorld(currentState.levelIndex, currentState.levelType);
 
-        // Check Trophy Champion skin
+        // Check Trophy Skins - now separate for gold/silver/bronze
         let activeSkin = currentState.selectedSkin;
-        try {
-            const trophyData = localStorage.getItem('TROPHY_CHAMPION');
-            if (trophyData) {
-                const trophy = JSON.parse(trophyData);
-                if (trophy.gamesRemaining > 0) {
-                    // Use trophy skin and decrement games
-                    activeSkin = TROPHY_SKIN;
-                    trophy.gamesRemaining -= 1;
+        const skinId = currentState.selectedSkin?.id;
+        
+        // Only decrement if user selected a trophy skin
+        if (skinId === 'trophy_gold' || skinId === 'trophy_silver' || skinId === 'trophy_bronze') {
+            try {
+                const trophyData = localStorage.getItem('TROPHY_SKINS');
+                if (trophyData) {
+                    const skins = JSON.parse(trophyData);
+                    const key = skinId === 'trophy_gold' ? 'gold' : skinId === 'trophy_silver' ? 'silver' : 'bronze';
                     
-                    if (trophy.gamesRemaining <= 0) {
-                        localStorage.removeItem('TROPHY_CHAMPION');
+                    if (skins[key] && skins[key] > 0) {
+                        // Decrement uses
+                        skins[key] -= 1;
+                        localStorage.setItem('TROPHY_SKINS', JSON.stringify(skins));
+                        
+                        // Use correct trophy skin
+                        if (skinId === 'trophy_gold') activeSkin = TROPHY_GOLD;
+                        else if (skinId === 'trophy_silver') activeSkin = TROPHY_SILVER;
+                        else activeSkin = TROPHY_BRONZE;
                     } else {
-                        localStorage.setItem('TROPHY_CHAMPION', JSON.stringify(trophy));
+                        // No uses left, use default skin
+                        activeSkin = currentState.skins?.[0] || currentState.selectedSkin;
                     }
                 }
+            } catch (e) {
+                console.error('Error checking trophy skin:', e);
             }
-        } catch (e) {
-            console.error('Error checking trophy skin:', e);
         }
 
         const newRunId = `run-${Date.now()}-${Math.random()}`;

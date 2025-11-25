@@ -1684,33 +1684,171 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
                             </button>
                         </div>
                     ) : (
-                        <div className="flex gap-2 w-full overflow-x-auto custom-scrollbar pb-2">
-                            {safeSkins.map((skin: any, i: number) => (
-                                <button
-                                    key={i}
-                                    onClick={() => setGameState((prev: any) => ({ ...prev, selectedSkin: skin }))}
-                                    className={`flex-shrink-0 flex flex-col items-center gap-1 p-1 rounded-lg border-2 transition-all ${gameState.selectedSkin.id === skin.id ? 'border-cyan-400 bg-cyan-900/30 shadow-[0_0_10px_rgba(6,182,212,0.3)]' : 'border-slate-800 bg-slate-900/50 hover:border-slate-600'}`}
-                                >
-                                    <span className="text-[8px] font-bold text-slate-300 uppercase tracking-wider">{skin.name || skin.id}</span>
-                                    <div className="w-10 h-10">
-                                        <svg viewBox={`0 0 ${skin.pixels?.length > 16 ? 24 : 16} ${skin.pixels?.length > 16 ? 24 : 16}`} className="w-full h-full" shapeRendering="crispEdges">
-                                            {(skin?.pixels || []).map((row: number[], y: number) =>
-                                                row.map((val: number, x: number) => {
-                                                    if (val === 0) return null;
-                                                    let color = skin?.color || '#f97316';
-                                                    if (val === 1) color = '#0f172a';
-                                                    else if (val === 3) color = '#ffffff';
-                                                    else if (val === 4) color = '#ffffff';
-                                                    else if (val === 5) color = '#000000';
-                                                    else if (val === 6) color = '#facc15';
-                                                    return <rect key={`${x}-${y}`} x={x} y={y} width="1" height="1" fill={color} />;
-                                                })
-                                            )}
-                                        </svg>
+                        <>
+                            {/* Regular skins with animation */}
+                            <div className="flex gap-2 w-full overflow-x-auto custom-scrollbar pb-2">
+                                {safeSkins.map((skin: any, i: number) => {
+                                    const isSelected = gameState.selectedSkin.id === skin.id;
+                                    return (
+                                        <button
+                                            key={i}
+                                            onClick={() => setGameState((prev: any) => ({ ...prev, selectedSkin: skin }))}
+                                            className={`flex-shrink-0 flex flex-col items-center gap-1 p-1 rounded-lg border-2 transition-all ${isSelected ? 'border-cyan-400 bg-cyan-900/30 shadow-[0_0_10px_rgba(6,182,212,0.3)]' : 'border-slate-800 bg-slate-900/50 hover:border-slate-600'}`}
+                                        >
+                                            <span className="text-[8px] font-bold text-slate-300 uppercase tracking-wider">{skin.name || skin.id}</span>
+                                            <div className={`w-10 h-10 ${isSelected ? 'animate-bounce' : ''}`} style={{ animationDuration: '0.6s' }}>
+                                                <svg viewBox={`0 0 ${skin.pixels?.length > 16 ? 24 : 16} ${skin.pixels?.length > 16 ? 24 : 16}`} className="w-full h-full" shapeRendering="crispEdges">
+                                                    {(skin?.pixels || []).map((row: number[], y: number) =>
+                                                        row.map((val: number, x: number) => {
+                                                            if (val === 0) return null;
+                                                            let color = skin?.color || '#f97316';
+                                                            if (val === 1) color = '#0f172a';
+                                                            else if (val === 3) color = '#ffffff';
+                                                            else if (val === 4) color = '#ffffff';
+                                                            else if (val === 5) color = '#000000';
+                                                            else if (val === 6) color = '#facc15';
+                                                            return <rect key={`${x}-${y}`} x={x} y={y} width="1" height="1" fill={color} />;
+                                                        })
+                                                    )}
+                                                </svg>
+                                            </div>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                            
+                            {/* Trophy Skins Section - Prizes */}
+                            {(() => {
+                                const unlockedTrophies = getUnlockedTrophySkins();
+                                return (
+                                    <div className="mt-3 w-full">
+                                        <div className="text-[10px] font-bold text-yellow-400 uppercase tracking-wider mb-2 flex items-center gap-1">
+                                            🏆 Prêmios TOP 3
+                                        </div>
+                                        <div className="flex gap-2 flex-wrap">
+                                            {/* GOLD - 1st Place */}
+                                            {(() => {
+                                                const goldData = unlockedTrophies.find(t => t.skin.id === 'trophy_gold');
+                                                const hasGold = goldData && goldData.gamesRemaining > 0;
+                                                const isGoldSelected = gameState.selectedSkin?.id === 'trophy_gold';
+                                                return (
+                                                    <button
+                                                        onClick={() => hasGold && setGameState((prev: any) => ({ ...prev, selectedSkin: TROPHY_GOLD }))}
+                                                        className={`flex-shrink-0 flex flex-col items-center gap-1 p-1 rounded-lg border-2 transition-all relative ${
+                                                            isGoldSelected ? 'border-yellow-400 bg-yellow-900/30 shadow-[0_0_15px_rgba(255,215,0,0.5)]' : 
+                                                            hasGold ? 'border-yellow-600/50 bg-yellow-900/20 hover:border-yellow-500' : 
+                                                            'border-slate-800 bg-slate-900/50 opacity-50'
+                                                        }`}
+                                                        disabled={!hasGold}
+                                                    >
+                                                        <span className="text-[8px] font-bold text-yellow-400 uppercase">👑 1º</span>
+                                                        <div className={`w-10 h-10 ${isGoldSelected ? 'animate-bounce' : ''}`} style={{ animationDuration: '0.5s' }}>
+                                                            <svg viewBox="0 0 16 16" className="w-full h-full" shapeRendering="crispEdges">
+                                                                {TROPHY_GOLD.pixels.map((row: number[], y: number) =>
+                                                                    row.map((val: number, x: number) => {
+                                                                        if (val === 0) return null;
+                                                                        let color = '#ffd700';
+                                                                        if (val === 1) color = '#0f172a';
+                                                                        else if (val === 3) color = '#ffffff';
+                                                                        else if (val === 4) color = '#ffffff';
+                                                                        else if (val === 5) color = '#000000';
+                                                                        else if (val === 6) color = '#ffd700';
+                                                                        return <rect key={`${x}-${y}`} x={x} y={y} width="1" height="1" fill={color} />;
+                                                                    })
+                                                                )}
+                                                            </svg>
+                                                        </div>
+                                                        {hasGold && (
+                                                            <span className="absolute -top-1 -right-1 bg-yellow-500 text-black text-[8px] font-bold px-1 rounded-full">{goldData.gamesRemaining}x</span>
+                                                        )}
+                                                        {!hasGold && <span className="text-[6px] text-slate-500">Seja 1º</span>}
+                                                    </button>
+                                                );
+                                            })()}
+                                            
+                                            {/* SILVER - 2nd Place */}
+                                            {(() => {
+                                                const silverData = unlockedTrophies.find(t => t.skin.id === 'trophy_silver');
+                                                const hasSilver = silverData && silverData.gamesRemaining > 0;
+                                                const isSilverSelected = gameState.selectedSkin?.id === 'trophy_silver';
+                                                return (
+                                                    <button
+                                                        onClick={() => hasSilver && setGameState((prev: any) => ({ ...prev, selectedSkin: TROPHY_SILVER }))}
+                                                        className={`flex-shrink-0 flex flex-col items-center gap-1 p-1 rounded-lg border-2 transition-all relative ${
+                                                            isSilverSelected ? 'border-slate-300 bg-slate-700/30 shadow-[0_0_15px_rgba(192,192,192,0.5)]' : 
+                                                            hasSilver ? 'border-slate-500/50 bg-slate-800/20 hover:border-slate-400' : 
+                                                            'border-slate-800 bg-slate-900/50 opacity-50'
+                                                        }`}
+                                                        disabled={!hasSilver}
+                                                    >
+                                                        <span className="text-[8px] font-bold text-slate-300 uppercase">🥈 2º</span>
+                                                        <div className={`w-10 h-10 ${isSilverSelected ? 'animate-bounce' : ''}`} style={{ animationDuration: '0.5s' }}>
+                                                            <svg viewBox="0 0 16 16" className="w-full h-full" shapeRendering="crispEdges">
+                                                                {TROPHY_SILVER.pixels.map((row: number[], y: number) =>
+                                                                    row.map((val: number, x: number) => {
+                                                                        if (val === 0) return null;
+                                                                        let color = '#c0c0c0';
+                                                                        if (val === 1) color = '#0f172a';
+                                                                        else if (val === 3) color = '#e8e8e8';
+                                                                        else if (val === 4) color = '#ffffff';
+                                                                        else if (val === 5) color = '#000000';
+                                                                        return <rect key={`${x}-${y}`} x={x} y={y} width="1" height="1" fill={color} />;
+                                                                    })
+                                                                )}
+                                                            </svg>
+                                                        </div>
+                                                        {hasSilver && (
+                                                            <span className="absolute -top-1 -right-1 bg-slate-400 text-black text-[8px] font-bold px-1 rounded-full">{silverData.gamesRemaining}x</span>
+                                                        )}
+                                                        {!hasSilver && <span className="text-[6px] text-slate-500">Seja 2º</span>}
+                                                    </button>
+                                                );
+                                            })()}
+                                            
+                                            {/* BRONZE - 3rd Place */}
+                                            {(() => {
+                                                const bronzeData = unlockedTrophies.find(t => t.skin.id === 'trophy_bronze');
+                                                const hasBronze = bronzeData && bronzeData.gamesRemaining > 0;
+                                                const isBronzeSelected = gameState.selectedSkin?.id === 'trophy_bronze';
+                                                return (
+                                                    <button
+                                                        onClick={() => hasBronze && setGameState((prev: any) => ({ ...prev, selectedSkin: TROPHY_BRONZE }))}
+                                                        className={`flex-shrink-0 flex flex-col items-center gap-1 p-1 rounded-lg border-2 transition-all relative ${
+                                                            isBronzeSelected ? 'border-orange-400 bg-orange-900/30 shadow-[0_0_15px_rgba(205,127,50,0.5)]' : 
+                                                            hasBronze ? 'border-orange-600/50 bg-orange-900/20 hover:border-orange-500' : 
+                                                            'border-slate-800 bg-slate-900/50 opacity-50'
+                                                        }`}
+                                                        disabled={!hasBronze}
+                                                    >
+                                                        <span className="text-[8px] font-bold text-orange-400 uppercase">🥉 3º</span>
+                                                        <div className={`w-10 h-10 ${isBronzeSelected ? 'animate-bounce' : ''}`} style={{ animationDuration: '0.5s' }}>
+                                                            <svg viewBox="0 0 16 16" className="w-full h-full" shapeRendering="crispEdges">
+                                                                {TROPHY_BRONZE.pixels.map((row: number[], y: number) =>
+                                                                    row.map((val: number, x: number) => {
+                                                                        if (val === 0) return null;
+                                                                        let color = '#cd7f32';
+                                                                        if (val === 1) color = '#0f172a';
+                                                                        else if (val === 3) color = '#dda15e';
+                                                                        else if (val === 4) color = '#ffffff';
+                                                                        else if (val === 5) color = '#000000';
+                                                                        return <rect key={`${x}-${y}`} x={x} y={y} width="1" height="1" fill={color} />;
+                                                                    })
+                                                                )}
+                                                            </svg>
+                                                        </div>
+                                                        {hasBronze && (
+                                                            <span className="absolute -top-1 -right-1 bg-orange-500 text-black text-[8px] font-bold px-1 rounded-full">{bronzeData.gamesRemaining}x</span>
+                                                        )}
+                                                        {!hasBronze && <span className="text-[6px] text-slate-500">Seja 3º</span>}
+                                                    </button>
+                                                );
+                                            })()}
+                                        </div>
+                                        <div className="text-[8px] text-slate-500 mt-1">Fique no TOP 3 do ranking para ganhar skins especiais! (3 jogadas cada)</div>
                                     </div>
-                                </button>
-                            ))}
-                        </div>
+                                );
+                            })()}
+                        </>
                     )}
                 </div>
 
@@ -2107,29 +2245,104 @@ const FireworksCelebration = ({ rank }: { rank: number }) => {
     );
 };
 
-// Golden Trophy Character (special skin for top 3)
-const TROPHY_SKIN = {
-    id: 'trophy_champion',
-    name: 'CHAMPION',
+// === TROPHY SKINS - Different for each rank ===
+// 1st Place - Golden Crown King
+const TROPHY_GOLD = {
+    id: 'trophy_gold',
+    name: '👑 OURO',
     color: '#ffd700',
     pixels: [
-        [0,0,0,0,0,2,2,2,2,2,2,0,0,0,0,0],
-        [0,0,0,2,2,2,2,2,2,2,2,2,2,0,0,0],
-        [0,0,2,2,6,6,6,6,6,6,6,6,2,2,0,0],
-        [0,2,2,6,6,6,6,6,6,6,6,6,6,2,2,0],
-        [0,2,6,6,6,3,3,6,6,3,3,6,6,6,2,0],
-        [2,2,6,6,6,3,3,6,6,3,3,6,6,6,2,2],
-        [2,6,6,6,6,6,6,6,6,6,6,6,6,6,6,2],
-        [2,6,6,6,6,6,6,6,6,6,6,6,6,6,6,2],
-        [2,6,6,6,6,6,1,1,1,1,6,6,6,6,6,2],
-        [2,2,6,6,6,6,6,6,6,6,6,6,6,6,2,2],
-        [0,2,6,6,6,6,6,6,6,6,6,6,6,6,2,0],
-        [0,2,2,6,6,6,6,6,6,6,6,6,6,2,2,0],
-        [0,0,2,2,6,6,6,6,6,6,6,6,2,2,0,0],
-        [0,0,0,2,2,2,6,6,6,6,2,2,2,0,0,0],
-        [0,0,0,0,0,2,2,2,2,2,2,0,0,0,0,0],
-        [0,0,0,0,2,2,2,2,2,2,2,2,0,0,0,0],
+        [0,0,0,1,0,0,0,0,0,0,0,0,1,0,0,0],
+        [0,0,1,6,1,0,1,1,1,1,0,1,6,1,0,0],
+        [0,0,1,6,1,1,6,6,6,6,1,1,6,1,0,0],
+        [0,0,1,6,6,6,6,6,6,6,6,6,6,1,0,0],
+        [0,0,0,1,6,6,6,6,6,6,6,6,1,0,0,0],
+        [0,0,1,2,2,2,2,2,2,2,2,2,2,1,0,0],
+        [0,1,2,2,2,4,4,2,2,4,4,2,2,2,1,0],
+        [0,1,2,2,2,5,4,2,2,5,4,2,2,2,1,0],
+        [0,1,2,2,2,2,2,2,2,2,2,2,2,2,1,0],
+        [0,1,2,2,2,2,1,1,1,1,2,2,2,2,1,0],
+        [0,1,2,2,2,2,2,2,2,2,2,2,2,2,1,0],
+        [0,0,1,2,2,2,2,2,2,2,2,2,2,1,0,0],
+        [0,0,1,2,2,1,1,2,2,1,1,2,2,1,0,0],
+        [0,0,0,1,1,0,0,1,1,0,0,1,1,0,0,0],
+        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
     ]
+};
+
+// 2nd Place - Silver Knight
+const TROPHY_SILVER = {
+    id: 'trophy_silver',
+    name: '🥈 PRATA',
+    color: '#c0c0c0',
+    pixels: [
+        [0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,0],
+        [0,0,0,0,1,2,2,2,2,2,2,1,0,0,0,0],
+        [0,0,0,1,2,2,3,3,3,3,2,2,1,0,0,0],
+        [0,0,0,1,2,3,3,3,3,3,3,2,1,0,0,0],
+        [0,0,0,1,2,2,4,4,4,4,2,2,1,0,0,0],
+        [0,0,0,1,2,2,5,4,4,5,2,2,1,0,0,0],
+        [0,0,0,0,1,2,2,2,2,2,2,1,0,0,0,0],
+        [0,0,0,0,1,2,2,1,1,2,2,1,0,0,0,0],
+        [0,0,0,1,2,2,2,2,2,2,2,2,1,0,0,0],
+        [0,0,1,2,2,2,2,2,2,2,2,2,2,1,0,0],
+        [0,0,1,2,2,2,2,2,2,2,2,2,2,1,0,0],
+        [0,0,0,1,2,2,2,2,2,2,2,2,1,0,0,0],
+        [0,0,0,1,2,1,1,2,2,1,1,2,1,0,0,0],
+        [0,0,0,0,1,0,0,1,1,0,0,1,0,0,0,0],
+        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+    ]
+};
+
+// 3rd Place - Bronze Warrior
+const TROPHY_BRONZE = {
+    id: 'trophy_bronze',
+    name: '🥉 BRONZE',
+    color: '#cd7f32',
+    pixels: [
+        [0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0],
+        [0,0,0,0,0,1,2,2,2,2,1,0,0,0,0,0],
+        [0,0,0,0,1,2,2,3,3,2,2,1,0,0,0,0],
+        [0,0,0,0,1,2,3,3,3,3,2,1,0,0,0,0],
+        [0,0,0,0,1,2,4,4,4,4,2,1,0,0,0,0],
+        [0,0,0,0,1,2,5,4,4,5,2,1,0,0,0,0],
+        [0,0,0,0,0,1,2,2,2,2,1,0,0,0,0,0],
+        [0,0,0,0,0,1,2,1,1,2,1,0,0,0,0,0],
+        [0,0,0,0,1,2,2,2,2,2,2,1,0,0,0,0],
+        [0,0,0,1,2,2,2,2,2,2,2,2,1,0,0,0],
+        [0,0,0,1,2,2,2,2,2,2,2,2,1,0,0,0],
+        [0,0,0,0,1,2,2,2,2,2,2,1,0,0,0,0],
+        [0,0,0,0,1,1,1,2,2,1,1,1,0,0,0,0],
+        [0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0],
+        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+    ]
+};
+
+// Get trophy skin by rank
+const getTrophySkinByRank = (rank: number) => {
+    if (rank === 1) return TROPHY_GOLD;
+    if (rank === 2) return TROPHY_SILVER;
+    if (rank === 3) return TROPHY_BRONZE;
+    return TROPHY_GOLD;
+};
+
+// Get all unlocked trophy skins from localStorage
+const getUnlockedTrophySkins = () => {
+    const skins: any[] = [];
+    try {
+        const data = localStorage.getItem('TROPHY_SKINS');
+        if (data) {
+            const parsed = JSON.parse(data);
+            // Return array of {skin, gamesRemaining}
+            if (parsed.gold && parsed.gold > 0) skins.push({ skin: TROPHY_GOLD, gamesRemaining: parsed.gold });
+            if (parsed.silver && parsed.silver > 0) skins.push({ skin: TROPHY_SILVER, gamesRemaining: parsed.silver });
+            if (parsed.bronze && parsed.bronze > 0) skins.push({ skin: TROPHY_BRONZE, gamesRemaining: parsed.bronze });
+        }
+    } catch {}
+    return skins;
 };
 
 export const GameOverMenu = ({ gameState, handleStart, setGameState, leaderboard, onSaveScore, selectedIndex }: any) => {
@@ -2142,24 +2355,26 @@ export const GameOverMenu = ({ gameState, handleStart, setGameState, leaderboard
     const isNewHighScore = gameState.score > gameState.highScore;
     const currentScore = Math.floor(gameState.score); // Ensure integer
 
-    // Handle Top 3 celebration and rewards
+    // Handle Top 3 celebration and rewards - DIFFERENT rewards per rank
     useEffect(() => {
         if (submittedRank && submittedRank <= 3 && !bonusGiven) {
             setShowCelebration(true);
             setBonusGiven(true);
             
-            // Give 200 gold bonus
+            // Different gold bonus per rank: 1st=300, 2nd=200, 3rd=100
+            const goldBonus = submittedRank === 1 ? 300 : submittedRank === 2 ? 200 : 100;
             const currentCoins = gameState.totalCoins || 0;
-            setGameState((prev: any) => ({ ...prev, totalCoins: currentCoins + 200 }));
-            Persistence.saveCoins(currentCoins + 200);
+            setGameState((prev: any) => ({ ...prev, totalCoins: currentCoins + goldBonus }));
+            Persistence.saveCoins(currentCoins + goldBonus);
             
-            // Save trophy skin unlock (3 games)
-            const trophyData = {
-                rank: submittedRank,
-                gamesRemaining: 3,
-                unlockedAt: Date.now()
-            };
-            localStorage.setItem('TROPHY_CHAMPION', JSON.stringify(trophyData));
+            // Save trophy skin unlock (3 games) - DIFFERENT skin per rank
+            try {
+                const existingData = JSON.parse(localStorage.getItem('TROPHY_SKINS') || '{}');
+                if (submittedRank === 1) existingData.gold = (existingData.gold || 0) + 3;
+                if (submittedRank === 2) existingData.silver = (existingData.silver || 0) + 3;
+                if (submittedRank === 3) existingData.bronze = (existingData.bronze || 0) + 3;
+                localStorage.setItem('TROPHY_SKINS', JSON.stringify(existingData));
+            } catch {}
             
             // Play celebration sound
             soundManager.playPerfectJump();
@@ -2167,6 +2382,7 @@ export const GameOverMenu = ({ gameState, handleStart, setGameState, leaderboard
             setTimeout(() => soundManager.playPerfectJump(), 600);
         }
     }, [submittedRank, bonusGiven, gameState.totalCoins, setGameState]);
+
 
     const handleSubmitScore = async () => {
         const trimmedName = playerName.trim();
