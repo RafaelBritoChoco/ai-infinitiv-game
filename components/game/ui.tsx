@@ -1500,7 +1500,7 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
                     <div className="relative w-32 h-32 mb-4 group cursor-pointer" onClick={() => setShowAiInput(!showAiInput)}>
                         <div className="absolute inset-0 bg-gradient-to-br from-cyan-500 to-purple-600 rounded-xl opacity-20 group-hover:opacity-40 transition-opacity"></div>
                         <div className="w-full h-full p-2">
-                            <svg viewBox="0 0 16 16" className="w-full h-full drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]" shapeRendering="crispEdges">
+                            <svg viewBox={`0 0 ${gameState.selectedSkin?.pixels?.length > 16 ? 24 : 16} ${gameState.selectedSkin?.pixels?.length > 16 ? 24 : 16}`} className="w-full h-full drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]" shapeRendering="crispEdges">
                                 {(gameState.selectedSkin?.pixels || []).map((row: number[], y: number) =>
                                     row.map((val: number, x: number) => {
                                         if (val === 0) return null;
@@ -1515,6 +1515,7 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
                                 )}
                             </svg>
                         </div>
+                        <p className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-xs font-bold text-cyan-400 uppercase tracking-wider whitespace-nowrap">{gameState.selectedSkin?.name || ''}</p>
                         <div className="absolute bottom-2 right-2 bg-black/80 p-1.5 rounded-lg border border-white/10">
                             <Wand2 size={14} className="text-purple-400" />
                         </div>
@@ -1544,10 +1545,11 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
                                 <button
                                     key={i}
                                     onClick={() => setGameState((prev: any) => ({ ...prev, selectedSkin: skin }))}
-                                    className={`flex-shrink-0 w-12 h-12 rounded-lg border-2 transition-all ${gameState.selectedSkin.id === skin.id ? 'border-cyan-400 bg-cyan-900/30 shadow-[0_0_10px_rgba(6,182,212,0.3)]' : 'border-slate-800 bg-slate-900/50 hover:border-slate-600'}`}
+                                    className={`flex-shrink-0 flex flex-col items-center gap-1 p-1 rounded-lg border-2 transition-all ${gameState.selectedSkin.id === skin.id ? 'border-cyan-400 bg-cyan-900/30 shadow-[0_0_10px_rgba(6,182,212,0.3)]' : 'border-slate-800 bg-slate-900/50 hover:border-slate-600'}`}
                                 >
-                                    <div className="w-full h-full p-1">
-                                        <svg viewBox="0 0 16 16" className="w-full h-full" shapeRendering="crispEdges">
+                                    <span className="text-[8px] font-bold text-slate-300 uppercase tracking-wider">{skin.name || skin.id}</span>
+                                    <div className="w-10 h-10">
+                                        <svg viewBox={`0 0 ${skin.pixels?.length > 16 ? 24 : 16} ${skin.pixels?.length > 16 ? 24 : 16}`} className="w-full h-full" shapeRendering="crispEdges">
                                             {(skin?.pixels || []).map((row: number[], y: number) =>
                                                 row.map((val: number, x: number) => {
                                                     if (val === 0) return null;
