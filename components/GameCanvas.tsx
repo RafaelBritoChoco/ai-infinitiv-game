@@ -22,6 +22,7 @@ import { useInputController } from './game/hooks/useInputController';
 import { CalibrationModal, GameOverMenu, StartScreen, PauseMenu, ControlsModal, LeftSidebar, RightSidebar, ShopModal, TouchControls, PortraitLock, LayoutEditorModal, SensorDebugModal } from './game/ui';
 import { DevEditor } from './game/DevEditor';
 import { SettingsModal } from './game/SettingsModalNew';
+import { SkillTreeShop } from './game/SkillTreeShop';
 import { VirtualJoystick } from './game/VirtualJoystick';
 
 const GameCanvas: React.FC = () => {
@@ -338,7 +339,7 @@ const GameCanvas: React.FC = () => {
                     />
                 )}
                 {gameState.isShopOpen && (
-                    <ShopModal gameState={gameState} setGameState={setGameState} selectedIndex={menuIndex} />
+                    <SkillTreeShop gameState={gameState} setGameState={setGameState} />
                 )}
 
 
