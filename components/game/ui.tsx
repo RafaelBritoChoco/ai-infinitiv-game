@@ -1229,7 +1229,7 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
                     </button>
 
                     {/* CONTROL MODE TOGGLE */}
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-3 gap-2 md:gap-4">
                         {/* BUTTONS MODE */}
                         <button
                             onClick={() => setGameState((p: any) => ({ ...p, mobileControlMode: 'BUTTONS' }))}
@@ -1239,13 +1239,22 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
                             BUTTONS
                         </button>
 
-                        {/* JOYSTICK MODE (NEW) */}
+                        {/* JOYSTICK MODE */}
                         <button
                             onClick={() => setGameState((p: any) => ({ ...p, mobileControlMode: 'JOYSTICK' }))}
                             className={`py-3 md:py-4 rounded-xl border-2 font-bold text-[10px] md:text-sm flex flex-col items-center gap-2 transition-all ${gameState.mobileControlMode === 'JOYSTICK' ? 'bg-slate-800 border-cyan-500 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.2)]' : 'bg-slate-900/50 border-slate-800 text-slate-500 hover:border-slate-600'}`}
                         >
                             <Move size={20} className="md:w-6 md:h-6" />
                             JOYSTICK
+                        </button>
+
+                        {/* TILT/MOTION MODE */}
+                        <button
+                            onClick={() => setGameState((p: any) => ({ ...p, mobileControlMode: 'TILT' }))}
+                            className={`py-3 md:py-4 rounded-xl border-2 font-bold text-[10px] md:text-sm flex flex-col items-center gap-2 transition-all ${gameState.mobileControlMode === 'TILT' ? 'bg-slate-800 border-cyan-500 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.2)]' : 'bg-slate-900/50 border-slate-800 text-slate-500 hover:border-slate-600'}`}
+                        >
+                            <Smartphone size={20} className="md:w-6 md:h-6" />
+                            MOTION
                         </button>
                     </div>
 
