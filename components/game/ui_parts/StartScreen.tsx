@@ -201,7 +201,7 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
             </div>
 
             {/* MAIN CONTENT CONTAINER - OPTIMIZED FOR MOBILE (NO SCROLL) */}
-            <div className="flex flex-col items-center w-full max-w-md h-full pt-14 pb-4 px-4 justify-between overflow-hidden">
+            <div className="flex flex-col items-center w-full max-w-md h-full pt-14 pb-4 px-4 justify-center gap-6 overflow-hidden">
                 
                 {/* HEADER - Compact */}
                 <div className="text-center shrink-0 relative z-10">
@@ -312,7 +312,7 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
                 </div>
 
                 {/* BOTTOM ACTIONS - Fixed at bottom */}
-                <div className="w-full flex flex-col gap-2 shrink-0 mt-auto relative z-10">
+                <div className="w-full flex flex-col gap-2 shrink-0 relative z-10">
                     {/* START BUTTON - Big & Prominent */}
                     <button 
                         onClick={handleStart}
