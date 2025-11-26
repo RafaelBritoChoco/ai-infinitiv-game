@@ -158,33 +158,29 @@ export const CharacterPreviewModal = ({ skin, onClose, onSelectSkin, allSkins, u
             // --- SLOW MOTION LOGIC (Matrix Style) ---
             let timeScale = 1.0;
             
-            // Slow motion for Perfect Jump (Landing Phase)
-            if (activeTab === 'perfect' && state.vy > 0 && state.y > 350) {
-                timeScale = 0.1; 
-            }
-            
             // Subtle Slow Motion for Preview (Jump Peak) - "Matrix" Feel
+            // Only apply when moving very slowly vertically (apex of jump)
             if (activeTab === 'preview' && Math.abs(state.vy) < 5 && !state.isGrounded) {
-                timeScale = 0.6;
+                timeScale = 0.8; // Less aggressive slow motion (was 0.6)
             }
 
             // ========== TAB-SPECIFIC LOGIC ==========
             if (activeTab === 'preview') {
                 // Auto movement - smoother zigzag with ACCELERATION
-                const movePhase = state.frame % 180;
+                const movePhase = state.frame % 240; // Slower cycle
                 let targetDir = 0;
                 
-                if (movePhase < 90) {
+                if (movePhase < 120) {
                     targetDir = 1;
                 } else {
                     targetDir = -1;
                 }
                 
-                // Apply Acceleration instead of setting velocity directly
-                state.vx += targetDir * Constants.MOVE_ACCELERATION * 0.5 * timeScale; // 0.5 factor for relaxed preview
+                // Apply Acceleration
+                state.vx += targetDir * Constants.MOVE_ACCELERATION * 0.5 * timeScale;
 
                 // Auto jump when grounded
-                if (state.isGrounded && state.frame % 90 === 45) {
+                if (state.isGrounded && state.frame % 120 === 60) {
                     state.vy = -Constants.WEAK_JUMP_FORCE;
                     state.isGrounded = false;
                     // Jump particles
@@ -198,13 +194,13 @@ export const CharacterPreviewModal = ({ skin, onClose, onSelectSkin, allSkins, u
                 }
                 
                 // Jetpack occasionally
-                if (state.frame % 300 === 150) {
+                if (state.frame % 400 === 200) {
                     state.jetpackActive = true;
-                    state.jetpackTimer = 40;
+                    state.jetpackTimer = 30;
                 }
             } else if (activeTab === 'jetpack') {
                 // Tutorial: show jetpack crossing gap
-                const phase = Math.floor(state.frame / 120) % 4;
+                const phase = Math.floor(state.frame / 150) % 4; // Slower phases
                 
                 if (phase === 0) {
                     // Walk right
@@ -237,16 +233,11 @@ export const CharacterPreviewModal = ({ skin, onClose, onSelectSkin, allSkins, u
                 }
             } else if (activeTab === 'perfect') {
                 // Tutorial: show perfect jump timing
-                // Adjust phase calculation for slow motion
-                // We use a separate counter for logic phases to not be affected by slow motion frame count?
-                // Actually state.frame is incremented by 1 every loop.
-                // If we want the logic to wait, we should maybe use a timer that respects timeScale?
-                // For simplicity, let's keep logic based on frames, but since physics is slow, it will take longer to reach ground.
                 
                 // Reset if landed
-                if (state.isGrounded && state.tutorialPhase === 1) {
+                if (state.isGrounded && state.tutorialPhase === 2) {
                      // Wait a bit then reset
-                     if (state.frame % 60 === 0) {
+                     if (state.frame % 90 === 0) {
                         state.x = 100;
                         state.y = 500;
                         state.vy = 0;
@@ -256,7 +247,7 @@ export const CharacterPreviewModal = ({ skin, onClose, onSelectSkin, allSkins, u
                 }
 
                 if (state.tutorialPhase === 0) {
-                    // Jump up
+                    // Jump up (Normal)
                     if (state.isGrounded && state.frame % 60 === 0) {
                          state.vy = -Constants.WEAK_JUMP_FORCE * 0.8; // Normal jump
                          state.isGrounded = false;
@@ -266,15 +257,11 @@ export const CharacterPreviewModal = ({ skin, onClose, onSelectSkin, allSkins, u
                 }
                 
                 // Detect landing for Perfect Jump
-                if (state.vy > 0 && state.y > 450) {
-                    state.perfectJumpReady = true;
-                } else {
-                    state.perfectJumpReady = false;
-                }
+                // In game, perfect jump is hitting jump right as you land.
+                // Here we simulate it by auto-jumping immediately upon landing.
                 
-                // Auto Perfect Jump when very close
-                if (state.y > 490 && state.vy > 0 && state.tutorialPhase === 1) {
-                     // Trigger Perfect Jump
+                if (state.tutorialPhase === 1 && state.isGrounded) {
+                     // Trigger Perfect Jump IMMEDIATELY
                      state.vy = -Constants.PERFECT_JUMP_FORCE;
                      state.tutorialPhase = 2; // Soaring
                      state.perfectJumpReady = false;
