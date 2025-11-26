@@ -588,7 +588,7 @@ export const CharacterPreviewModal = ({ skin, onClose, onSelectSkin, allSkins, u
             </button>
             
             {/* CHARACTER LIST - Horizontal Gallery at TOP */}
-            <div className="w-full max-w-md mt-1 mb-2">
+            <div className="w-full max-w-md mt-1 mb-2 shrink-0">
                 <p className="text-[10px] text-slate-500 text-center mb-1">← DESLIZE PARA VER TODOS →</p>
                 <div 
                     ref={listRef}
@@ -597,6 +597,7 @@ export const CharacterPreviewModal = ({ skin, onClose, onSelectSkin, allSkins, u
                 >
                     {allSkins.map((s, i) => {
                         const isSelected = i === currentSkinIndex;
+                        const locked = isLocked(s.id);
                         const isNew = unlockedSkins.includes(s.id) && !seenSkins.includes(s.id) && !['ginger', 'kero'].includes(s.id);
                         
                         return (
@@ -624,8 +625,15 @@ export const CharacterPreviewModal = ({ skin, onClose, onSelectSkin, allSkins, u
                                     </div>
                                 )}
 
+                                {/* Locked Overlay */}
+                                {locked && (
+                                    <div className="absolute inset-0 bg-black/60 z-10 flex items-center justify-center rounded-md backdrop-blur-[1px]">
+                                        <Lock size={14} className="text-slate-400" />
+                                    </div>
+                                )}
+
                                 {/* Mini character */}
-                                <div className={`w-8 h-8 ${isSelected ? 'animate-bounce' : ''}`} style={{ animationDuration: '0.6s' }}>
+                                <div className={`w-8 h-8 ${isSelected ? 'animate-bounce' : ''} ${locked ? 'grayscale opacity-50' : ''}`} style={{ animationDuration: '0.6s' }}>
                                     <svg viewBox={`0 0 ${s.pixels?.length > 16 ? 24 : 16} ${s.pixels?.length > 16 ? 24 : 16}`} className="w-full h-full" shapeRendering="crispEdges">
                                         {(s?.pixels || []).map((row: number[], y: number) =>
                                             row.map((val: number, x: number) => {
@@ -662,59 +670,97 @@ export const CharacterPreviewModal = ({ skin, onClose, onSelectSkin, allSkins, u
                 </div>
             </div>
             
-            {/* Title - Character Name */}
-            <h2 className="text-lg font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500 mb-1">
-                {currentSkin.name || currentSkin.id}
-            </h2>
-            
-            {/* Tab buttons */}
-            <div className="flex gap-1 mb-2">
-                {tabs.map(tab => (
-                    <button
-                        key={tab.id}
-                        onClick={() => setActiveTab(tab.id as any)}
-                        className={`px-2 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                            activeTab === tab.id 
-                                ? 'bg-cyan-600 text-white shadow-[0_0_15px_rgba(6,182,212,0.5)]' 
-                                : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
-                        }`}
-                        title={tab.title}
-                    >
-                        {tab.label} {tab.title}
-                    </button>
-                ))}
-            </div>
-            
-            {/* Canvas - slightly smaller */}
-            <div className="relative">
-                <canvas 
-                    ref={canvasRef} 
-                    width={280} 
-                    height={320} 
-                    className="rounded-xl border-2 border-slate-700 shadow-[0_0_30px_rgba(6,182,212,0.3)]"
-                />
+            {/* MAIN CONTENT AREA */}
+            <div className="flex-1 flex flex-col md:flex-row items-center justify-center gap-6 w-full max-w-4xl px-4 overflow-y-auto">
                 
-                {/* Navigation arrows on canvas sides */}
-                <button 
-                    onClick={() => setCurrentSkinIndex((prev) => (prev - 1 + allSkins.length) % allSkins.length)}
-                    className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 p-2 bg-slate-800/90 rounded-full text-white hover:bg-cyan-600 z-10 border border-slate-600"
-                >
-                    <ChevronLeft size={20} />
-                </button>
-                
-                <button 
-                    onClick={() => setCurrentSkinIndex((prev) => (prev + 1) % allSkins.length)}
-                    className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 p-2 bg-slate-800/90 rounded-full text-white hover:bg-cyan-600 z-10 border border-slate-600"
-                >
-                    <ChevronRight size={20} />
-                </button>
+                {/* LEFT: PREVIEW CANVAS */}
+                <div className="flex flex-col items-center shrink-0">
+                    {/* Title - Character Name */}
+                    <h2 className="text-lg font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500 mb-1">
+                        {currentSkin.name || currentSkin.id}
+                    </h2>
+                    
+                    {/* Tab buttons */}
+                    <div className="flex gap-1 mb-2">
+                        {tabs.map(tab => (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id as any)}
+                                className={`px-2 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                                    activeTab === tab.id 
+                                        ? 'bg-cyan-600 text-white shadow-[0_0_15px_rgba(6,182,212,0.5)]' 
+                                        : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                                }`}
+                                title={tab.title}
+                            >
+                                {tab.label} {tab.title}
+                            </button>
+                        ))}
+                    </div>
+                    
+                    {/* Canvas - slightly smaller */}
+                    <div className="relative">
+                        <canvas 
+                            ref={canvasRef} 
+                            width={280} 
+                            height={320} 
+                            className="rounded-xl border-2 border-slate-700 shadow-[0_0_30px_rgba(6,182,212,0.3)]"
+                        />
+                        
+                        {/* Navigation arrows on canvas sides */}
+                        <button 
+                            onClick={() => setCurrentSkinIndex((prev) => (prev - 1 + allSkins.length) % allSkins.length)}
+                            className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 p-2 bg-slate-800/90 rounded-full text-white hover:bg-cyan-600 z-10 border border-slate-600"
+                        >
+                            <ChevronLeft size={20} />
+                        </button>
+                        
+                        <button 
+                            onClick={() => setCurrentSkinIndex((prev) => (prev + 1) % allSkins.length)}
+                            className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 p-2 bg-slate-800/90 rounded-full text-white hover:bg-cyan-600 z-10 border border-slate-600"
+                        >
+                            <ChevronRight size={20} />
+                        </button>
+                    </div>
+                </div>
+
+                {/* RIGHT: MISSION INFO (Only if locked) */}
+                {isLocked(currentSkin.id) && (() => {
+                    const challenge = CHARACTER_CHALLENGES.find(c => c.skinId === currentSkin.id);
+                    return (
+                        <div className="w-full max-w-[280px] md:max-w-xs bg-slate-900/90 border border-red-500/30 rounded-xl p-5 backdrop-blur-md animate-in fade-in slide-in-from-bottom-4 md:slide-in-from-right-4 shadow-[0_0_30px_rgba(239,68,68,0.15)] flex flex-col items-center text-center">
+                            <div className="w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center mb-3 border border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.3)]">
+                                <Lock size={24} className="text-red-400" />
+                            </div>
+                            
+                            <h3 className="text-red-400 font-black text-lg uppercase tracking-widest mb-1">BLOQUEADO</h3>
+                            <div className="h-px w-16 bg-red-500/30 mb-4"></div>
+                            
+                            {challenge ? (
+                                <>
+                                    <div className="text-4xl mb-2">{challenge.emoji}</div>
+                                    <h4 className="text-white font-bold text-sm mb-2 uppercase">{challenge.title}</h4>
+                                    <p className="text-slate-400 text-xs leading-relaxed mb-4 border-l-2 border-red-500/30 pl-3 text-left w-full bg-black/30 p-2 rounded-r">
+                                        {challenge.description}
+                                    </p>
+                                    
+                                    <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                                        <div className="h-full bg-red-500/50 w-0 animate-pulse"></div>
+                                    </div>
+                                    <p className="text-[10px] text-slate-600 mt-1 w-full text-right">PROGRESSO INDISPONÍVEL</p>
+                                </>
+                            ) : (
+                                <p className="text-slate-500 text-xs">Complete missões secretas para desbloquear.</p>
+                            )}
+                        </div>
+                    );
+                })()}
             </div>
             
             {/* Action button - Select and Close */}
-            <div className="flex gap-3 mt-3 w-full justify-center px-4">
+            <div className="flex gap-3 mt-3 w-full justify-center px-4 shrink-0 pb-2">
                 {(() => {
                     const locked = isLocked(currentSkin.id);
-                    const challenge = CHARACTER_CHALLENGES.find(c => c.skinId === currentSkin.id);
                     
                     return (
                         <button
@@ -727,14 +773,14 @@ export const CharacterPreviewModal = ({ skin, onClose, onSelectSkin, allSkins, u
                             disabled={locked}
                             className={`w-full max-w-sm py-3 font-bold rounded-xl text-sm uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(6,182,212,0.4)] flex items-center justify-center gap-2 ${
                                 locked 
-                                    ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700' 
+                                    ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700 shadow-none opacity-50' 
                                     : 'bg-gradient-to-r from-cyan-600 to-purple-600 text-white hover:from-cyan-500 hover:to-purple-500'
                             }`}
                         >
                             {locked ? (
                                 <>
                                     <Lock size={16} /> 
-                                    {challenge ? `LOCKED: ${challenge.description}` : 'LOCKED'}
+                                    BLOQUEADO
                                 </>
                             ) : (
                                 <>
