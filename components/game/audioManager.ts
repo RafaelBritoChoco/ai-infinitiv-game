@@ -1,4 +1,3 @@
-
 export class SoundManager {
     private ctx: AudioContext | null = null;
     private masterGain: GainNode | null = null;
@@ -66,6 +65,20 @@ export class SoundManager {
         this.volumeMusic = music;
         this.volumeSfx = sfx;
         this.updateVolumes();
+    }
+
+    public isMuted(): boolean {
+        return this.volumeMaster === 0;
+    }
+
+    public toggleMute(): boolean {
+        if (this.volumeMaster > 0) {
+            this.setVolumes(0, this.volumeMusic, this.volumeSfx);
+            return true;
+        } else {
+            this.setVolumes(0.5, this.volumeMusic, this.volumeSfx);
+            return false;
+        }
     }
 
     public updateAltitude(altitude: number) {

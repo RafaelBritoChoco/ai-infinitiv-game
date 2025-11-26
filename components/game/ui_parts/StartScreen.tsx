@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
     RefreshCw, Trophy, Crown, HelpCircle, Loader2, Sparkles, Lock,
-    Settings, Gamepad2, Edit3, Monitor, ShoppingCart, Play, LogOut, X, Globe
+    Settings, Gamepad2, Edit3, Monitor, ShoppingCart, Play, LogOut, X, Globe, Volume2, VolumeX
 } from 'lucide-react';
 import { CharacterSkin, CharacterChallenge, CHARACTER_CHALLENGES, TROPHY_POWERS } from '../../../types';
 import * as Constants from '../../../constants';
@@ -13,11 +13,12 @@ import { getUnlockedTrophySkins, getTrophySkinByRank, TROPHY_GOLD, TROPHY_SILVER
 import { Persistence } from '../persistence';
 import { TRANSLATIONS } from '../translations';
 
-export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInput, setShowAiInput, aiPrompt, setAiPrompt, isGeneratingSkin, handleGenerateSkin, handleStart, onOpenControls, onOpenCalibration, onOpenSettings, selectedIndex, gyroEnabled, setGyroEnabled, onLogout, leaderboard, setLeaderboard, weedMode, setWeedMode, lang, setLang }: any) => {
+export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInput, setShowAiInput, aiPrompt, setAiPrompt, isGeneratingSkin, handleGenerateSkin, handleStart, onOpenControls, onOpenCalibration, onOpenSettings, selectedIndex, gyroEnabled, setGyroEnabled, onLogout, leaderboard, setLeaderboard, weedMode, setWeedMode, lang, setLang, config, setConfig }: any) => {
     // SAFETY: Ensure availableSkins is always an array
     const safeSkins = Array.isArray(availableSkins) ? availableSkins : [];
 
     const [showSensorDebug, setShowSensorDebug] = useState(false);
+    const [isMuted, setIsMuted] = useState(config ? (config.VOLUME_MASTER === 0) : soundManager.isMuted());
     const [showRanking, setShowRanking] = useState(false);
     const [showTutorial, setShowTutorial] = useState(false);
     const [showAdminPanel, setShowAdminPanel] = useState(false);
@@ -134,6 +135,19 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
         try { localStorage.setItem('WEED_MODE', String(newMode)); } catch {}
     };
 
+    const toggleMute = () => {
+        if (config && setConfig) {
+            const currentVol = config.VOLUME_MASTER ?? 0.5;
+            const newVol = currentVol > 0 ? 0 : 0.5;
+            setConfig({ VOLUME_MASTER: newVol });
+            soundManager.setVolumes(newVol, config.VOLUME_MUSIC ?? 0.4, config.VOLUME_SFX ?? 0.6);
+            setIsMuted(newVol === 0);
+        } else {
+            const newMuted = soundManager.toggleMute();
+            setIsMuted(newMuted);
+        }
+    };
+
     return (
         <div className={`absolute inset-0 z-50 flex flex-col items-center backdrop-blur-md overflow-hidden ${weedMode ? 'bg-green-950/95' : 'bg-black/90'}`}>
             {/* UPDATE BUTTON - FIXED position always visible */}
@@ -160,6 +174,19 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
 
             {/* TOP RIGHT CONTROLS */}
             <div className="fixed top-2 right-2 z-[100] flex flex-col gap-2 items-end">
+                {/* AUDIO TOGGLE */}
+                <button
+                    onClick={toggleMute}
+                    className={`p-2 rounded-xl border transition-all shadow-lg flex items-center justify-center ${
+                        !isMuted 
+                        ? 'bg-green-500/20 border-green-500/50 text-green-400 hover:bg-green-500/30 shadow-[0_0_15px_rgba(34,197,94,0.3)]' 
+                        : 'bg-slate-800/90 border-slate-600 text-slate-500 hover:bg-slate-700/90'
+                    }`}
+                    title={!isMuted ? "Mute Sound" : "Unmute Sound"}
+                >
+                    {!isMuted ? <Volume2 size={14} /> : <VolumeX size={14} />}
+                </button>
+
                 {/* LANGUAGE TOGGLE */}
                 <button 
                     onClick={() => {
@@ -190,14 +217,14 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
                     420 {weedMode ? 'ON' : 'OFF'}
                 </button>
 
-                {/* LOGOUT BUTTON - Improved Style */}
-                <button 
+                {/* LOGOUT BUTTON - Improved Style - DISABLED FOR NOW */}
+                {/* <button 
                     onClick={onLogout}
                     className="px-3 py-2 bg-red-900/80 hover:bg-red-800 text-red-200 rounded-xl font-bold text-[10px] uppercase tracking-wider border border-red-700/50 transition-all flex items-center gap-2 shadow-lg"
                     title="Sair da Conta"
                 >
                     <LogOut size={12} /> {t[lang].logout}
-                </button>
+                </button> */}
             </div>
 
             {/* MAIN CONTENT CONTAINER - OPTIMIZED FOR MOBILE (NO SCROLL) */}
@@ -375,7 +402,7 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
             {showAdminPanel && <AdminPanel onClose={() => setShowAdminPanel(false)} />}
 
             {/* Tutorial Modal */}
-            {showTutorial && <TutorialModal onClose={() => setShowTutorial(false)} lang={lang} />}
+            {showTutorial && <TutorialModal onClose={() => setShowTutorial(false)} lang={lang} gameState={gameState} />}
             
             {/* RANKING MODAL */}
             {showRanking && (

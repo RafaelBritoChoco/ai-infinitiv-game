@@ -63,7 +63,8 @@ const GameCanvas: React.FC = () => {
     const [showSettings, setShowSettings] = useState(false);
     const [showDevEditor, setShowDevEditor] = useState(false);
     const [weedMode, setWeedMode] = useState(() => localStorage.getItem('WEED_MODE') === 'true');
-    const [showLogin, setShowLogin] = useState(true);
+    const [showLogin, setShowLogin] = useState(false);
+    const [volumeNotification, setVolumeNotification] = useState<{ show: boolean, muted: boolean } | null>(null);
 
     // Shadow Refs for Loop Stability
     const jetpackModeRef = useRef<'IDLE' | 'BURST' | 'GLIDE'>('IDLE');
@@ -288,14 +289,28 @@ const GameCanvas: React.FC = () => {
                                     configRef.current = { ...configRef.current, VOLUME_MASTER: newVol };
                                     setForceUpdate(p => p + 1);
                                     soundManager.setVolumes(newVol, configRef.current.VOLUME_MUSIC || 0.4, configRef.current.VOLUME_SFX || 0.6);
+                                    
+                                    // Visual Confirmation
+                                    setVolumeNotification({ show: true, muted: newVol === 0 });
+                                    setTimeout(() => setVolumeNotification(null), 1500);
                                 }}
                                 className={`p-3 backdrop-blur rounded-full border transition-all ${
                                     (configRef.current.VOLUME_MASTER || 0.5) > 0 
-                                        ? 'bg-black/50 text-green-400 border-green-500/50 hover:bg-green-900/50' 
-                                        : 'bg-black/50 text-red-400 border-red-500/50 hover:bg-red-900/50'
+                                        ? 'bg-black/50 text-green-400 border-green-500/50 hover:bg-green-900/50 shadow-[0_0_10px_rgba(34,197,94,0.3)]' 
+                                        : 'bg-black/50 text-slate-400 border-slate-500/50 hover:bg-slate-900/50'
                                 }`}>
                                 {(configRef.current.VOLUME_MASTER || 0.5) > 0 ? <Volume2 size={20} /> : <VolumeX size={20} />}
                             </button>
+                        </div>
+                    )}
+
+                    {/* Volume Notification Overlay */}
+                    {volumeNotification && (
+                        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-[100] pointer-events-none animate-in fade-in zoom-in duration-200">
+                            <div className={`px-8 py-6 rounded-2xl backdrop-blur-xl border-2 shadow-[0_0_50px_rgba(0,0,0,0.5)] flex flex-col items-center gap-4 ${volumeNotification.muted ? 'bg-red-950/90 border-red-500 text-red-100 shadow-red-900/50' : 'bg-green-950/90 border-green-500 text-green-100 shadow-green-900/50'}`}>
+                                {volumeNotification.muted ? <VolumeX size={64} strokeWidth={1.5} /> : <Volume2 size={64} strokeWidth={1.5} />}
+                                <span className="font-black text-2xl tracking-[0.2em] uppercase">{volumeNotification.muted ? 'MUTED' : 'SOUND ON'}</span>
+                            </div>
                         </div>
                     )}
 
@@ -344,6 +359,11 @@ const GameCanvas: React.FC = () => {
                         setLeaderboard={setLeaderboard}
                         lang={lang}
                         setLang={setLang}
+                        config={configRef.current}
+                        setConfig={(newConfig: any) => {
+                            configRef.current = { ...configRef.current, ...newConfig };
+                            setForceUpdate(p => p + 1);
+                        }}
                         onLogout={() => {
                             Persistence.setProfile('guest');
                             setShowLogin(true);

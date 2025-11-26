@@ -155,18 +155,34 @@ export const CharacterPreviewModal = ({ skin, onClose, onSelectSkin, allSkins, u
             
             state.frame++;
             
+            // --- SLOW MOTION LOGIC (Matrix Style) ---
+            let timeScale = 1.0;
+            
+            // Slow motion for Perfect Jump (Landing Phase)
+            if (activeTab === 'perfect' && state.vy > 0 && state.y > 350) {
+                timeScale = 0.1; 
+            }
+            
+            // Subtle Slow Motion for Preview (Jump Peak) - "Matrix" Feel
+            if (activeTab === 'preview' && Math.abs(state.vy) < 5 && !state.isGrounded) {
+                timeScale = 0.6;
+            }
+
             // ========== TAB-SPECIFIC LOGIC ==========
             if (activeTab === 'preview') {
-                // Auto movement - smoother zigzag
+                // Auto movement - smoother zigzag with ACCELERATION
                 const movePhase = state.frame % 180;
+                let targetDir = 0;
+                
                 if (movePhase < 90) {
-                    state.direction = 1;
-                    state.vx = Constants.MAX_H_SPEED * 0.3; // 30% speed
+                    targetDir = 1;
                 } else {
-                    state.direction = -1;
-                    state.vx = -Constants.MAX_H_SPEED * 0.3;
+                    targetDir = -1;
                 }
                 
+                // Apply Acceleration instead of setting velocity directly
+                state.vx += targetDir * Constants.MOVE_ACCELERATION * 0.5 * timeScale; // 0.5 factor for relaxed preview
+
                 // Auto jump when grounded
                 if (state.isGrounded && state.frame % 90 === 45) {
                     state.vy = -Constants.WEAK_JUMP_FORCE;
@@ -192,7 +208,7 @@ export const CharacterPreviewModal = ({ skin, onClose, onSelectSkin, allSkins, u
                 
                 if (phase === 0) {
                     // Walk right
-                    state.vx = Constants.MAX_H_SPEED * 0.3;
+                    state.vx += Constants.MOVE_ACCELERATION * 0.5 * timeScale;
                     state.direction = 1;
                     state.jetpackFuel = 100;
                 } else if (phase === 1) {
@@ -203,11 +219,11 @@ export const CharacterPreviewModal = ({ skin, onClose, onSelectSkin, allSkins, u
                         state.tutorialPhase = 1;
                     }
                     state.jetpackActive = true;
-                    state.vx = Constants.MAX_H_SPEED * 0.4;
+                    state.vx += Constants.MOVE_ACCELERATION * 0.5 * timeScale; // Keep moving right
                 } else if (phase === 2) {
                     // Land and walk left
                     state.jetpackActive = false;
-                    state.vx = -Constants.MAX_H_SPEED * 0.3;
+                    state.vx -= Constants.MOVE_ACCELERATION * 0.5 * timeScale;
                     state.direction = -1;
                 } else {
                     // Reset position
@@ -221,58 +237,86 @@ export const CharacterPreviewModal = ({ skin, onClose, onSelectSkin, allSkins, u
                 }
             } else if (activeTab === 'perfect') {
                 // Tutorial: show perfect jump timing
-                const phase = Math.floor(state.frame / 150) % 3;
+                // Adjust phase calculation for slow motion
+                // We use a separate counter for logic phases to not be affected by slow motion frame count?
+                // Actually state.frame is incremented by 1 every loop.
+                // If we want the logic to wait, we should maybe use a timer that respects timeScale?
+                // For simplicity, let's keep logic based on frames, but since physics is slow, it will take longer to reach ground.
                 
-                if (phase === 0) {
-                    // Show pink indicator (ready to perfect jump)
-                    state.perfectJumpReady = state.isGrounded;
-                    state.vx = 0;
-                } else if (phase === 1) {
-                    // Do perfect jump (high jump)
-                    if (state.tutorialPhase !== 1 && state.isGrounded) {
-                        state.vy = -Constants.PERFECT_JUMP_FORCE; // REAL GAME FORCE
-                        state.isGrounded = false;
-                        state.tutorialPhase = 1;
-                        state.perfectJumpReady = false;
-                        
-                        // Floating Text
-                        state.floatingTexts.push({
-                            x: state.x, y: state.y - 40,
-                            text: "PERFECT!!",
-                            life: 60,
-                            color: '#ec4899',
-                            vy: -2
-                        });
-
-                        // Pink particles for perfect jump
-                        for (let i = 0; i < 20; i++) {
-                            state.particles.push({
-                                x: state.x, y: state.y + 24,
-                                vx: (Math.random() - 0.5) * 10, vy: -Math.random() * 5,
-                                life: 40, color: '#ec4899'
-                            });
-                        }
-                    }
-                } else {
-                    // Reset
-                    if (state.y > 450) { // Only reset if back on ground
+                // Reset if landed
+                if (state.isGrounded && state.tutorialPhase === 1) {
+                     // Wait a bit then reset
+                     if (state.frame % 60 === 0) {
                         state.x = 100;
                         state.y = 500;
                         state.vy = 0;
                         state.isGrounded = true;
                         state.tutorialPhase = 0;
+                     }
+                }
+
+                if (state.tutorialPhase === 0) {
+                    // Jump up
+                    if (state.isGrounded && state.frame % 60 === 0) {
+                         state.vy = -Constants.WEAK_JUMP_FORCE * 0.8; // Normal jump
+                         state.isGrounded = false;
+                         state.tutorialPhase = 1; // In air
+                         state.perfectJumpReady = false;
+                    }
+                }
+                
+                // Detect landing for Perfect Jump
+                if (state.vy > 0 && state.y > 450) {
+                    state.perfectJumpReady = true;
+                } else {
+                    state.perfectJumpReady = false;
+                }
+                
+                // Auto Perfect Jump when very close
+                if (state.y > 490 && state.vy > 0 && state.tutorialPhase === 1) {
+                     // Trigger Perfect Jump
+                     state.vy = -Constants.PERFECT_JUMP_FORCE;
+                     state.tutorialPhase = 2; // Soaring
+                     state.perfectJumpReady = false;
+                     
+                     // Floating Text
+                     state.floatingTexts.push({
+                        x: state.x, y: state.y - 40,
+                        text: "PERFECT!!",
+                        life: 60,
+                        color: '#ec4899',
+                        vy: -2
+                    });
+
+                    // Pink particles
+                    for (let i = 0; i < 20; i++) {
+                        state.particles.push({
+                            x: state.x, y: state.y + 24,
+                            vx: (Math.random() - 0.5) * 10, vy: -Math.random() * 5,
+                            life: 40, color: '#ec4899'
+                        });
                     }
                 }
             } else if (activeTab === 'wrap') {
                 // Tutorial: show screen wrap - keep grounded
-                state.vx = Constants.MAX_H_SPEED * 0.5;
+                state.vx += Constants.MOVE_ACCELERATION * 0.5 * timeScale;
                 state.direction = 1;
                 state.y = 290; // Keep on ground level
                 state.vy = 0; // No vertical movement
             }
             
             // ========== PHYSICS ==========
-            // Jetpack - REAL GAME PHYSICS
+            
+            // ========== PHYSICS ==========
+            
+            // 1. Friction (Horizontal)
+            state.vx *= Math.pow(Constants.FRICTION, timeScale);
+            
+            // Cap Speed
+            const maxH = Constants.MAX_H_SPEED;
+            state.vx = Math.max(-maxH, Math.min(maxH, state.vx));
+
+            // 2. Jetpack - REAL GAME PHYSICS
             if (state.jetpackActive && state.jetpackFuel > 0) {
                 state.jetpackTimer--;
                 
@@ -280,13 +324,14 @@ export const CharacterPreviewModal = ({ skin, onClose, onSelectSkin, allSkins, u
                 let fuelCost = Constants.JETPACK_FUEL_COST_PER_FRAME;
                 let isBurst = false;
 
+                // Burst vs Glide Logic (Same as Game)
                 if (state.vy > 0) {
-                    // BURST mode
+                    // Falling -> Burst
                     isBurst = true;
                     force = Constants.JETPACK_FORCE * 2.5;
                     fuelCost = Constants.JETPACK_FUEL_COST_PER_FRAME * 4.0;
                 } else {
-                    // GLIDE mode
+                    // Rising -> Glide
                     if (state.vy < -10) {
                         force = Constants.GRAVITY * 0.8;
                     } else {
@@ -295,37 +340,44 @@ export const CharacterPreviewModal = ({ skin, onClose, onSelectSkin, allSkins, u
                     fuelCost = Constants.JETPACK_FUEL_COST_PER_FRAME * 0.5;
                 }
                 
-                state.vy -= force;
-                state.jetpackFuel -= fuelCost;
+                state.vy -= force * timeScale;
+                state.jetpackFuel -= fuelCost * timeScale;
                 
                 if (state.jetpackTimer <= 0 && activeTab !== 'jetpack') {
                     state.jetpackActive = false;
                 }
                 
-                // Flame particles
+                // Particles
                 if (state.frame % 2 === 0) {
                     const pColor = isBurst ? '#f97316' : '#22d3ee';
                     state.particles.push({
-                        x: state.x + (Math.random() - 0.5) * 10, 
-                        y: state.y + 24,
-                        vx: (Math.random() - 0.5) * (isBurst ? 8 : 3), 
-                        vy: (isBurst ? 10 : 4) + Math.random() * (isBurst ? 10 : 4),
-                        life: isBurst ? 20 : 12, 
+                        x: state.x + (state.direction * 10), 
+                        y: state.y + 20,
+                        vx: (Math.random() - 0.5) * 2, 
+                        vy: 5 + Math.random() * 5,
+                        life: 20, 
                         color: pColor
                     });
                 }
+            } else {
+                // 3. Gravity & Air Resistance
+                state.vy += Constants.GRAVITY * timeScale;
+                
+                if (state.vy < 0) {
+                    // Rising
+                    state.vy *= Math.pow(Constants.AIR_RESISTANCE_RISE, timeScale);
+                } else {
+                    // Falling
+                    state.vy *= Math.pow(Constants.AIR_RESISTANCE, timeScale);
+                }
             }
-            
-            // Gravity - REAL GAME CONSTANTS
-            state.vy += Constants.GRAVITY;
-            state.vy *= Constants.AIR_RESISTANCE; // Air resistance
             
             // Cap fall speed
             if (state.vy > Constants.MAX_FALL_SPEED) state.vy = Constants.MAX_FALL_SPEED;
             
-            // Apply velocity
-            state.x += state.vx;
-            state.y += state.vy;
+            // Apply Velocity
+            state.x += state.vx * timeScale;
+            state.y += state.vy * timeScale;
             
             // Screen wrap (horizontal) - Adjusted for larger world
             const worldWidth = canvas.width * 2; // Since we zoomed out 0.5
@@ -529,6 +581,31 @@ export const CharacterPreviewModal = ({ skin, onClose, onSelectSkin, allSkins, u
             }
             
             ctx.restore(); // Restore scale for UI text
+
+            // Overlay for Slow Motion
+            if (activeTab === 'perfect' && timeScale < 1.0) {
+                // Matrix-style overlay
+                ctx.fillStyle = 'rgba(0, 20, 0, 0.2)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                ctx.save();
+                ctx.shadowColor = '#00ff00';
+                ctx.shadowBlur = 10;
+                ctx.fillStyle = '#00ff00';
+                ctx.font = "bold italic 24px monospace";
+                ctx.textAlign = "center";
+                ctx.fillText("SLOW MOTION: TIMING", canvas.width / 2, 100);
+                
+                // Draw timing line
+                ctx.strokeStyle = '#00ff00';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([10, 10]);
+                ctx.beginPath();
+                ctx.moveTo(0, 250); // Visual ground line (500 * 0.5)
+                ctx.lineTo(canvas.width, 250);
+                ctx.stroke();
+                ctx.restore();
+            }
             
             // ========== TUTORIAL TEXT ==========
             ctx.font = 'bold 14px monospace';
