@@ -386,9 +386,26 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
                                 <Trophy className="text-yellow-400" size={20} />
                                 LEADERBOARD
                             </h3>
-                            <button onClick={() => setShowRanking(false)} className="p-2 hover:bg-slate-800 rounded-full transition-colors">
-                                <X size={20} className="text-slate-400" />
-                            </button>
+                            <div className="flex items-center gap-2">
+                                <button 
+                                    onClick={() => {
+                                        if (activeTab === 'global') {
+                                            setGlobalStatus(t[lang].loading);
+                                            Persistence.fetchGlobalLeaderboard().then(data => {
+                                                if (setLeaderboard) setLeaderboard(data);
+                                                setGlobalStatus(null);
+                                            });
+                                        }
+                                    }}
+                                    className="p-2 hover:bg-slate-800 rounded-full transition-colors text-slate-400 hover:text-cyan-400"
+                                    title="Refresh"
+                                >
+                                    <RefreshCw size={16} className={globalStatus ? "animate-spin" : ""} />
+                                </button>
+                                <button onClick={() => setShowRanking(false)} className="p-2 hover:bg-slate-800 rounded-full transition-colors">
+                                    <X size={20} className="text-slate-400" />
+                                </button>
+                            </div>
                         </div>
                         
                         <div className="flex border-b border-slate-800">
@@ -413,9 +430,27 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
                                     <p className="text-xs mt-2">{t[lang].maxAltitudeLabel} {Math.floor(Persistence.loadMaxAltitude())}m</p>
                                 </div>
                             ) : (
-                                <div className="text-center py-8 text-slate-500">
-                                    <Globe className="mx-auto mb-2 opacity-20" size={48} />
-                                    <p>{t[lang].globalComingSoon}</p>
+                                <div className="space-y-2">
+                                    {leaderboard && leaderboard.length > 0 ? (
+                                        leaderboard.map((entry: any, index: number) => (
+                                            <div key={index} className={`flex items-center justify-between p-3 rounded-lg border ${index === 0 ? 'bg-yellow-900/20 border-yellow-500/50' : index === 1 ? 'bg-slate-700/30 border-slate-500/50' : index === 2 ? 'bg-orange-900/20 border-orange-500/50' : 'bg-slate-800/30 border-slate-700'}`}>
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${index === 0 ? 'bg-yellow-500 text-black' : index === 1 ? 'bg-slate-400 text-black' : index === 2 ? 'bg-orange-500 text-black' : 'bg-slate-700 text-slate-400'}`}>
+                                                        {index + 1}
+                                                    </div>
+                                                    <span className={`font-bold text-sm ${index === 0 ? 'text-yellow-400' : index === 1 ? 'text-slate-300' : index === 2 ? 'text-orange-400' : 'text-slate-400'}`}>
+                                                        {entry.name}
+                                                    </span>
+                                                </div>
+                                                <span className="font-mono font-bold text-cyan-400">{entry.score}m</span>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="text-center py-8 text-slate-500">
+                                            <Loader2 className="mx-auto mb-2 animate-spin" size={24} />
+                                            <p>{t[lang].loading}</p>
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>

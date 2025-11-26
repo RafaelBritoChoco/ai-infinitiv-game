@@ -101,19 +101,15 @@ export default async function handler(request, response) {
 
             const leaderboard = [];
             const names = [];
-            const scoreMap = new Map();
-
-            // Processar scores e coletar nomes para buscar metadados
-            // Upstash retorna array alternado [member, score, member, score...] ou objetos dependendo da versão
-            // Vamos normalizar
             
             let processedScores = [];
-            if (Array.isArray(scores) && scores.length > 0) {
-                if (typeof scores[0] === 'object' && 'score' in scores[0]) {
-                    // Formato [{member: 'Rafa', score: 100}, ...]
+            if (Array.isArray(scores)) {
+                // Check if it's an array of objects (new Upstash SDK) or flat array (old SDK)
+                if (scores.length > 0 && typeof scores[0] === 'object' && 'score' in scores[0]) {
+                    // Format: [{member: 'Rafa', score: 100}, ...]
                     processedScores = scores;
                 } else {
-                    // Formato ['Rafa', 100, 'Bob', 90]
+                    // Format: ['Rafa', 100, 'Bob', 90]
                     for (let i = 0; i < scores.length; i += 2) {
                         processedScores.push({ member: scores[i], score: scores[i+1] });
                     }
@@ -124,7 +120,6 @@ export default async function handler(request, response) {
             processedScores.forEach(item => {
                 const name = String(item.member);
                 names.push(name);
-                scoreMap.set(name, Number(item.score));
             });
 
             // Buscar metadados (datas)
