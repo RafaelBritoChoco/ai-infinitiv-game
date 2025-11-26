@@ -437,6 +437,7 @@ export const useGameLoop = (props: GameLoopProps) => {
     };
 
     const draw = (ctx: CanvasRenderingContext2D) => {
+        ctx.imageSmoothingEnabled = false;
         const { width, height } = ctx.canvas;
         const cfg = configRef.current;
         const state = stateRef.current;
@@ -778,66 +779,6 @@ export const useGameLoop = (props: GameLoopProps) => {
 
         if (!state.isGameOver && state.isPlaying) {
             const currentAlt = Math.floor(Math.abs(Math.min(0, playerRef.current.y)) / 10);
-
-            // --- IMPROVED HUD: Coins + Health + Altitude (MUCH LARGER) ---
-            ctx.save();
-
-            // Background bar - BIGGER
-            const barWidth = 500 * scale;  // Increased from 400
-            const barHeight = 90 * scale;  // Increased from 60 - MUCH TALLER
-            const barX = width / 2 - barWidth / 2;
-            const barY = 20 * scale;
-
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-            ctx.strokeStyle = '#06b6d4';
-            ctx.lineWidth = 3 * scale;  // Thicker border
-            ctx.fillRect(barX, barY, barWidth, barHeight);
-            ctx.strokeRect(barX, barY, barWidth, barHeight);
-
-            // COINS (Left) - BIGGER FONT
-            ctx.fillStyle = '#facc15';
-            ctx.font = `900 ${36 * scale}px "Rajdhani", sans-serif`;  // Increased from 24
-            ctx.textAlign = 'left';
-            ctx.textBaseline = 'middle';
-            ctx.shadowColor = '#facc15';
-            ctx.shadowBlur = 15;
-            ctx.fillText(`💰 ${state.runCoins}`, barX + 20 * scale, barY + barHeight / 2);
-
-            // HEALTH (Center-Left) - MUCH BIGGER HEARTS
-            ctx.shadowBlur = 0;
-            const heartSize = 32 * scale;  // Increased from 20 - 60% BIGGER!
-            const heartY = barY + barHeight / 2;
-            let heartX = barX + 180 * scale;
-            for (let i = 0; i < state.maxHealth; i++) {
-                if (i < state.health) {
-                    // Full heart - bright pink with glow
-                    ctx.fillStyle = '#ec4899';
-                    ctx.shadowColor = '#ec4899';
-                    ctx.shadowBlur = 10;
-                    ctx.font = `${heartSize}px Arial`;
-                    ctx.fillText('❤️', heartX, heartY);
-                } else {
-                    // Lost heart - dark gray broken heart
-                    ctx.shadowBlur = 0;
-                    ctx.fillStyle = '#1e293b'; // Very dark gray
-                    ctx.strokeStyle = '#475569';
-                    ctx.lineWidth = 1;
-                    ctx.font = `${heartSize}px Arial`;
-                    ctx.fillText('💔', heartX, heartY); // Broken heart emoji
-                }
-                heartX += heartSize + 8 * scale;  // More spacing
-            }
-
-            // ALTITUDE (Right) - MUCH BIGGER
-            ctx.shadowBlur = 0;
-            ctx.fillStyle = '#06b6d4';
-            ctx.font = `900 ${48 * scale}px "Rajdhani", sans-serif`;  // Increased from 28 - HUGE!
-            ctx.textAlign = 'right';
-            ctx.shadowColor = '#06b6d4';
-            ctx.shadowBlur = 15;
-            ctx.fillText(`${currentAlt}m`, barX + barWidth - 20 * scale, barY + barHeight / 2);
-
-            ctx.restore();
             
             // RECORD CELEBRATION EFFECT - Small trophy in corner (NOT blocking gameplay)
             if (recordCelebrationRef.current.active) {

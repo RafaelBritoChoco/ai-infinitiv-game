@@ -71,14 +71,6 @@ export const GameUI = ({ gameState, config, setConfig, weedMode }: any) => {
                     <span className={`text-xs font-bold uppercase mt-1 ${weedMode ? 'text-green-600' : 'text-slate-500'}`}>m</span>
                 </div>
             </div>
-            
-            {/* Player Name Tag (Floating below HUD) */}
-            <div className="absolute top-16 left-1/2 -translate-x-1/2 bg-black/40 backdrop-blur px-3 py-1 rounded-full border border-white/10">
-                <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest flex items-center gap-2">
-                    <User size={10} className="text-cyan-400" />
-                    {gameState.username || "AGENT"}
-                </span>
-            </div>
         </div>
     );
 };

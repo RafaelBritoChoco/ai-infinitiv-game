@@ -46,7 +46,7 @@ export const FUEL_REGEN_ON_LAND = 8.0;
 // World Generation
 export const VIEWPORT_WIDTH = 1200;
 export const WORLD_EXPANSION_RATE = 0;
-export const PLAYER_SIZE = 80;
+export const PLAYER_SIZE = 96;
 export const PLATFORM_GAP_MIN = 110; // Was 130 (Easier start)
 export const PLATFORM_GAP_MAX = 250;
 export const LEVEL_HEIGHT = 1200;
