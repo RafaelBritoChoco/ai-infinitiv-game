@@ -128,10 +128,6 @@ export const CharacterPreviewModal = ({ skin, onClose, onSelectSkin, allSkins, u
         if (!ctx) return;
         
         const state = stateRef.current;
-        // USE REAL GAME CONSTANTS
-        const GRAVITY = Constants.GRAVITY; 
-        const JUMP_FORCE = -Constants.WEAK_JUMP_FORCE; // Use weak jump for normal jumps
-        const PERFECT_FORCE = -Constants.PERFECT_JUMP_FORCE;
         
         const animate = () => {
             // Clear
@@ -139,13 +135,10 @@ export const CharacterPreviewModal = ({ skin, onClose, onSelectSkin, allSkins, u
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             
             // Camera Logic (Follow Player Y)
-            // Target Y is player Y minus some offset to keep them centered
-            // We want the ground (y=500) to be at canvas bottom when grounded
             let targetCamY = 0;
             if (state.y < 300) {
                 targetCamY = state.y - 200;
             }
-            // Smooth camera
             state.cameraY += (targetCamY - state.cameraY) * 0.1;
             
             ctx.save();
@@ -156,7 +149,7 @@ export const CharacterPreviewModal = ({ skin, onClose, onSelectSkin, allSkins, u
             ctx.fillStyle = 'rgba(255,255,255,0.2)';
             for (let i = 0; i < 60; i++) { 
                 const sx = (i * 73 + state.frame * 0.1) % (canvas.width * 2);
-                const sy = (i * 47 + state.cameraY * 0.5) % (canvas.height * 3); // Parallax Y
+                const sy = (i * 47 + state.cameraY * 0.5) % (canvas.height * 3);
                 ctx.fillRect(sx, sy, 1, 1);
             }
             
@@ -165,18 +158,18 @@ export const CharacterPreviewModal = ({ skin, onClose, onSelectSkin, allSkins, u
             // ========== TAB-SPECIFIC LOGIC ==========
             if (activeTab === 'preview') {
                 // Auto movement - smoother zigzag
-                const movePhase = state.frame % 120;
-                if (movePhase < 60) {
+                const movePhase = state.frame % 180;
+                if (movePhase < 90) {
                     state.direction = 1;
-                    state.vx = 1.8;
+                    state.vx = Constants.MAX_H_SPEED * 0.3; // 30% speed
                 } else {
                     state.direction = -1;
-                    state.vx = -1.8;
+                    state.vx = -Constants.MAX_H_SPEED * 0.3;
                 }
                 
-                // Auto jump when grounded (less frequent, more predictable)
-                if (state.isGrounded && state.frame % 60 === 30) {
-                    state.vy = JUMP_FORCE;
+                // Auto jump when grounded
+                if (state.isGrounded && state.frame % 90 === 45) {
+                    state.vy = -Constants.WEAK_JUMP_FORCE;
                     state.isGrounded = false;
                     // Jump particles
                     for (let i = 0; i < 5; i++) {
@@ -189,9 +182,9 @@ export const CharacterPreviewModal = ({ skin, onClose, onSelectSkin, allSkins, u
                 }
                 
                 // Jetpack occasionally
-                if (state.frame % 200 === 100) {
+                if (state.frame % 300 === 150) {
                     state.jetpackActive = true;
-                    state.jetpackTimer = 50;
+                    state.jetpackTimer = 40;
                 }
             } else if (activeTab === 'jetpack') {
                 // Tutorial: show jetpack crossing gap
@@ -199,22 +192,22 @@ export const CharacterPreviewModal = ({ skin, onClose, onSelectSkin, allSkins, u
                 
                 if (phase === 0) {
                     // Walk right
-                    state.vx = 1.5;
+                    state.vx = Constants.MAX_H_SPEED * 0.3;
                     state.direction = 1;
                     state.jetpackFuel = 100;
                 } else if (phase === 1) {
                     // Jump and activate jetpack over gap
                     if (state.tutorialPhase !== 1) {
-                        state.vy = JUMP_FORCE;
+                        state.vy = -Constants.WEAK_JUMP_FORCE;
                         state.isGrounded = false;
                         state.tutorialPhase = 1;
                     }
                     state.jetpackActive = true;
-                    state.vx = 2;
+                    state.vx = Constants.MAX_H_SPEED * 0.4;
                 } else if (phase === 2) {
                     // Land and walk left
                     state.jetpackActive = false;
-                    state.vx = -1.5;
+                    state.vx = -Constants.MAX_H_SPEED * 0.3;
                     state.direction = -1;
                 } else {
                     // Reset position
@@ -228,7 +221,7 @@ export const CharacterPreviewModal = ({ skin, onClose, onSelectSkin, allSkins, u
                 }
             } else if (activeTab === 'perfect') {
                 // Tutorial: show perfect jump timing
-                const phase = Math.floor(state.frame / 150) % 3; // Slower phases
+                const phase = Math.floor(state.frame / 150) % 3;
                 
                 if (phase === 0) {
                     // Show pink indicator (ready to perfect jump)
@@ -237,7 +230,7 @@ export const CharacterPreviewModal = ({ skin, onClose, onSelectSkin, allSkins, u
                 } else if (phase === 1) {
                     // Do perfect jump (high jump)
                     if (state.tutorialPhase !== 1 && state.isGrounded) {
-                        state.vy = PERFECT_FORCE; // REAL GAME FORCE (-65)
+                        state.vy = -Constants.PERFECT_JUMP_FORCE; // REAL GAME FORCE
                         state.isGrounded = false;
                         state.tutorialPhase = 1;
                         state.perfectJumpReady = false;
@@ -272,30 +265,38 @@ export const CharacterPreviewModal = ({ skin, onClose, onSelectSkin, allSkins, u
                 }
             } else if (activeTab === 'wrap') {
                 // Tutorial: show screen wrap - keep grounded
-                state.vx = 3;
+                state.vx = Constants.MAX_H_SPEED * 0.5;
                 state.direction = 1;
                 state.y = 290; // Keep on ground level
                 state.vy = 0; // No vertical movement
-                // Don't clamp, let it wrap
             }
             
             // ========== PHYSICS ==========
             // Jetpack - REAL GAME PHYSICS
             if (state.jetpackActive && state.jetpackFuel > 0) {
                 state.jetpackTimer--;
-                state.jetpackFuel -= 1.5; // Drain fuel
                 
-                // Jetpack force depends on vertical velocity (like the game)
-                let force = Constants.JETPACK_FORCE * 5; // Adjusted for preview scale
+                let force = Constants.JETPACK_FORCE;
+                let fuelCost = Constants.JETPACK_FUEL_COST_PER_FRAME;
                 let isBurst = false;
-                
+
                 if (state.vy > 0) {
-                    // BURST mode - falling, need more force
-                    force = force * 2;
+                    // BURST mode
                     isBurst = true;
+                    force = Constants.JETPACK_FORCE * 2.5;
+                    fuelCost = Constants.JETPACK_FUEL_COST_PER_FRAME * 4.0;
+                } else {
+                    // GLIDE mode
+                    if (state.vy < -10) {
+                        force = Constants.GRAVITY * 0.8;
+                    } else {
+                        force = Constants.GRAVITY * 1.2;
+                    }
+                    fuelCost = Constants.JETPACK_FUEL_COST_PER_FRAME * 0.5;
                 }
                 
-                state.vy = Math.max(state.vy - force, -10);
+                state.vy -= force;
+                state.jetpackFuel -= fuelCost;
                 
                 if (state.jetpackTimer <= 0 && activeTab !== 'jetpack') {
                     state.jetpackActive = false;
@@ -316,7 +317,7 @@ export const CharacterPreviewModal = ({ skin, onClose, onSelectSkin, allSkins, u
             }
             
             // Gravity - REAL GAME CONSTANTS
-            state.vy += GRAVITY;
+            state.vy += Constants.GRAVITY;
             state.vy *= Constants.AIR_RESISTANCE; // Air resistance
             
             // Cap fall speed
