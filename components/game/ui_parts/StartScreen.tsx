@@ -8,6 +8,7 @@ import * as Constants from '../../../constants';
 import { soundManager } from '../audioManager';
 import { AdminPanel } from './AdminPanelComponent';
 import { CharacterPreviewModal } from './CharacterPreviewModal';
+import { TutorialModal } from './TutorialModal';
 import { getUnlockedTrophySkins, getTrophySkinByRank, TROPHY_GOLD, TROPHY_SILVER, TROPHY_BRONZE } from './TrophySkins';
 import { Persistence } from '../persistence';
 import { TRANSLATIONS } from '../translations';
@@ -18,6 +19,7 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
 
     const [showSensorDebug, setShowSensorDebug] = useState(false);
     const [showRanking, setShowRanking] = useState(false);
+    const [showTutorial, setShowTutorial] = useState(false);
     const [showAdminPanel, setShowAdminPanel] = useState(false);
     const [secretCode, setSecretCode] = useState('');
     const [showCharacterPreview, setShowCharacterPreview] = useState(false);
@@ -301,7 +303,7 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
                         
                         {/* TUTORIAL BUTTON */}
                         <button 
-                            onClick={onOpenControls}
+                            onClick={() => setShowTutorial(true)}
                             className="w-full mt-2 py-1.5 bg-slate-800/50 hover:bg-slate-700/50 border border-slate-700 rounded text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-center gap-2 transition-all"
                         >
                             <HelpCircle size={10} /> {t[lang].tutorial}
@@ -371,6 +373,9 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
             
             {/* Admin Panel */}
             {showAdminPanel && <AdminPanel onClose={() => setShowAdminPanel(false)} />}
+
+            {/* Tutorial Modal */}
+            {showTutorial && <TutorialModal onClose={() => setShowTutorial(false)} lang={lang} />}
             
             {/* RANKING MODAL */}
             {showRanking && (

@@ -50,6 +50,14 @@ export const TRANSLATIONS = {
             ai_generated: "Born from the machine. Has no soul."
         },
         tutorial: "HOW TO PLAY",
+        tutorialContent: {
+            title: "MISSION BRIEFING",
+            step1: "Tilt your phone or use arrows to steer.",
+            step2: "Jump on platforms to ascend.",
+            step3: "Collect coins for upgrades & skins.",
+            step4: "Don't fall. Don't die. Good luck.",
+            gotIt: "ROGER THAT"
+        },
         back: "GET OUT",
         buy: "GRAB IT",
         equipped: "EQUIPPED",
@@ -121,6 +129,14 @@ export const TRANSLATIONS = {
             ai_generated: "Criado pelo robô. Sem alma, só código."
         },
         tutorial: "COMO JOGA?",
+        tutorialContent: {
+            title: "MANUAL DO PILOTO",
+            step1: "Mexe o celular ou usa as setas pra guiar.",
+            step2: "Pula nas plataformas pra subir.",
+            step3: "Pega as moedas pra comprar coisas.",
+            step4: "Não cai e não morre. É isso.",
+            gotIt: "SAQUEI"
+        },
         back: "VAZAR",
         buy: "COMPRAR",
         equipped: "TÁ NA MÃO",
@@ -192,6 +208,14 @@ export const TRANSLATIONS = {
             ai_generated: "Fatto dal computer. Senza cuore."
         },
         tutorial: "COME GIOCARE",
+        tutorialContent: {
+            title: "ISTRUZIONI",
+            step1: "Muovi il telefono o usa le frecce.",
+            step2: "Salta sulle piattaforme per salire.",
+            step3: "Raccogli monete per comprare roba.",
+            step4: "Non cadere. Non morire. Buona fortuna.",
+            gotIt: "CAPITO"
+        },
         back: "INDIETRO",
         buy: "COMPRA",
         equipped: "EQUIPAGGIATO",
