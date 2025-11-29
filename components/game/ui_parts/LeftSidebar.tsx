@@ -1,5 +1,5 @@
 import React from 'react';
-import { Shuffle, MapPin, Trophy, Coins, Shield, Heart, Crown, Gamepad2, Keyboard } from 'lucide-react';
+import { Trophy, Coins, Shield, Heart, Crown, Gamepad2, Keyboard } from 'lucide-react';
 import { SideBarMetric } from './SideBarMetric';
 import { soundManager } from '../audioManager';
 import { LeaderboardEntry } from '../../types';
@@ -11,10 +11,6 @@ export const LeftSidebar = ({ gameState, config, gamepadConnected, leaderboard }
                 AI<br />
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500">INFINITIV</span>
             </h1>
-            <div className="text-xs text-cyan-600 font-mono mt-2 font-bold flex items-center gap-1">
-                {gameState.levelType === 'RANDOM' ? <Shuffle size={10} /> : <MapPin size={10} />}
-                {gameState.levelType === 'RANDOM' ? 'RANDOM SEC' : `SEC ${gameState.levelIndex}`}
-            </div>
         </div>
         <div className="space-y-3 flex-1 overflow-y-auto custom-scrollbar pr-2">
             {/* Removed duplicate metrics (Score, Coins, Health) as they are now in the main HUD */}

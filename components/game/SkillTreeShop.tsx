@@ -5,6 +5,7 @@ import {
 import * as Constants from '../../constants';
 import { ShopUpgrades } from '../../types';
 import { TRANSLATIONS } from './translations';
+import { soundManager } from './audioManager';
 
 interface SkillTreeShopProps {
     gameState: any;

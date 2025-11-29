@@ -117,16 +117,19 @@ export const TRANSLATIONS = {
             ai_generated: "Bicho doido criado pelo computador."
         },
         lore: {
-            cat: "Só um gato laranja. Curte lasanha e caos.",
+            pp: "🎂 Feliz Aniversário, PP! O lendário . Abraço do Choco, tmj mano! 💪 PS: chocopro",
+            cat: "Garfield raiz! Preguiçoso, viciado em lasanha e expert em segunda-feira de ressaca. Não perturba antes do café.",
+            kero: "Kerinho malandro! Sapo nordestino com jetpack turbinado. Voa mais que lagartixa de apartamento. 🐸🚀",
             frog: "Sapo com foguete. Vai dar ruim.",
-            luna: "Veio da lua, tá ligado? Gravidade zero.",
-            bambam: "O monstro saiu da jaula! BIRL!",
-            fuego: "Tá pegando fogo bicho!",
-            glitch: "O sistema falhou. Deu tela azul.",
-            trophy_gold: "Ouro puro. Ostentação total.",
-            trophy_silver: "Quase lá. O importante é participar.",
-            trophy_bronze: "Pelo menos não foi o último.",
-            ai_generated: "Criado pelo robô. Sem alma, só código."
+            ginger: "O famoso Ginger da quebrada! Ruivo raiz, pegador de plataformas e mestre do timing perfeito. Respeita!",
+            luna: "Veio direto da lua! Astronauta freestyle, gravidade zero na mente. Flutua de boa e manda salto espacial.",
+            bambam: "BIRL! O monstro das alturas saiu da jaula! Pula alto, bate forte, não respeita a física. PORRA!",
+            fuego: "Tá pegando fogo bicho! Literal. Esse cara é puro calor, voa que nem meteoro e deixa rastro de chama.",
+            glitch: "Erro 404: Física não encontrada. Bugado da matrix, teleporta sem querer e quebra as leis da natureza.",
+            trophy_gold: "👑 OURO PURO! O rei da ostentação. Brilha mais que sol do meio-dia. Respeita o rankeado!",
+            trophy_silver: "🥈 Prata fina! Segundo lugar é o primeiro dos perdedores? Não aqui, mano. Tá no pódio!",
+            trophy_bronze: "🥉 Bronze raiz! Pelo menos não foi o último. Medalha é medalha, respeita o top 3!",
+            ai_generated: "Criado pela inteligência artificial! Personalidade gerada por algoritmo, visual único. Pura inovação digital! ⚡🤖"
         },
         tutorial: "COMO JOGA?",
         tutorialContent: {

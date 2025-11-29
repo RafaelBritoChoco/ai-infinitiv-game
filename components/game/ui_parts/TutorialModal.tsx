@@ -36,7 +36,7 @@ const INITIAL_GAME_STATE: GameState = {
     waitingForFirstJump: false,
     combo: 0,
     selectedSkin: { id: 'tutorial', name: 'Tutorial', color: '#06b6d4', pixels: [] },
-    upgrades: { maxFuel: 1, efficiency: 1, jump: 1, aerodynamics: 1, luck: 1, shield: 0 },
+    upgrades: { maxFuel: 1, efficiency: 1, jump: 1, aerodynamics: 1, luck: 1, shield: 0, extraLives: 0 },
     hitStop: 0,
     isEditing: false,
     isFreefallMode: false
@@ -51,12 +51,15 @@ const STEPS = [
     { id: 'wrap', icon: Repeat, title: 'SCREEN WRAP', desc: 'Atravesse as bordas da tela.' },
 ];
 
-export const TutorialModal = ({ onClose, lang, gameState }: { onClose: () => void, lang: string, gameState?: GameState }) => {
+export const TutorialModal = ({ onClose, lang, gameState, config }: { onClose: () => void, lang: string, gameState?: GameState, config?: GameConfig }) => {
     const t = TRANSLATIONS[lang as keyof typeof TRANSLATIONS] || TRANSLATIONS.EN;
     const [step, setStep] = useState(0);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const requestRef = useRef<number>();
     
+    // Use passed config or fallback
+    const activeConfig = config || MOCK_CONFIG;
+
     // Simulation State Refs
     const playerRef = useRef<Player>({
         x: 600 - 48, y: 400, vx: 0, vy: 0,
@@ -73,6 +76,7 @@ export const TutorialModal = ({ onClose, lang, gameState }: { onClose: () => voi
     const platformsRef = useRef<Platform[]>([]);
     const particlesRef = useRef<Particle[]>([]);
     const floatingTextsRef = useRef<FloatingText[]>([]);
+    const cameraRef = useRef({ x: 0, y: 0 });
     
     // Use passed gameState skin or fallback
     const initialState = { ...INITIAL_GAME_STATE };
@@ -90,6 +94,15 @@ export const TutorialModal = ({ onClose, lang, gameState }: { onClose: () => voi
     const saveNodesRef = useRef<any[]>([]);
     const fuelRef = useRef(100);
     const scoreRef = useRef(0);
+    const landedTimeRef = useRef(0);
+
+    // Static callbacks to avoid GC thrashing
+    const noOp = () => {};
+    const setGameStateWrapper = (u: any) => {
+        if (typeof u === 'function') gameStateRef.current = u(gameStateRef.current);
+        else gameStateRef.current = u;
+    };
+    const setJetpackModeWrapper = (m: any) => jetpackModeRef.current = m;
 
     // Update skin if prop changes
     useEffect(() => {
@@ -101,8 +114,14 @@ export const TutorialModal = ({ onClose, lang, gameState }: { onClose: () => voi
     // Reset simulation for each step
     useEffect(() => {
         const p = playerRef.current;
+        // Position player lower (y=600) so we have more space above (0-600)
+        // Canvas height 400 / 0.5 scale = 800 world units.
+        // Ground at 700 puts player at ~700. 
+        // 700 is 7/8th down the screen. Good for "showing more upwards".
+        const GROUND_Y = 700;
+        
         p.x = 600 - 48;
-        p.y = 400;
+        p.y = GROUND_Y - 96; // On top of ground
         p.vx = 0;
         p.vy = 0;
         p.isGrounded = true;
@@ -110,29 +129,46 @@ export const TutorialModal = ({ onClose, lang, gameState }: { onClose: () => voi
         particlesRef.current = [];
         floatingTextsRef.current = [];
         inputRef.current = { left: false, right: false, jetpack: false, jumpIntent: false, jumpPressedTime: 0, tiltX: 0 };
+        cameraRef.current = { x: 0, y: 0 };
+        fuelRef.current = 100;
+
+        // WIDE FLOOR for all levels (prevents falling into infinity)
+        const floor = { 
+            id: 999, 
+            x: -2000, 
+            y: GROUND_Y, 
+            w: 6000, // Infinite floor
+            h: 64, 
+            type: PlatformType.STATIC, 
+            passed: false, 
+            initialX: -2000, 
+            color: '#06b6d4', 
+            width: 6000, 
+            height: 64 
+        };
 
         // Setup Platforms based on Step
         if (step === 1) { // Move
-            platformsRef.current = [{ id: 1, x: 200, y: 600, w: 800, h: 32, type: PlatformType.STATIC, passed: false, initialX: 200, color: '#06b6d4', width: 800, height: 32 }];
+            platformsRef.current = [floor];
         } else if (step === 2) { // Jump
             platformsRef.current = [
-                { id: 1, x: 200, y: 600, w: 800, h: 32, type: PlatformType.STATIC, passed: false, initialX: 200, color: '#06b6d4', width: 800, height: 32 },
-                { id: 2, x: 400, y: 400, w: 400, h: 32, type: PlatformType.STATIC, passed: false, initialX: 400, color: '#06b6d4', width: 400, height: 32 }
+                floor,
+                { id: 998, x: 400, y: GROUND_Y - 200, w: 200, h: 32, type: PlatformType.STATIC, passed: false, initialX: 400, color: '#06b6d4', width: 200, height: 32 }
             ];
         } else if (step === 3) { // Perfect
-            platformsRef.current = [{ id: 1, x: 200, y: 600, w: 800, h: 32, type: PlatformType.STATIC, passed: false, initialX: 200, color: '#06b6d4', width: 800, height: 32 }];
-            p.y = 200; // Start in air
+            platformsRef.current = [floor];
+            p.y = GROUND_Y - 400; // Start in air
             p.isGrounded = false;
         } else if (step === 4) { // Jetpack
             platformsRef.current = [
-                { id: 1, x: 100, y: 600, w: 300, h: 32, type: PlatformType.STATIC, passed: false, initialX: 100, color: '#06b6d4', width: 300, height: 32 },
-                { id: 2, x: 800, y: 600, w: 300, h: 32, type: PlatformType.STATIC, passed: false, initialX: 800, color: '#06b6d4', width: 300, height: 32 }
+                floor,
+                { id: 998, x: 800, y: GROUND_Y - 300, w: 200, h: 32, type: PlatformType.STATIC, passed: false, initialX: 800, color: '#06b6d4', width: 200, height: 32 }
             ];
             p.x = 200;
         } else if (step === 5) { // Wrap
-            platformsRef.current = [{ id: 1, x: 200, y: 600, w: 800, h: 32, type: PlatformType.STATIC, passed: false, initialX: 200, color: '#06b6d4', width: 800, height: 32 }];
+            platformsRef.current = [floor];
         } else {
-            platformsRef.current = [{ id: 1, x: 200, y: 600, w: 800, h: 32, type: PlatformType.STATIC, passed: false, initialX: 200, color: '#06b6d4', width: 800, height: 32 }];
+            platformsRef.current = [floor];
         }
 
     }, [step]);
@@ -163,40 +199,79 @@ export const TutorialModal = ({ onClose, lang, gameState }: { onClose: () => voi
                     inputRef.current.jumpIntent = false;
                 }
             } else if (step === 3) { // Perfect Jump
-                // Reset if landed without perfect
-                if (p.isGrounded && frame > 10 && p.y > 500) {
-                    p.y = 200;
-                    p.vy = 0;
-                    p.isGrounded = false;
-                    frameRef.current = 0;
+                // Reset if landed without perfect (with delay)
+                if (p.isGrounded && frame > 10 && p.y > 600) {
+                    landedTimeRef.current++;
+                    
+                    // Show "Try Again" visual or just wait
+                    if (landedTimeRef.current > 40) { // Wait ~0.7s
+                        p.y = 200;
+                        p.vy = 0;
+                        p.isGrounded = false;
+                        frameRef.current = 0;
+                        landedTimeRef.current = 0;
+                        inputRef.current.jumpIntent = false;
+                    }
+                } else {
+                    landedTimeRef.current = 0;
                 }
                 
                 // Trigger Perfect Jump Input right before landing
-                // Platform is at 600. Player height 96. Landing at 504.
-                // Trigger when very close to ground
-                if (p.y > 480 && p.vy > 0) {
+                // Platform is at 700. Player height 96. Landing at 604.
+                if (p.y > 580 && p.vy > 0 && !p.isGrounded) {
                     inputRef.current.jumpIntent = true;
+                    inputRef.current.jumpPressedTime = Date.now(); // Ensure fresh press
                 } else {
                     inputRef.current.jumpIntent = false;
                 }
             } else if (step === 4) { // Jetpack
-                if (p.x > 350 && p.x < 850) {
+                // Infinite Fuel for Tutorial
+                fuelRef.current = 100;
+                
+                // Move Right
+                inputRef.current.right = true;
+                
+                // Jetpack Logic: Fly for 2 seconds then fall
+                // 2s = 120 frames
+                if (frame < 120) {
                     inputRef.current.jetpack = true;
-                    inputRef.current.right = true;
                 } else {
                     inputRef.current.jetpack = false;
-                    inputRef.current.right = true;
                 }
-                if (p.x > 1000) p.x = 100;
+                
+                // Reset loop
+                if (p.y > 900 || p.x > 1500) {
+                    p.x = 100;
+                    p.y = 600;
+                    p.vx = 0;
+                    p.vy = 0;
+                    frameRef.current = 0;
+                    cameraRef.current.x = 0;
+                    cameraRef.current.y = 0;
+                }
             } else if (step === 5) { // Wrap
-                inputRef.current.right = true;
-                // Physics engine handles wrap
+                // Jump side to side
+                const phase = Math.floor(frame / 120) % 2;
+                if (phase === 0) {
+                    inputRef.current.right = true;
+                    inputRef.current.left = false;
+                } else {
+                    inputRef.current.right = false;
+                    inputRef.current.left = true;
+                }
+                
+                // Jump occasionally
+                if (p.isGrounded && frame % 60 === 0) {
+                    inputRef.current.jumpIntent = true;
+                } else {
+                    inputRef.current.jumpIntent = false;
+                }
             }
 
             // --- SLOW MOTION LOGIC ---
             let dt = 16.66;
             // Slow down when falling and close to ground for Perfect Jump
-            if (step === 3 && p.y > 350 && p.vy > 0) {
+            if (step === 3 && p.y > 450 && p.vy > 0) {
                 dt = 16.66 * 0.1; // 10% speed for Extreme Slow Motion
             }
 
@@ -205,34 +280,52 @@ export const TutorialModal = ({ onClose, lang, gameState }: { onClose: () => voi
                 player: p as any,
                 platforms: platformsRef.current,
                 input: inputRef.current,
-                config: MOCK_CONFIG,
+                config: activeConfig,
                 dt: dt,
                 gameState: gameStateRef.current,
-                setGameState: (u) => {
-                    if (typeof u === 'function') gameStateRef.current = u(gameStateRef.current);
-                    else gameStateRef.current = u;
-                },
+                setGameState: setGameStateWrapper,
                 particles: particlesRef.current,
                 floatingTextsRef: floatingTextsRef,
                 cameraShake: 0,
-                setCameraShake: () => {},
+                setCameraShake: noOp,
                 zoom: 1,
-                setZoom: () => {},
-                setDangerWarning: () => {},
-                setDamageFlash: () => {},
-                setJetpackMode: (m) => jetpackModeRef.current = m,
+                setZoom: noOp,
+                setDangerWarning: noOp,
+                setDamageFlash: noOp,
+                setJetpackMode: setJetpackModeWrapper,
                 jetpackMode: jetpackModeRef.current,
                 jetpackModeRef: jetpackModeRef,
                 jetpackAllowedRef: jetpackAllowedRef,
                 damageFlashRef: damageFlashRef,
                 fallStartRef: fallStartRef,
                 timeElapsed: frame * 16,
-                triggerExplosion: () => {},
+                triggerExplosion: noOp,
                 saveNodesRef: saveNodesRef,
                 fuelRef: fuelRef,
                 scoreRef: scoreRef,
                 maxFuelCapacity: 100
             });
+
+            // --- POST-PHYSICS LOGIC ---
+            if (step === 5) { // Wrap
+                 if (p.x > 1200) p.x = 0;
+                 if (p.x < 0) p.x = 1200;
+            }
+
+            // --- CAMERA UPDATE ---
+            // Follow player X if in Jetpack mode
+            if (step === 4) {
+                let targetCamX = p.x - 300;
+                if (targetCamX < 0) targetCamX = 0;
+                cameraRef.current.x += (targetCamX - cameraRef.current.x) * 0.1;
+
+                // Follow Y too
+                let targetCamY = p.y - 300;
+                cameraRef.current.y += (targetCamY - cameraRef.current.y) * 0.1;
+            } else {
+                cameraRef.current.x = 0;
+                cameraRef.current.y = 0;
+            }
 
             // --- RENDER ---
             ctx.fillStyle = '#0f172a';
@@ -241,18 +334,26 @@ export const TutorialModal = ({ onClose, lang, gameState }: { onClose: () => voi
             // Grid/Background
             ctx.strokeStyle = '#1e293b';
             ctx.lineWidth = 2;
-            for(let i=0; i<canvas.width; i+=50) {
-                ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke();
+            ctx.save();
+            ctx.translate(-cameraRef.current.x * 0.5, -cameraRef.current.y * 0.5); // Parallax for background
+            
+            ctx.beginPath();
+            for(let i=0; i<canvas.width * 4; i+=50) { // Extended grid
+                ctx.moveTo(i, -1000); ctx.lineTo(i, 1000);
             }
-            for(let i=0; i<canvas.height; i+=50) {
-                ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(canvas.width, i); ctx.stroke();
+            for(let i=-1000; i<1000; i+=50) {
+                ctx.moveTo(0, i); ctx.lineTo(canvas.width * 4, i);
             }
+            ctx.stroke();
+            ctx.restore();
 
-            // Platforms
+            // Platforms & Player
             ctx.save();
             ctx.scale(0.5, 0.5); // Scale down to fit 1200 width into 600 canvas
+            ctx.translate(-cameraRef.current.x, -cameraRef.current.y); // Apply Camera
+
             platformsRef.current.forEach(plat => {
-                drawPlatformTexture(ctx, plat, plat.x, plat.y, plat.w, plat.h, 1, frame, gameStateRef.current, null, MOCK_CONFIG);
+                drawPlatformTexture(ctx, plat, plat.x, plat.y, plat.w, plat.h, 1, frame, gameStateRef.current, null, activeConfig);
             });
 
             // Player
@@ -272,24 +373,33 @@ export const TutorialModal = ({ onClose, lang, gameState }: { onClose: () => voi
             );
             
             // Particles
-            particlesRef.current.forEach((part, i) => {
+            if (particlesRef.current.length > 100) {
+                // Use splice to avoid creating new array
+                particlesRef.current.splice(0, particlesRef.current.length - 100);
+            }
+            for (let i = particlesRef.current.length - 1; i >= 0; i--) {
+                const part = particlesRef.current[i];
                 part.life--;
                 part.x += part.vx;
                 part.y += part.vy;
                 ctx.fillStyle = part.color;
                 ctx.fillRect(part.x, part.y, part.size || 4, part.size || 4);
                 if (part.life <= 0) particlesRef.current.splice(i, 1);
-            });
+            }
 
             // Floating Text
-            floatingTextsRef.current.forEach((txt, i) => {
+            if (floatingTextsRef.current.length > 20) {
+                floatingTextsRef.current.splice(0, floatingTextsRef.current.length - 20);
+            }
+            for (let i = floatingTextsRef.current.length - 1; i >= 0; i--) {
+                const txt = floatingTextsRef.current[i];
                 txt.life--;
                 txt.y += txt.vy;
                 ctx.fillStyle = txt.color;
                 ctx.font = "bold 40px Arial";
                 ctx.fillText(txt.text, txt.x, txt.y);
                 if (txt.life <= 0) floatingTextsRef.current.splice(i, 1);
-            });
+            }
 
             ctx.restore();
 
@@ -300,20 +410,20 @@ export const TutorialModal = ({ onClose, lang, gameState }: { onClose: () => voi
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
                 
                 ctx.save();
-                ctx.shadowColor = '#00ff00';
-                ctx.shadowBlur = 10;
-                ctx.fillStyle = '#00ff00';
+                ctx.shadowColor = '#f472b6'; // Pink Glow
+                ctx.shadowBlur = 15;
+                ctx.fillStyle = '#f472b6'; // Pink Text
                 ctx.font = "bold italic 32px monospace";
                 ctx.textAlign = "center";
-                ctx.fillText("SLOW MOTION: TIMING", canvas.width / 2, 100);
+                ctx.fillText("PERFECT JUMP ZONE", canvas.width / 2, 100);
                 
                 // Draw timing line
-                ctx.strokeStyle = '#00ff00';
-                ctx.lineWidth = 2;
+                ctx.strokeStyle = '#f472b6'; // Pink Line
+                ctx.lineWidth = 4;
                 ctx.setLineDash([10, 10]);
                 ctx.beginPath();
-                ctx.moveTo(0, 300); // Visual ground line (600 * 0.5)
-                ctx.lineTo(canvas.width, 300);
+                ctx.moveTo(0, 350); // Visual ground line (700 * 0.5)
+                ctx.lineTo(canvas.width, 350);
                 ctx.stroke();
                 ctx.restore();
             }
@@ -330,8 +440,8 @@ export const TutorialModal = ({ onClose, lang, gameState }: { onClose: () => voi
     const CurrentIcon = STEPS[step].icon;
 
     return (
-        <div className="fixed inset-0 z-[200] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4 animate-in fade-in zoom-in duration-200">
-            <div className="max-w-4xl w-full bg-[#020617] border border-cyan-500/30 rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row h-[80vh]">
+        <div className="fixed inset-0 z-[200] bg-black/95 flex items-center justify-center p-4">
+            <div className="max-w-4xl w-full bg-[#020617] border border-cyan-500/30 rounded-2xl overflow-hidden flex flex-col md:flex-row h-[80vh]">
                 
                 {/* Left Side: Simulation */}
                 <div className="flex-1 bg-slate-900 relative overflow-hidden flex items-center justify-center border-r border-slate-800">
@@ -398,7 +508,7 @@ export const TutorialModal = ({ onClose, lang, gameState }: { onClose: () => voi
                                 className="flex-1 py-4 bg-green-600 hover:bg-green-500 text-white rounded-xl font-black text-lg uppercase tracking-widest shadow-lg shadow-green-900/20 transition-all flex items-center justify-center gap-2 group"
                             >
                                 JOGAR AGORA
-                                <Check size={20} className="group-hover:scale-110 transition-transform" />
+                                <Play size={20} className="fill-current" />
                             </button>
                         )}
                     </div>

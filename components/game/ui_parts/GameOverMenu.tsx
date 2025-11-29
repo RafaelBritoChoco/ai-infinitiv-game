@@ -87,7 +87,12 @@ export const GameOverMenu = ({ gameState, handleStart, setGameState, leaderboard
     const [playerName, setPlayerName] = useState(() => {
         // Auto-fill from login profile if available
         const profile = Persistence.getProfile();
-        return profile || localStorage.getItem('PLAYER_NAME') || '';
+        // If profile exists, use it. If not, check localStorage.
+        // If localStorage has "Guest", ignore it and let user type.
+        const savedName = localStorage.getItem('PLAYER_NAME');
+        if (profile) return profile;
+        if (savedName && savedName !== 'Guest') return savedName;
+        return '';
     });
     const [submitted, setSubmitted] = useState(false);
     const [submittedRank, setSubmittedRank] = useState<number | null>(null);
@@ -201,14 +206,11 @@ export const GameOverMenu = ({ gameState, handleStart, setGameState, leaderboard
     const handleSubmitScore = async () => {
         const trimmedName = playerName.trim();
         
-        if (!trimmedName || trimmedName.length < 2) {
-            alert('Digite um nome com pelo menos 2 caracteres!');
+        if (!trimmedName) {
+            alert('Digite um nome!');
             return;
         }
-        if (trimmedName.length > 15) {
-            alert('Nome muito longo! Máximo 15 caracteres.');
-            return;
-        }
+        // Removed length limit as per user request
         
         // INSTANT: Save locally and show success immediately
         localStorage.setItem('PLAYER_NAME', trimmedName);
@@ -316,8 +318,7 @@ export const GameOverMenu = ({ gameState, handleStart, setGameState, leaderboard
                                     value={playerName}
                                     onChange={(e) => setPlayerName(e.target.value)}
                                     placeholder="SEU NOME"
-                                    maxLength={15}
-                                    disabled={!!Persistence.getProfile()} // Disable if logged in
+                                    // REMOVED DISABLED PROP: Always allow editing unless submitted
                                     className="w-full bg-black/50 border border-slate-700 rounded-lg px-3 py-3 text-white font-bold text-center uppercase focus:border-cyan-500 outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                                 />
                                 <button

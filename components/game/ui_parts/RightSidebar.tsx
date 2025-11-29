@@ -68,6 +68,13 @@ export const RightSidebar = ({ gameState, config, jetpackMode, setShowDebug, til
                     <li><span className="text-yellow-400 font-bold">Yellow</span> = Credits.</li>
                 </ul>
             </div>
+            
+            <button 
+                onClick={() => setShowDebug((prev: boolean) => !prev)}
+                className="mt-4 w-full py-2 bg-slate-800 hover:bg-slate-700 text-xs text-slate-400 font-mono border border-slate-700 rounded transition-colors"
+            >
+                TOGGLE DEBUG
+            </button>
         </div>
     );
 };

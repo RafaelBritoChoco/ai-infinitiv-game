@@ -135,7 +135,10 @@ export default async function handler(request, response) {
 
             // Montar leaderboard final
             processedScores.forEach((item, index) => {
-                const name = String(item.member);
+                const rawMember = String(item.member);
+                // Remover o sufixo único (#TIMESTAMP...) para mostrar só o nome
+                const displayName = rawMember.split('#')[0];
+                
                 let date = null;
                 
                 // Tentar extrair data dos metadados
@@ -147,7 +150,8 @@ export default async function handler(request, response) {
                 }
 
                 leaderboard.push({
-                    name: name,
+                    name: displayName, // Nome limpo para exibição
+                    id: rawMember, // ID único para referência (se precisar)
                     score: Number(item.score),
                     date: date,
                     rank: index + 1
@@ -182,10 +186,10 @@ export default async function handler(request, response) {
             const { name, score } = request.body || {};
 
             // Validações
-            if (!name || name.length < 2) {
+            if (!name) {
                 return response.status(400).json({ 
                     success: false, 
-                    error: 'Nome deve ter pelo menos 2 caracteres' 
+                    error: 'Nome é obrigatório' 
                 });
             }
 
@@ -206,35 +210,34 @@ export default async function handler(request, response) {
                 });
             }
 
-            const cleanName = String(name).substring(0, 15).trim();
+            // PERMITIR TUDO: Símbolos, repetições, qualquer tamanho (até 50 chars para sanidade)
+            const cleanName = String(name).substring(0, 50).trim();
             
-            // 1. Verificar score atual do jogador
-            const currentScore = await redis.zscore(LEADERBOARD_KEY, cleanName);
+            // ESTRATÉGIA PARA PERMITIR NOMES REPETIDOS NO RANKING:
+            // Usamos um sufixo único invisível: "Nome#TIMESTAMP-RANDOM"
+            // Assim o Redis trata como membros diferentes, mas mostramos só o nome.
+            const uniqueMemberKey = `${cleanName}#${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
             
-            // Só atualiza se o novo score for maior
-            if (currentScore === null || score > Number(currentScore)) {
-                // Salvar Score (Nome é a chave única)
-                await redis.zadd(LEADERBOARD_KEY, { score: Math.floor(score), member: cleanName });
-                
-                // Salvar Metadados (Data)
-                const meta = JSON.stringify({
-                    date: new Date().toISOString(),
-                    id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-                });
-                await redis.hset('leaderboard:metadata', { [cleanName]: meta });
-            }
+            // Salvar Score (Sempre cria nova entrada ou atualiza se colidir o hash exato)
+            await redis.zadd(LEADERBOARD_KEY, { score: Math.floor(score), member: uniqueMemberKey });
+            
+            // Salvar Metadados (Data)
+            const meta = JSON.stringify({
+                date: new Date().toISOString(),
+                originalName: cleanName // Backup do nome original
+            });
+            // Usamos hset com o uniqueKey
+            await redis.hset('leaderboard:metadata', { [uniqueMemberKey]: meta });
 
             // Limpar excesso (manter top 100)
             const total = await redis.zcard(LEADERBOARD_KEY);
             if (total > MAX_ENTRIES) {
                 // Remover os piores
                 const removed = await redis.zremrangebyrank(LEADERBOARD_KEY, 0, total - MAX_ENTRIES - 1);
-                // Nota: Não limpamos o hash de metadados automaticamente para economizar ops, 
-                // mas idealmente limparíamos nomes removidos.
             }
 
             // Buscar rank ATUALIZADO
-            const rank = await redis.zrevrank(LEADERBOARD_KEY, cleanName);
+            const rank = await redis.zrevrank(LEADERBOARD_KEY, uniqueMemberKey);
             const finalRank = rank !== null ? rank + 1 : null;
 
             // Se entrou no top 3, retorna flag para celebração

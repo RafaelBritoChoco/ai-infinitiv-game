@@ -71,40 +71,40 @@ export interface CharacterChallenge {
 export const CHARACTER_CHALLENGES: CharacterChallenge[] = [
   // CHOCO - Precisa ser #1 mundial
   { skinId: 'choco', title: '🏆 LENDÁRIO', description: 'Conquiste o 1º lugar no Ranking Global', requirement: 'world_record', targetValue: 1, emoji: '🍫' },
-  
+
   // YURI (Alfinete) - Passar de 1000m
   { skinId: 'pin', title: '📍 ALPINISTA', description: 'Alcance 1000m de altitude', requirement: 'altitude', targetValue: 1000, emoji: '📍' },
-  
+
   // CANTOR - Coletar 500 moedas em uma partida
   { skinId: 'singer', title: '🎤 MILIONÁRIO', description: 'Colete 500 moedas em uma única partida', requirement: 'coins', targetValue: 500, emoji: '🎤' },
-  
+
   // TERRA - Jogar 50 partidas
   { skinId: 'earth', title: '🌍 VETERANO', description: 'Complete 50 partidas', requirement: 'games', targetValue: 50, emoji: '🌍' },
-  
+
   // BAMBOO (Panda) - Fazer combo de 20
   { skinId: 'panda', title: '🐼 COMBO MASTER', description: 'Faça um combo de 20 pulos', requirement: 'combo', targetValue: 20, emoji: '🐼' },
-  
+
   // LUNA (Coelha) - Terminar uma run sem tomar dano
   { skinId: 'bunny', title: '🐰 INTOCÁVEL', description: 'Alcance 500m sem tomar dano', requirement: 'no_damage', targetValue: 500, emoji: '🐰' },
-  
+
   // DUSTY - Usar jetpack por 30 segundos total em uma partida
   { skinId: 'dirt', title: '🚀 PILOTO', description: 'Use o jetpack por 30s em uma partida', requirement: 'jetpack', targetValue: 30, emoji: '💨' },
-  
+
   // CORINGA - Fazer 50 perfect jumps em uma partida
   { skinId: 'joker', title: '🃏 PERFEITO', description: 'Faça 50 pulos perfeitos em uma partida', requirement: 'perfect_jumps', targetValue: 50, emoji: '🃏' },
-  
+
   // KONG - Passar de 2000m
   { skinId: 'gorilla', title: '🦍 REI DA SELVA', description: 'Alcance 2000m de altitude', requirement: 'altitude', targetValue: 2000, emoji: '🦍' },
-  
+
   // TAKESHI - Alcançar 1500m em menos de 3 minutos
   { skinId: 'samurai', title: '⚔️ SPEEDRUNNER', description: 'Alcance 1500m em menos de 3 min', requirement: 'speed', targetValue: 1500, emoji: '⚔️' },
-  
+
   // ACRE - Coletar 1000 moedas totais
   { skinId: 'acre', title: '🌳 COLECIONADOR', description: 'Colete 1000 moedas no total', requirement: 'coins', targetValue: 1000, emoji: '🌳' },
-  
+
   // RIZZINI - Fazer combo de 30
   { skinId: 'biker', title: '🚴 RADICAL', description: 'Faça um combo de 30 pulos', requirement: 'combo', targetValue: 30, emoji: '🚴' },
-  
+
   // CHOKITO - Jogar 100 partidas
   { skinId: 'chocolate', title: '🍫 VICIADO', description: 'Complete 100 partidas', requirement: 'games', targetValue: 100, emoji: '🍫' },
 ];
@@ -198,16 +198,19 @@ export interface ShopUpgrades {
   luck: number; // Level 0-5 (Spawn rate)
   jump: number; // Level 0-5 (Jump Height)
   shield: number; // Count 0-3 (Consumable Saves)
-  aerodynamics: number; // Level 0-5 (Reduces Ascent Drag)
+  aerodynamics: number; // Level 0-5 (Air Control)
+  extraLives: number; // Level 0-2 (Extra Hearts)
 }
 
 export interface GameState {
   username: string;
   runId: string; // Unique ID for the current run to prevent double submission
-  gameMode: 'NORMAL' | 'TEST';
+  gameMode: 'NORMAL' | 'TEST' | 'TUTORIAL';
   levelIndex: 1 | 2; // 1 = Sector 1 (Init), 2 = Sector 2 (Hard)
   levelType: 'CAMPAIGN' | 'RANDOM'; // New: Deterministic vs Chaos
   mobileControlMode: 'BUTTONS' | 'TILT' | 'ARROWS' | 'JOYSTICK'; // NEW: Preference
+  tutorialStep?: number; // 0=Intro, 1=Move, 2=Jump, 3=Perfect, 4=Jetpack, 5=Challenge
+  tutorialPhase?: 'INSTRUCTION' | 'PLAYING' | 'COMPLETED'; // New phase tracking
   score: number;
   GYRO_SENSITIVITY: number;
   MOBILE_SENSITIVITY_MULTIPLIER: number;

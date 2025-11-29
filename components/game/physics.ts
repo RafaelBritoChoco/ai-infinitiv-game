@@ -215,7 +215,7 @@ export const updatePlayerPhysics = (props: PhysicsUpdateProps): void => {
     for (const p of platforms) {
         // Skip invalid platforms
         if (!p || typeof p.x !== 'number' || typeof p.y !== 'number') continue;
-        
+
         if (p.collectible && !p.collectible.collected) {
             const cX = p.x + p.collectible.x + p.collectible.width / 2;
             const cY = p.y + p.collectible.y + p.collectible.height / 2;
@@ -307,7 +307,7 @@ export const updatePlayerPhysics = (props: PhysicsUpdateProps): void => {
                     if (impactVelocity >= DEATH_VELOCITY) {
                         if (gameState.upgrades.shield > 0) {
                             // SHIELD SAVE: Teleport to last safe platform!
-                            const lastPlatform = props.lastSafePlatform?.current;
+                            const lastPlatform = props.lastSafePlatformRef?.current ?? props.lastSafePlatform?.current;
                             const safeY = lastPlatform !== undefined ? lastPlatform : player.y - 300;
 
                             setGameState(prev => ({ ...prev, upgrades: { ...prev.upgrades, shield: prev.upgrades.shield - 1 } }));
@@ -378,8 +378,13 @@ export const updatePlayerPhysics = (props: PhysicsUpdateProps): void => {
                 fallStartRef.current = null;
 
                 // FIX #2: Store last safe platform Y for shield teleport
-                if (!props.lastSafePlatform) props.lastSafePlatform = { current: platformTop };
-                else props.lastSafePlatform.current = platformTop;
+                if (props.lastSafePlatformRef) {
+                    props.lastSafePlatformRef.current = platformTop;
+                } else if (!props.lastSafePlatform) {
+                    props.lastSafePlatform = { current: platformTop };
+                } else {
+                    props.lastSafePlatform.current = platformTop;
+                }
 
                 setDangerWarning(false);
                 const canJump = player.jumpCooldown <= 0;
@@ -432,19 +437,19 @@ export const updatePlayerPhysics = (props: PhysicsUpdateProps): void => {
                     // 1. Chance to disappear immediately (30%)
                     if (Math.random() < 0.3) {
                         p.broken = true; // Mark as broken so it disappears/stops colliding
-                        spawnParticles(particles, p.x + p.width/2, p.y, 15, '#ffffff', true, cfg);
+                        spawnParticles(particles, p.x + p.width / 2, p.y, 15, '#ffffff', true, cfg);
                         // soundManager.playGlitch(); // If available
                     }
-                    
+
                     // 2. Jump logic - Chance for "Bem Baixo" (Very Low) jump
                     let bounceForce = baseJump;
                     if (Math.random() < 0.4) {
                         // "Bem baixo" jump (Very low)
                         bounceForce = cfg.WEAK_JUMP_FORCE * 0.3;
                         floatingTextsRef.current.push({
-                           id: Date.now(), x: player.x, y: player.y - 50,
-                           text: "GLITCH!", color: "#ffffff", life: 0.5, velocity: -1, size: 20
-                       });
+                            id: Date.now(), x: player.x, y: player.y - 50,
+                            text: "GLITCH!", color: "#ffffff", life: 0.5, velocity: -1, size: 20
+                        });
                     } else {
                         bounceForce = baseJump + jumpBonus;
                     }

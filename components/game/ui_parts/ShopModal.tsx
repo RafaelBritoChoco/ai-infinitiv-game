@@ -1,5 +1,5 @@
 import React from 'react';
-import { Rocket, Zap, ChevronsUp, Wind, TrendingUp, Shield, ArrowLeft, ShoppingBag, Coins } from 'lucide-react';
+import { Rocket, Zap, ChevronsUp, Wind, TrendingUp, Shield, ArrowLeft, ShoppingBag, Coins, Heart } from 'lucide-react';
 import { ShopUpgrades } from '../../../types';
 import { soundManager } from '../audioManager';
 import * as Constants from '../../../constants';
@@ -12,17 +12,25 @@ export const ShopModal = ({ gameState, setGameState, selectedIndex = -1 }: any) 
         { id: 'jump', name: 'HYDRAULIC BOOTS', icon: ChevronsUp, desc: 'Increases Platform Jump Height.', bonus: `+${Constants.UPGRADE_JUMP_BONUS} Jump Force`, color: 'orange', type: 'upgrade' },
         { id: 'aerodynamics', name: 'AERODYNAMICS', icon: Wind, desc: 'Reduces air drag when ascending.', bonus: '+Air Agility', color: 'teal', type: 'upgrade' },
         { id: 'luck', name: 'SCAVENGER AI', icon: TrendingUp, desc: 'Find more Coins & Fuel.', bonus: `+${Math.round(Constants.UPGRADE_LUCK_BONUS * 100)}% Spawn Rate`, color: 'green', type: 'upgrade' },
+        { id: 'extraLives', name: 'EXTRA HEART', icon: Heart, desc: 'Permanently increases max health.', bonus: '+1 Max Life', color: 'red', type: 'upgrade', max: 2, cost: Constants.ITEM_HEART_COST },
         { id: 'shield', name: 'VOID SHIELD', icon: Shield, desc: 'Emergency rescue from the void.', bonus: 'Prevents Death (1x)', color: 'blue', type: 'consumable', cost: Constants.ITEM_SHIELD_COST, max: 3 },
     ];
 
     const buyUpgrade = (id: keyof ShopUpgrades, type: string, flatCost?: number, maxLimit?: number) => {
-        const currentLevel = gameState.upgrades[id];
-        let cost = type === 'consumable' ? (flatCost || 100) : Math.floor(Constants.UPGRADE_COST_BASE * Math.pow(Constants.UPGRADE_COST_SCALE, currentLevel));
+        const currentLevel = gameState.upgrades[id] || 0;
+        let cost = (type === 'consumable' || flatCost) ? (flatCost || 100) : Math.floor(Constants.UPGRADE_COST_BASE * Math.pow(Constants.UPGRADE_COST_SCALE, currentLevel));
         const limit = maxLimit || 5;
+        
         if (gameState.totalCoins >= cost && currentLevel < limit) {
             soundManager.playCollect();
-            setGameState((prev: any) => ({ ...prev, totalCoins: prev.totalCoins - cost, upgrades: { ...prev.upgrades, [id]: prev.upgrades[id] + 1 } }));
-        } else { soundManager.playDamage(); }
+            setGameState((prev: any) => ({ 
+                ...prev, 
+                totalCoins: prev.totalCoins - cost, 
+                upgrades: { ...prev.upgrades, [id]: (prev.upgrades[id] || 0) + 1 } 
+            }));
+        } else { 
+            soundManager.playDamage(); 
+        }
     };
 
     return (
@@ -47,11 +55,11 @@ export const ShopModal = ({ gameState, setGameState, selectedIndex = -1 }: any) 
                 </div>
                 <div className="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 overflow-y-auto custom-scrollbar bg-[#020617]">
                     {upgrades.map((u, idx) => {
-                        const level = gameState.upgrades[u.id as keyof ShopUpgrades];
+                        const level = gameState.upgrades[u.id as keyof ShopUpgrades] || 0;
                         const isConsumable = u.type === 'consumable';
                         const limit = u.max || 5;
                         const isMaxed = level >= limit;
-                        let cost = isConsumable ? (u.cost || 100) : Math.floor(Constants.UPGRADE_COST_BASE * Math.pow(Constants.UPGRADE_COST_SCALE, level));
+                        let cost = (isConsumable || u.cost) ? (u.cost || 100) : Math.floor(Constants.UPGRADE_COST_BASE * Math.pow(Constants.UPGRADE_COST_SCALE, level));
                         const canAfford = gameState.totalCoins >= cost;
                         const isSelected = idx === selectedIndex;
                         return (
@@ -63,15 +71,21 @@ export const ShopModal = ({ gameState, setGameState, selectedIndex = -1 }: any) 
                                 <h3 className="text-white font-bold text-lg uppercase tracking-tight">{u.name}</h3>
                                 <p className="text-slate-500 text-sm mb-4 min-h-[40px] leading-snug">{u.desc}</p>
                                 <div className="flex gap-1.5 mb-5 items-center">
-                                    {isConsumable ? (
+                                    {isConsumable || u.id === 'extraLives' ? (
                                         <div className="text-slate-400 font-mono text-sm">OWNED: <span className={`text-white font-bold text-base ${level > 0 ? 'text-blue-400' : ''}`}>{level}</span> / {limit}</div>
                                     ) : (
                                         [...Array(5)].map((_, i) => (<div key={i} className={`h-2 flex-1 rounded-full transition-all duration-300 ${i < level ? `bg-${u.color}-500 shadow-[0_0_5px_${u.color}]` : 'bg-slate-800'}`}></div>))
                                     )}
                                 </div>
-                                <div className={`mt-auto py-4 rounded-lg font-bold text-sm flex items-center justify-center gap-2 transition-all uppercase tracking-widest ${isMaxed ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700' : canAfford ? `bg-${u.color}-600 text-white shadow-lg` : 'bg-slate-900 text-slate-600 border border-slate-800 opacity-70'}`}>
+                                <button 
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        buyUpgrade(u.id as keyof ShopUpgrades, u.type, u.cost, u.max);
+                                    }}
+                                    className={`mt-auto py-4 w-full rounded-lg font-bold text-sm flex items-center justify-center gap-2 transition-all uppercase tracking-widest ${isMaxed ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700' : canAfford ? `bg-${u.color}-600 text-white shadow-lg hover:bg-${u.color}-500` : 'bg-slate-900 text-slate-600 border border-slate-800 opacity-70'}`}
+                                >
                                     {isMaxed ? "MAX LEVEL" : <>{isConsumable ? "BUY" : "UPGRADE"} <span className="text-white/30">|</span> {cost} <Coins size={16} /></>}
-                                </div>
+                                </button>
                             </div>
                         );
                     })}

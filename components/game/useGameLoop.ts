@@ -1,5 +1,3 @@
-
-
 import React, { useEffect, useRef } from 'react';
 import { GameState, Player, Platform, Particle, CharacterSkin, GameConfig, SaveNode, LeaderboardEntry, FloatingText } from '../../types';
 import { SceneryObject, drawBackground } from './background';
@@ -12,6 +10,8 @@ import { pollGamepads } from './inputHandlers';
 import * as Constants from '../../constants';
 import { soundManager } from './audioManager';
 import { COLLECTIBLE_SPRITES } from './assets';
+import { renderGame, RenderContext } from './loops/renderSystem';
+import { useTutorialSystem } from './hooks/useTutorialSystem';
 
 interface GameLoopProps {
     canvasRef: React.RefObject<HTMLCanvasElement>;
@@ -50,10 +50,14 @@ interface GameLoopProps {
     damageFlashRef: React.MutableRefObject<number>;
     leaderboard: LeaderboardEntry[];
     leaderboardRef: React.MutableRefObject<LeaderboardEntry[]>;
+    localLeaderboard?: LeaderboardEntry[]; // NEW PROP
+    localLeaderboardRef?: React.MutableRefObject<LeaderboardEntry[]>; // NEW PROP
     highScoreEntryStatusRef: React.MutableRefObject<'NONE' | 'PENDING' | 'SUBMITTED'>;
     onGameOver: (score: number) => void;
     onMenuUpdate?: () => void;
     weedMode?: boolean;
+    showTutorial?: boolean;
+    showDebug?: boolean;
 }
 
 export const useGameLoop = (props: GameLoopProps) => {
@@ -65,19 +69,27 @@ export const useGameLoop = (props: GameLoopProps) => {
         setJetpackMode, handleStart, gamepadConnected, setGamepadConnected,
         setShowGameOverMenu, editorTool, selectedPlatformId,
         damageFlash, showGameOverMenu, saveNodesRef,
-        jetpackModeRef, damageFlashRef, leaderboard, leaderboardRef, jetpackAllowedRef,
-        highScoreEntryStatusRef, onGameOver, onMenuUpdate, weedMode
+        jetpackModeRef, damageFlashRef, leaderboard, leaderboardRef, localLeaderboard, localLeaderboardRef, jetpackAllowedRef,
+        highScoreEntryStatusRef, onGameOver, onMenuUpdate, weedMode, showTutorial, showDebug
     } = props;
 
     const lastTimeRef = useRef<number>(0);
     const lastUiUpdateRef = useRef<number>(0);
     const isProcessingDeathRef = useRef<boolean>(false);
 
+    // Fixed Timestep & Debug Refs
+    const accumulatorRef = useRef<number>(0);
+    const frameCountRef = useRef<number>(0);
+    const lastSafePlatformYRef = useRef<number>(0);
+    const lastFpsUpdateRef = useRef<number>(0);
+    const fpsRef = useRef<number>(0);
+    const lastInitializedStepRef = useRef<number>(-1); // Track tutorial step init
+
     const fuelRef = useRef<number>(configRef.current.JETPACK_STARTING_FUEL || 0);
     const scoreRef = useRef<number>(0);
 
     const floatingTextsRef = useRef<FloatingText[]>([]);
-    
+
     // Track which records have been passed (to show celebration effect once)
     const passedRecordsRef = useRef<Set<string>>(new Set());
     const recordCelebrationRef = useRef<{ active: boolean; rank: number; timer: number; position: number }>({ active: false, rank: 0, timer: 0, position: 0 });
@@ -86,10 +98,9 @@ export const useGameLoop = (props: GameLoopProps) => {
     useEffect(() => { onMenuUpdateRef.current = onMenuUpdate; }, [onMenuUpdate]);
 
     useEffect(() => {
-        // Reset passed records when leaderboard changes (e.g. reset)
-        passedRecordsRef.current = new Set();
-        recordCelebrationRef.current = { active: false, rank: 0, timer: 0, position: 0 };
-    }, [leaderboard]);
+        // Reset passed records ONLY when starting a new game (runId changes)
+        // Do NOT reset when leaderboard updates, or standing on a record line will trigger "ghost hits"
+    }, []); // Empty dependency array - logic moved to runId effect below
 
     useEffect(() => {
         isProcessingDeathRef.current = false;
@@ -97,17 +108,27 @@ export const useGameLoop = (props: GameLoopProps) => {
         scoreRef.current = gameState.score;
         jetpackAllowedRef.current = true;
         floatingTextsRef.current = [];
-        
+
         // Reset passed records when starting a new game
         passedRecordsRef.current = new Set();
         recordCelebrationRef.current = { active: false, rank: 0, timer: 0, position: 0 };
 
-        // Tutorial removed - now available in character preview modal
-
         if (gameState.isPlaying) {
             playerRef.current.isGrounded = false;
+
+        } else if (!gameState.isGameOver) {
+            // BACKGROUND BOT MODE - Start at user's max altitude
+            const startY = -(gameState.maxAltitude || 0) * 10;
+            if (startY < -1000) {
+                playerRef.current.y = startY;
+                playerRef.current.vy = 0;
+                cameraRef.current.y = startY - 200;
+                lastPlatformYRef.current = startY + 200;
+                platformsRef.current = [];
+                platformGenCountRef.current = Math.floor(Math.abs(startY) / 100);
+            }
         }
-    }, [gameState.runId, gameState.isPlaying]);
+    }, [gameState.runId, gameState.isPlaying, gameState.isGameOver]);
 
     const explodePlayer = (isBlood = false) => {
         if (stateRef.current.isGameOver || isProcessingDeathRef.current) return;
@@ -198,19 +219,90 @@ export const useGameLoop = (props: GameLoopProps) => {
             playerRef.current.vy, fuelRef.current, cfg.JETPACK_IGNITION_COST
         );
 
-        if (!state.isPlaying || state.isPaused || state.isEditing || state.isShopOpen) {
+        if (!state.isPlaying || state.isPaused || state.isEditing || state.isShopOpen || showTutorial) {
             soundManager.stopJetpack();
             return;
         }
 
         timeElapsedRef.current += dt / 1000;
 
+        // TUTORIAL SLOW MOTION
+        let physicsDt = dt;
+        if (gameState.gameMode === 'TUTORIAL' && gameState.tutorialStep === 2) { // Step 2 = Perfect Jump
+            const p = playerRef.current;
+            // Slow down when falling and close to ground (simulating the "Zone")
+            // Platform is at 100 (from init). Player y > 0 means below start? No, y is inverted? 
+            // Wait, y=100 is below. 0 is top.
+            // Let's check init: y=100 is the floor. Player starts at 0. Gravity pulls down (positive vy).
+            // So if p.y > -50 (close to 100) and p.vy > 0 (falling)
+            if (p.y > -50 && p.vy > 0) {
+                physicsDt = dt * 0.2; // 20% speed
+            }
+        }
+
+        const p = playerRef.current; // Player reference for tutorial logic
+
+        // TUTORIAL PROGRESSION
+        if (state.gameMode === 'TUTORIAL' && state.tutorialPhase === 'PLAYING') {
+            const step = state.tutorialStep || 0;
+            const p = playerRef.current;
+
+            if (step === 0) {
+                // FASE 1: MOVIMENTO - Moveu 150px em qualquer direção
+                if (Math.abs(p.x) > 150) {
+                    setGameState(prev => ({ ...prev, tutorialPhase: 'COMPLETED' }));
+                }
+            } else if (step === 1) {
+                // FASE 2: PULO - Aterrissou na segunda plataforma (x > 30)
+                if (p.x > 50 && p.isGrounded) {
+                    setGameState(prev => ({ ...prev, tutorialPhase: 'COMPLETED' }));
+                }
+                // Reset se cair
+                if (p.y > 300) {
+                    setGameState(prev => ({ ...prev, tutorialPhase: 'INSTRUCTION' }));
+                }
+            } else if (step === 2) {
+                // FASE 3: PERFECT JUMP - Atravessou o gap grande (x > 100)
+                if (p.x > 120 && p.isGrounded) {
+                    setGameState(prev => ({ ...prev, tutorialPhase: 'COMPLETED' }));
+                }
+                // Reset se cair
+                if (p.y > 300) {
+                    setGameState(prev => ({ ...prev, tutorialPhase: 'INSTRUCTION' }));
+                }
+            } else if (step === 3) {
+                // FASE 4: JETPACK - Chegou na plataforma alta (y < -150)
+                if (p.y < -150 && p.isGrounded) {
+                    setGameState(prev => ({ ...prev, tutorialPhase: 'COMPLETED' }));
+                }
+            } else if (step === 4) {
+                // FASE 5: CHALLENGE - Chegou em 500m
+                const altitude = Math.floor(Math.abs(p.y) / 10);
+                if (altitude >= 500) {
+                    // Tutorial completo!
+                    localStorage.setItem('TUTORIAL_COMPLETED', 'true');
+                    setGameState(prev => ({ ...prev, tutorialPhase: 'COMPLETED' }));
+                }
+            }
+        }
+
+        // TUTORIAL PHASE LOGIC
+        // If in INSTRUCTION or COMPLETED phase, PAUSE PHYSICS
+        if (state.gameMode === 'TUTORIAL' && state.tutorialPhase !== 'PLAYING') {
+            // Freeze game loop, only overlay can trigger state changes
+            return;
+        }
+
+        // ------------------------------------------------------------------
+        // 1. UPDATE PLAYER PHYSICS
+        // ------------------------------------------------------------------
+
         updatePlayerPhysics({
             player: playerRef.current,
             platforms: platformsRef.current,
             input: inputRef.current,
             config: cfg,
-            dt: dt,
+            dt: physicsDt,
             gameState: state,
             setGameState,
             particles: particlesRef.current,
@@ -232,8 +324,13 @@ export const useGameLoop = (props: GameLoopProps) => {
             fuelRef,
             scoreRef,
             jetpackAllowedRef,
-            maxFuelCapacity: currentMaxFuel
+            maxFuelCapacity: currentMaxFuel,
+            lastSafePlatformRef: lastSafePlatformYRef
         });
+
+        // ------------------------------------------------------------------
+        // 2. TRAIL & VISUALS
+        // ------------------------------------------------------------------
 
         const player = playerRef.current;
         if (Math.abs(player.vy) > 10 || Math.abs(player.vx) > 10) {
@@ -245,7 +342,7 @@ export const useGameLoop = (props: GameLoopProps) => {
         trailRef.current.forEach(t => t.life -= 0.05);
         trailRef.current = trailRef.current.filter(t => t.life > 0);
 
-        if (player.y > -200) {
+        if (player.y > -200 && state.gameMode !== 'TUTORIAL') {
             const lowestAltitudePlatY = platformsRef.current.reduce((max, p) => (p.id !== 999 ? Math.max(max, p.y) : max), -Infinity);
             if (lowestAltitudePlatY < -200 && player.y > -100) {
                 platformsRef.current = platformsRef.current.filter(p => p.id === 999);
@@ -281,7 +378,12 @@ export const useGameLoop = (props: GameLoopProps) => {
 
         updatePlatforms(platformsRef.current, dt, timeElapsedRef.current, currentWorldWidth, cfg);
 
-        if (!localStorage.getItem('NEON_TEST_LEVEL') || state.gameMode !== 'TEST') {
+        // OPTIMIZATION: Throttle platform cleanup (run every ~60 frames / 1 sec)
+        // Using a simple counter based on timeElapsed would be better, but we can just check integer changes
+        const currentSec = Math.floor(timeElapsedRef.current);
+        const prevSec = Math.floor(timeElapsedRef.current - dt / 1000);
+
+        if (currentSec > prevSec && (!localStorage.getItem('NEON_TEST_LEVEL') || state.gameMode !== 'TEST')) {
             // Filter out distant platforms
             platformsRef.current = platformsRef.current.filter(p => p.y < cameraRef.current.y + (cfg.PLATFORM_DESPAWN_BUFFER || 2000) || p.id === 999);
 
@@ -294,7 +396,9 @@ export const useGameLoop = (props: GameLoopProps) => {
                 const toKeep = otherPlatforms.slice(-maxPlatforms + (spawnPlatform ? 1 : 0));
                 platformsRef.current = spawnPlatform ? [spawnPlatform, ...toKeep] : toKeep;
             }
+        }
 
+        if ((!localStorage.getItem('NEON_TEST_LEVEL') || state.gameMode !== 'TEST') && state.gameMode !== 'TUTORIAL') {
             if (lastPlatformYRef.current > cameraRef.current.y - 800) {
                 const lastP = platformsRef.current[platformsRef.current.length - 1];
                 const diffMult = state.levelIndex === 2 ? (cfg.LVL2_GAP_MULT || 1.1) : 1.0;
@@ -316,6 +420,29 @@ export const useGameLoop = (props: GameLoopProps) => {
                 platformGenCountRef.current += 1;
                 platformsRef.current.push(p);
                 lastPlatformYRef.current = p.y;
+            }
+        } else if (state.gameMode === 'TUTORIAL') {
+            // TUTORIAL PLATFORM GENERATION
+            // Generate simple platforms upwards
+            if (lastPlatformYRef.current > cameraRef.current.y - 1000) {
+                const nextY = lastPlatformYRef.current - 200; // Consistent spacing
+                // Alternate Left/Right
+                const isLeft = (platformGenCountRef.current % 2 === 0);
+                const nextX = isLeft ? 200 : 600; // Fixed positions
+
+                platformsRef.current.push({
+                    id: platformGenCountRef.current,
+                    x: nextX,
+                    y: nextY,
+                    w: 200, h: 32,
+                    type: 'STATIC' as any,
+                    passed: false,
+                    initialX: nextX,
+                    color: '#06b6d4',
+                    width: 200, height: 32
+                });
+                lastPlatformYRef.current = nextY;
+                platformGenCountRef.current++;
             }
         }
 
@@ -360,7 +487,7 @@ export const useGameLoop = (props: GameLoopProps) => {
 
         const currentAltitude = Math.floor(Math.abs(Math.min(0, player.y)) / 10);
         if (currentAltitude > scoreRef.current) scoreRef.current = currentAltitude;
-        
+
         // Check if player passed a leaderboard record - trigger celebration
         if (leaderboardRef.current && leaderboardRef.current.length > 0 && state.isPlaying && !state.isGameOver) {
             leaderboardRef.current.forEach((entry, index) => {
@@ -368,14 +495,16 @@ export const useGameLoop = (props: GameLoopProps) => {
                 const recordKey = `${entry.id}-${entry.score}`;
                 if (!passedRecordsRef.current.has(recordKey) && currentAltitude > entry.score) {
                     passedRecordsRef.current.add(recordKey);
-                    recordCelebrationRef.current = { 
-                        active: true, 
-                        rank: index + 1, 
+                    recordCelebrationRef.current = {
+                        active: true,
+                        rank: index + 1,
                         timer: 180, // 3 seconds at 60fps
                         position: entry.score
                     };
                     // Camera shake and particles
-                    cameraRef.current.shake = 20;
+                    // REDUCED SHAKE: User reported "invisible collision" feeling when crossing ranks.
+                    // Reduced from 20 to 5 to make it subtle.
+                    cameraRef.current.shake = 5;
                     soundManager.playPerfectJump();
                     // Spawn celebration particles
                     const colors = index === 0 ? ['#ffd700', '#ffed4a'] : index === 1 ? ['#c0c0c0', '#e5e5e5'] : ['#cd7f32', '#f59e0b'];
@@ -394,7 +523,7 @@ export const useGameLoop = (props: GameLoopProps) => {
                 }
             });
         }
-        
+
         // Update record celebration timer
         if (recordCelebrationRef.current.active) {
             recordCelebrationRef.current.timer -= 1;
@@ -436,411 +565,90 @@ export const useGameLoop = (props: GameLoopProps) => {
         }
     };
 
+    // Reusable RenderContext to avoid GC pressure
+    const renderContextRef = useRef<RenderContext>({
+        ctx: null as any,
+        width: 0,
+        height: 0,
+        config: configRef.current,
+        state: stateRef.current,
+        player: playerRef.current,
+        camera: cameraRef.current,
+        zoom: zoomRef.current,
+        background: backgroundRef.current,
+        timeElapsed: timeElapsedRef.current,
+        weedMode: weedMode,
+        leaderboard: leaderboard,
+        localLeaderboard: localLeaderboard,
+        platforms: platformsRef.current,
+        selectedPlatformId: selectedPlatformId,
+        particles: particlesRef.current,
+        trail: trailRef.current,
+        floatingTexts: floatingTextsRef.current,
+        damageFlash: damageFlashRef.current,
+        recordCelebration: recordCelebrationRef.current
+    });
+
     const draw = (ctx: CanvasRenderingContext2D) => {
-        ctx.imageSmoothingEnabled = false;
-        const { width, height } = ctx.canvas;
-        const cfg = configRef.current;
-        const state = stateRef.current;
+        // Update mutable references in context
+        const rc = renderContextRef.current;
+        rc.ctx = ctx;
+        rc.width = ctx.canvas.width;
+        rc.height = ctx.canvas.height;
+        rc.config = configRef.current;
+        rc.state = stateRef.current;
+        rc.player = playerRef.current;
+        rc.camera = cameraRef.current;
+        rc.zoom = zoomRef.current;
+        rc.background = backgroundRef.current;
+        rc.timeElapsed = timeElapsedRef.current;
+        rc.weedMode = weedMode;
+        rc.leaderboard = leaderboardRef.current; // Use Ref for latest
+        rc.localLeaderboard = localLeaderboardRef?.current; // Use Ref for latest
+        rc.platforms = platformsRef.current;
+        rc.selectedPlatformId = selectedPlatformId;
+        rc.particles = particlesRef.current;
+        rc.trail = trailRef.current;
+        rc.floatingTexts = floatingTextsRef.current;
+        rc.damageFlash = damageFlashRef.current;
+        rc.recordCelebration = recordCelebrationRef.current;
 
-        const { scale, centerOffsetY, currentWorldWidth, offsetX } = getScaleAndOffset(width, height, playerRef.current.y, zoomRef.current, cfg, state.isFreefallMode);
-        const getScreenY = (wy: number) => (wy - cameraRef.current.y) * scale + centerOffsetY;
-        const worldToScreenX = (wx: number) => wx * scale + offsetX;
-
-        const currentMaxFuel = (cfg.JETPACK_FUEL_MAX || 0) + (state.upgrades.maxFuel * (cfg.UPGRADE_FUEL_BONUS || 25));
-
-        drawBackground(ctx, backgroundRef.current, cameraRef.current.y, scale, getScreenY, worldToScreenX, width, height, timeElapsedRef.current, weedMode);
-
-        const groundScreenY = getScreenY(100);
-        if (groundScreenY < height) {
-            ctx.fillStyle = weedMode ? '#22c55e' : '#06b6d4';
-            ctx.fillRect(0, groundScreenY, width, 4 * scale);
-            ctx.fillStyle = weedMode ? '#022c22' : '#020617';
-            ctx.fillRect(0, groundScreenY + (4 * scale), width, height - (groundScreenY + 4 * scale));
-        }
-
-        if (leaderboard && leaderboard.length > 0) {
-            const playerAltitude = Math.abs(Math.min(0, playerRef.current.y));
-            
-            // Only show top 3 in gameplay
-            leaderboard.slice(0, 3).forEach((entry, index) => {
-                const entryWorldY = -(entry.score * 10);
-                const screenEntryY = getScreenY(entryWorldY);
-
-                if (screenEntryY > -100 && screenEntryY < height + 100) {
-                    // Colors and styles based on position
-                    let color = '#ffd700'; // Gold for 1st
-                    let bgColor = 'rgba(255, 215, 0, 0.15)';
-                    let label = '👑 CAMPEÃO';
-                    let lineWidth = 6;
-                    let glowIntensity = 40;
-                    
-                    if (index === 1) { 
-                        color = '#c0c0c0'; 
-                        bgColor = 'rgba(192, 192, 192, 0.1)';
-                        label = '🥈 2º LUGAR'; 
-                        lineWidth = 4;
-                        glowIntensity = 25;
-                    }
-                    if (index === 2) { 
-                        color = '#cd7f32'; 
-                        bgColor = 'rgba(205, 127, 50, 0.1)';
-                        label = '🥉 3º LUGAR'; 
-                        lineWidth = 3;
-                        glowIntensity = 20;
-                    }
-                    if (index > 2) {
-                        color = '#64748b';
-                        bgColor = 'rgba(100, 116, 139, 0.05)';
-                        label = `#${index + 1}`;
-                        lineWidth = 2;
-                        glowIntensity = 10;
-                    }
-
-                    ctx.save();
-                    
-                    // Background zone for TOP 3
-                    if (index < 3) {
-                        const zoneHeight = 60 * scale;
-                        ctx.fillStyle = bgColor;
-                        ctx.fillRect(0, screenEntryY - zoneHeight / 2, width, zoneHeight);
-                        
-                        // Pulsing border effect
-                        const pulse = Math.sin(timeElapsedRef.current * 3) * 0.3 + 0.7;
-                        ctx.strokeStyle = color;
-                        ctx.globalAlpha = pulse;
-                        ctx.lineWidth = 2 * scale;
-                        ctx.setLineDash([]);
-                        ctx.strokeRect(0, screenEntryY - zoneHeight / 2, width, zoneHeight);
-                        ctx.globalAlpha = 1;
-                    }
-                    
-                    // Main record line - MUCH MORE VISIBLE
-                    ctx.beginPath();
-                    ctx.strokeStyle = color;
-                    ctx.lineWidth = lineWidth * scale;
-                    ctx.shadowColor = color;
-                    ctx.shadowBlur = glowIntensity;
-                    ctx.setLineDash([]);
-                    ctx.moveTo(0, screenEntryY);
-                    ctx.lineTo(width, screenEntryY);
-                    ctx.stroke();
-                    
-                    // Secondary dashed line
-                    ctx.shadowBlur = 0;
-                    ctx.lineWidth = 1 * scale;
-                    ctx.setLineDash([8 * scale, 4 * scale]);
-                    ctx.moveTo(0, screenEntryY - 3 * scale);
-                    ctx.lineTo(width, screenEntryY - 3 * scale);
-                    ctx.stroke();
-                    ctx.moveTo(0, screenEntryY + 3 * scale);
-                    ctx.lineTo(width, screenEntryY + 3 * scale);
-                    ctx.stroke();
-
-                    // Left side - compact pill with emoji + name
-                    const pillWidth = Math.max(120, (entry.name?.length || 5) * 10 + 60) * scale;
-                    const pillHeight = 28 * scale;
-                    const pillX = 10 * scale;
-                    const pillY = screenEntryY - pillHeight / 2;
-                    
-                    // Pill background with gradient
-                    ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
-                    ctx.beginPath();
-                    ctx.roundRect(pillX, pillY, pillWidth, pillHeight, pillHeight / 2);
-                    ctx.fill();
-                    
-                    // Pill border
-                    ctx.strokeStyle = color;
-                    ctx.lineWidth = 2 * scale;
-                    ctx.setLineDash([]);
-                    ctx.shadowColor = color;
-                    ctx.shadowBlur = 10;
-                    ctx.stroke();
-                    ctx.shadowBlur = 0;
-                    
-                    // Emoji + Name
-                    const emoji = index === 0 ? '👑' : index === 1 ? '🥈' : index === 2 ? '🥉' : '•';
-                    ctx.font = `${14 * scale}px sans-serif`;
-                    ctx.textAlign = 'left';
-                    ctx.textBaseline = 'middle';
-                    ctx.fillText(emoji, pillX + 8 * scale, screenEntryY);
-                    
-                    // Player name
-                    ctx.fillStyle = color;
-                    ctx.font = `800 ${12 * scale}px "Rajdhani", sans-serif`;
-                    ctx.fillText(entry.name || '???', pillX + 28 * scale, screenEntryY - 1 * scale);
-                    
-                    // Right side - Score only (compact)
-                    ctx.textAlign = 'right';
-                    ctx.font = `700 ${12 * scale}px "Rajdhani", sans-serif`;
-                    ctx.fillStyle = '#ffffff';
-                    ctx.shadowColor = color;
-                    ctx.shadowBlur = 5;
-                    ctx.fillText(`${entry.score}m`, width - (15 * scale), screenEntryY);
-                    
-                    ctx.restore();
-                }
-            });
-        }
-
-        const shakeX = (Math.random() - 0.5) * cameraRef.current.shake;
-        const shakeY = (Math.random() - 0.5) * cameraRef.current.shake;
-        ctx.save();
-        ctx.translate(shakeX, shakeY);
-
-        const currentAltitude = Math.abs(Math.min(0, playerRef.current.y)) / 10;
-        const neonIntensity = Math.min(1, Math.max(0.1, currentAltitude / 5000));
-
-        platformsRef.current.forEach(p => {
-            if (p.broken && !gameState.isEditing) return;
-            let drawY = p.y;
-            if (p.type === 'STATIC' || p.type === 'STICKY') { drawY += Math.sin(timeElapsedRef.current * 1 + p.x * 0.01) * 2; }
-
-            drawPlatformTexture(
-                ctx,
-                p,
-                worldToScreenX(p.x),
-                getScreenY(drawY),
-                p.width * scale,
-                p.height * scale,
-                scale,
-                timeElapsedRef.current,
-                state,
-                selectedPlatformId,
-                cfg,
-                playerRef.current,
-                weedMode
-            );
-
-            if (p.collectible && !p.collectible.collected) {
-                const cx = worldToScreenX(p.x + p.collectible.x);
-                const cy = getScreenY(p.y + p.collectible.y + (Math.sin(timeElapsedRef.current * 4) * 5));
-                const cSize = p.collectible.width * scale;
-                const spinScale = Math.cos(timeElapsedRef.current * 5 + p.id);
-
-                const coinColors = { 0: null, 1: '#713f12', 2: '#eab308', 3: '#fef08a' };
-                const fuelColors = { 0: null, 1: '#1e3a8a', 2: '#3b82f6', 3: '#60a5fa', 4: '#93c5fd' };
-                const heartColors = { 0: null, 1: '#7f1d1d', 2: '#ef4444', 3: '#fca5a5' };
-
-                ctx.save();
-                
-                // Different glow colors based on type
-                if (p.collectible.type === 'HEART') {
-                    ctx.shadowBlur = 15 + (neonIntensity * 35);
-                    ctx.shadowColor = '#ef4444';
-                    // Draw heart shape
-                    const heartSize = cSize * 0.8;
-                    const hx = cx + cSize / 2;
-                    const hy = cy + cSize / 2;
-                    ctx.fillStyle = '#ef4444';
-                    ctx.beginPath();
-                    ctx.moveTo(hx, hy + heartSize * 0.3);
-                    ctx.bezierCurveTo(hx, hy - heartSize * 0.1, hx - heartSize * 0.5, hy - heartSize * 0.1, hx - heartSize * 0.5, hy + heartSize * 0.1);
-                    ctx.bezierCurveTo(hx - heartSize * 0.5, hy + heartSize * 0.4, hx, hy + heartSize * 0.6, hx, hy + heartSize * 0.6);
-                    ctx.bezierCurveTo(hx, hy + heartSize * 0.6, hx + heartSize * 0.5, hy + heartSize * 0.4, hx + heartSize * 0.5, hy + heartSize * 0.1);
-                    ctx.bezierCurveTo(hx + heartSize * 0.5, hy - heartSize * 0.1, hx, hy - heartSize * 0.1, hx, hy + heartSize * 0.3);
-                    ctx.fill();
-                    // Inner highlight
-                    ctx.fillStyle = '#fca5a5';
-                    ctx.beginPath();
-                    ctx.arc(hx - heartSize * 0.2, hy + heartSize * 0.05, heartSize * 0.12, 0, Math.PI * 2);
-                    ctx.fill();
-                } else {
-                    ctx.shadowBlur = 10 + (neonIntensity * 30);
-                    ctx.shadowColor = p.collectible.type === 'FUEL' ? '#3b82f6' : '#eab308';
-
-                    drawSimpleSprite(
-                        ctx,
-                        p.collectible.type === 'FUEL' ? COLLECTIBLE_SPRITES.FUEL : COLLECTIBLE_SPRITES.COIN,
-                        cx, cy, cSize,
-                        p.collectible.type === 'FUEL' ? fuelColors : coinColors,
-                        spinScale
-                    );
-                }
-                ctx.restore();
-            }
-        });
-
-        trailRef.current.forEach(t => {
-            ctx.globalAlpha = t.life * 0.5;
-            const ts = (cfg.PLAYER_SIZE || 80) * scale;
-            drawCharacter(ctx, t.skin, worldToScreenX(t.x), getScreenY(t.y), ts, t.scaleY, t.facingRight, 0, 1000, true, false, weedMode);
-        });
-        ctx.globalAlpha = 1.0;
-
-        if (!gameState.isGameOver) {
-            const player = playerRef.current;
-            const plx = worldToScreenX(player.x);
-            const ply = getScreenY(player.y);
-            const pls = (cfg.PLAYER_SIZE || 80) * scale;
-
-            if (player.vy > (cfg.SAFE_FALL_SPEED || 28)) {
-                ctx.fillStyle = 'rgba(255,255,255,0.5)';
-                for (let i = 0; i < 3; i++) {
-                    const rx = plx + Math.random() * pls;
-                    const ry = ply - (Math.random() * pls);
-                    ctx.fillRect(rx, ry, 2 * scale, Math.random() * pls * 2);
-                }
-            }
-
-            if (currentMaxFuel > 0 && fuelRef.current > 0 && !gameState.isGameOver) {
-                const barW = pls;
-                const barH = 6 * scale;
-                const barX = plx;
-                const barY = ply - 12 * scale;
-                ctx.fillStyle = '#0f172a';
-                ctx.fillRect(barX - 1 * scale, barY - 1 * scale, barW + 2 * scale, barH + 2 * scale);
-                ctx.fillStyle = '#334155';
-                ctx.fillRect(barX, barY, barW, barH);
-                const fillPct = fuelRef.current / currentMaxFuel;
-                ctx.fillStyle = fillPct < 0.3 ? '#ef4444' : '#22d3ee';
-                ctx.fillRect(barX, barY, barW * fillPct, barH);
-            }
-
-            if (state.upgrades.shield > 0) {
-                ctx.save();
-                ctx.shadowColor = '#60a5fa';
-                ctx.shadowBlur = 20;
-                ctx.strokeStyle = `rgba(96, 165, 250, ${0.3 + Math.sin(timeElapsedRef.current * 5) * 0.2})`;
-                ctx.lineWidth = 3 * scale;
-                ctx.beginPath();
-                ctx.arc(plx + pls / 2, ply + pls / 2, pls * 0.8, 0, Math.PI * 2);
-                ctx.stroke();
-                ctx.restore();
-            }
-
-            // Pass isSticky if waiting for first jump or if cooldown is active
-            const isStuck = state.waitingForFirstJump || (player.jumpCooldown > 0 && player.isGrounded);
-            drawCharacter(ctx, state.selectedSkin, plx, ply, pls, player.squashY, player.facingRight, player.vy, player.eyeBlinkTimer, false, isStuck, weedMode);
-
-            if (player.x < 100) {
-                drawCharacter(ctx, state.selectedSkin, worldToScreenX(player.x + currentWorldWidth), ply, pls, player.squashY, player.facingRight, player.vy, player.eyeBlinkTimer, false, isStuck, weedMode);
-            } else if (player.x > currentWorldWidth - 100) {
-                drawCharacter(ctx, state.selectedSkin, worldToScreenX(player.x - currentWorldWidth), ply, pls, player.squashY, player.facingRight, player.vy, player.eyeBlinkTimer, false, isStuck, weedMode);
-            }
-        }
-
-        // Draw Particles (Conditional)
-        if (configRef.current.PERFORMANCE_MODE !== 'low' || particlesRef.current.length < 50) {
-            particlesRef.current.forEach(p => {
-                ctx.fillStyle = p.color;
-                ctx.globalAlpha = p.life;
-                ctx.beginPath();
-                ctx.arc(worldToScreenX(p.x), getScreenY(p.y), p.size * scale, 0, Math.PI * 2);
-                ctx.fill();
-            });
-        }
-        ctx.globalAlpha = 1.0;
-
-        // Draw Leaves (Conditional - Skip in Low Mode)
-        if (configRef.current.PERFORMANCE_MODE !== 'low' && configRef.current.ENABLE_LEAF_ANIMATION) {
-            // ... existing leaf drawing code ...
-            // Since I don't have the exact leaf drawing code here, I'm assuming it follows.
-            // Ideally I should have viewed the file first to wrap it correctly.
-            // Let's just wrap the particle loop for now as that's the main one.
-        }
-
-        floatingTextsRef.current.forEach(t => {
-            const tx = worldToScreenX(t.x);
-            const ty = getScreenY(t.y);
-            const fontSize = (t.size * scale) * 1.2;
-
-            ctx.save();
-            ctx.font = `900 ${fontSize}px "Rajdhani", sans-serif`;
-            ctx.fillStyle = t.color;
-            ctx.textAlign = 'center';
-            ctx.strokeStyle = '#000000';
-            ctx.lineWidth = 4 * scale;
-            ctx.lineJoin = 'round';
-
-            ctx.shadowColor = 'rgba(0,0,0,0.8)';
-            ctx.shadowBlur = 6 * scale;
-            ctx.globalAlpha = Math.max(0, t.life);
-
-            const popScale = 1 + Math.sin((1 - Math.min(1, t.life)) * 3) * 0.5;
-            ctx.translate(tx, ty);
-            ctx.scale(popScale, popScale);
-
-            ctx.strokeText(t.text, 0, 0);
-            ctx.fillText(t.text, 0, 0);
-            ctx.restore();
-        });
-
-        ctx.restore();
-
-        ctx.fillStyle = '#0f172a';
-        ctx.fillRect(0, 0, worldToScreenX(0), height);
-        ctx.fillRect(worldToScreenX(currentWorldWidth), 0, width - worldToScreenX(currentWorldWidth), height);
-
-        if (zoomRef.current > 1.1) {
-            const alpha = Math.min(0.4, (zoomRef.current - 1.1) * 0.6);
-            ctx.fillStyle = `rgba(220, 38, 38, ${alpha})`;
-            ctx.fillRect(0, 0, width, height);
-        }
-
-        if (!state.isGameOver && state.isPlaying) {
-            const currentAlt = Math.floor(Math.abs(Math.min(0, playerRef.current.y)) / 10);
-            
-            // RECORD CELEBRATION EFFECT - Small trophy in corner (NOT blocking gameplay)
-            if (recordCelebrationRef.current.active) {
-                const cel = recordCelebrationRef.current;
-                const fadeIn = Math.min(1, (180 - cel.timer) / 20); // Quick fade in
-                const fadeOut = cel.timer < 40 ? cel.timer / 40 : 1; // Fade out
-                const alpha = fadeIn * fadeOut;
-                
-                ctx.save();
-                ctx.globalAlpha = alpha;
-                
-                // Small trophy box in BOTTOM RIGHT corner (like achievement popup)
-                const boxWidth = 160 * scale;
-                const boxHeight = 60 * scale;
-                const boxX = width - boxWidth - 15 * scale;
-                const boxY = height - boxHeight - 15 * scale;
-                const bounce = Math.sin(timeElapsedRef.current * 8) * 3 * scale;
-                
-                // Background
-                const bgColor = cel.rank === 1 ? 'rgba(234, 179, 8, 0.9)' : cel.rank === 2 ? 'rgba(148, 163, 184, 0.9)' : 'rgba(180, 83, 9, 0.9)';
-                ctx.fillStyle = bgColor;
-                ctx.beginPath();
-                ctx.roundRect(boxX, boxY + bounce, boxWidth, boxHeight, 10 * scale);
-                ctx.fill();
-                
-                // Border glow
-                ctx.strokeStyle = cel.rank === 1 ? '#ffd700' : cel.rank === 2 ? '#e5e5e5' : '#f59e0b';
-                ctx.lineWidth = 3 * scale;
-                ctx.shadowColor = ctx.strokeStyle;
-                ctx.shadowBlur = 15;
-                ctx.stroke();
-                ctx.shadowBlur = 0;
-                
-                // Trophy icon
-                const emoji = cel.rank === 1 ? '🏆' : cel.rank === 2 ? '🥈' : '🥉';
-                ctx.font = `${28 * scale}px sans-serif`;
-                ctx.textAlign = 'left';
-                ctx.textBaseline = 'middle';
-                ctx.fillText(emoji, boxX + 10 * scale, boxY + bounce + boxHeight / 2);
-                
-                // Text
-                ctx.fillStyle = '#000000';
-                ctx.font = `900 ${14 * scale}px "Rajdhani", sans-serif`;
-                ctx.textAlign = 'left';
-                const text = cel.rank === 1 ? 'TOP 1!' : cel.rank === 2 ? 'TOP 2!' : 'TOP 3!';
-                ctx.fillText(text, boxX + 45 * scale, boxY + bounce + 22 * scale);
-                
-                ctx.font = `600 ${11 * scale}px "Rajdhani", sans-serif`;
-                ctx.fillStyle = '#1e293b';
-                ctx.fillText(`Passou ${cel.position}m`, boxX + 45 * scale, boxY + bounce + 42 * scale);
-                
-                ctx.restore();
-            }
-        }
+        renderGame(rc);
     };
 
     useEffect(() => {
         let rAF: number;
+        const FIXED_TIMESTEP = 1000 / 60; // 16.66ms (60 FPS physics)
+        const MAX_FRAME_TIME = 250; // Cap frame time to avoid spiral of death
+
         const loop = (time: number) => {
-            const dt = time - lastTimeRef.current;
+            if (lastTimeRef.current === 0) {
+                lastTimeRef.current = time;
+                rAF = requestAnimationFrame(loop);
+                return;
+            }
+
+            let dt = time - lastTimeRef.current;
             lastTimeRef.current = time;
-            update(Math.min(dt, 64));
+
+            // FPS Calculation
+            frameCountRef.current++;
+            if (time - lastFpsUpdateRef.current >= 1000) {
+                fpsRef.current = frameCountRef.current;
+                frameCountRef.current = 0;
+                lastFpsUpdateRef.current = time;
+            }
+
+            // Cap dt to prevent spiral of death
+            if (dt > MAX_FRAME_TIME) dt = MAX_FRAME_TIME;
+
+            accumulatorRef.current += dt;
+
+            // Fixed Timestep Loop
+            while (accumulatorRef.current >= FIXED_TIMESTEP) {
+                update(FIXED_TIMESTEP);
+                accumulatorRef.current -= FIXED_TIMESTEP;
+            }
 
             if (canvasRef.current && containerRef.current) {
                 const canvas = canvasRef.current;
@@ -852,11 +660,28 @@ export const useGameLoop = (props: GameLoopProps) => {
                 if (ctx) {
                     ctx.imageSmoothingEnabled = false;
                     draw(ctx);
+
+                    // DEBUG OVERLAY
+                    if (showDebug) {
+                        ctx.save();
+                        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                        ctx.fillRect(10, 10, 220, 130);
+                        ctx.fillStyle = '#00ff00';
+                        ctx.font = '12px monospace';
+                        ctx.fillText(`FPS: ${fpsRef.current}`, 20, 30);
+                        ctx.fillText(`DT: ${dt.toFixed(2)}ms`, 20, 45);
+                        ctx.fillText(`Phys Steps: ${Math.floor((accumulatorRef.current + dt) / FIXED_TIMESTEP)}`, 20, 60);
+                        ctx.fillText(`Player Y: ${Math.floor(playerRef.current.y)}`, 20, 75);
+                        ctx.fillText(`Entities: ${platformsRef.current.length}`, 20, 90);
+                        ctx.fillText(`Particles: ${particlesRef.current.length}`, 20, 105);
+                        ctx.fillText(`Resolution: ${canvas.width}x${canvas.height}`, 20, 120);
+                        ctx.restore();
+                    }
                 }
             }
             rAF = requestAnimationFrame(loop);
         };
         rAF = requestAnimationFrame(loop);
         return () => cancelAnimationFrame(rAF);
-    }, [gameState.isEditing, editorTool, selectedPlatformId, gamepadConnected, gameState.isPaused, gameState.selectedSkin, showGameOverMenu, gameState.isFreefallMode, leaderboard, gameState.isShopOpen, gameState.upgrades.shield, weedMode]);
+    }, []); // SENIOR DEV FIX: Empty dependency array. The loop MUST NOT restart on state changes. Use Refs for everything.
 };

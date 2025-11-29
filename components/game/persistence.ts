@@ -112,7 +112,7 @@ export const Persistence = {
     saveStats: (stats: PlayerStats) => {
         localStorage.setItem(getKey('NEON_STATS'), JSON.stringify(stats));
     },
-    
+
     updateStats: (newStats: Partial<PlayerStats>) => {
         const current = Persistence.loadStats();
         const updated = {
@@ -122,8 +122,8 @@ export const Persistence = {
             totalPerfectJumps: current.totalPerfectJumps + (newStats.totalPerfectJumps || 0),
             maxCombo: Math.max(current.maxCombo, newStats.maxCombo || 0),
             noDamageDistance: Math.max(current.noDamageDistance, newStats.noDamageDistance || 0),
-            fastest1500m: (current.fastest1500m === 0 || (newStats.fastest1500m || 0) < current.fastest1500m) && (newStats.fastest1500m || 0) > 0 
-                ? (newStats.fastest1500m || 0) 
+            fastest1500m: (current.fastest1500m === 0 || (newStats.fastest1500m || 0) < current.fastest1500m) && (newStats.fastest1500m || 0) > 0
+                ? (newStats.fastest1500m || 0)
                 : current.fastest1500m
         };
         Persistence.saveStats(updated);
@@ -134,20 +134,20 @@ export const Persistence = {
             // Timeout de 5 segundos
             const controller = new AbortController();
             const timeout = setTimeout(() => controller.abort(), 5000);
-            
+
             const res = await fetch('/api/leaderboard', { signal: controller.signal });
             clearTimeout(timeout);
-            
+
             if (!res.ok) throw new Error('API Error');
             const data = await res.json();
-            
+
             // Handle new API format { success: true, leaderboard: [...] }
             const entries = data.leaderboard || data;
-            
+
             if (!Array.isArray(entries)) {
                 throw new Error('Invalid response format');
             }
-            
+
             // Map API format to LeaderboardEntry
             return entries.map((item: any, index: number) => ({
                 id: item.id || `global-${index}`,
@@ -173,12 +173,12 @@ export const Persistence = {
     submitGlobalScore: async (name: string, score: number, skinId?: string): Promise<{ success: boolean; rank?: number; error?: string; offline?: boolean }> => {
         // Sempre salva localmente primeiro
         Persistence.saveScoreToLeaderboard(name, score, skinId);
-        
+
         try {
             // Timeout de 5 segundos
             const controller = new AbortController();
             const timeout = setTimeout(() => controller.abort(), 5000);
-            
+
             const res = await fetch('/api/leaderboard', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -186,18 +186,18 @@ export const Persistence = {
                 signal: controller.signal
             });
             clearTimeout(timeout);
-            
+
             const data = await res.json();
-            
+
             // Mesmo se offline=true, consideramos sucesso
             if (data.success) {
-                return { 
-                    success: true, 
+                return {
+                    success: true,
                     rank: data.rank,
                     offline: data.offline || false
                 };
             }
-            
+
             throw new Error(data.error || 'Failed to submit');
         } catch (e) {
             console.error("Failed to submit global score", e);
@@ -272,5 +272,17 @@ export const Persistence = {
 
     saveSeenSkins: (skins: string[]) => {
         localStorage.setItem(getKey('NEON_SEEN_SKINS'), JSON.stringify(skins));
+    },
+
+    loadControlLayout: () => {
+        try {
+            const s = localStorage.getItem(getKey('NEON_CONTROL_LAYOUT'));
+            if (s) return JSON.parse(s);
+        } catch (e) { }
+        return null;
+    },
+
+    saveControlLayout: (layout: any) => {
+        localStorage.setItem(getKey('NEON_CONTROL_LAYOUT'), JSON.stringify(layout));
     },
 };

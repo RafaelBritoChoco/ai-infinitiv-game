@@ -66,7 +66,7 @@ export const useGameController = (props: GameControllerProps) => {
         waitingForFirstJump: false,
         combo: 0,
         selectedSkin: SKINS[0], // FIX: Initialize with valid skin, not empty placeholder
-        upgrades: { maxFuel: 0, efficiency: 0, luck: 0, jump: 0, shield: 0, aerodynamics: 0 },
+        upgrades: { maxFuel: 0, efficiency: 0, luck: 0, jump: 0, shield: 0, aerodynamics: 0, extraLives: 0 },
         hitStop: 0,
         hideMotionDebug: false, // Hide motion level bar and RAW debug
         invertMotion: false, // Invert motion controls
@@ -74,7 +74,9 @@ export const useGameController = (props: GameControllerProps) => {
     });
 
     const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+    const [localLeaderboard, setLocalLeaderboard] = useState<LeaderboardEntry[]>([]); // NEW: Local Leaderboard State
     const leaderboardRef = useRef<LeaderboardEntry[]>([]);
+    const localLeaderboardRef = useRef<LeaderboardEntry[]>([]); // NEW: Local Leaderboard Ref
     const highScoreEntryStatusRef = useRef<'NONE' | 'PENDING' | 'SUBMITTED'>('NONE');
     const [showGameOverMenu, setShowGameOverMenu] = useState(false);
     const [menuIndex, setMenuIndex] = useState(0);
@@ -86,6 +88,7 @@ export const useGameController = (props: GameControllerProps) => {
     useEffect(() => { stateRef.current = gameState; }, [gameState]);
     useEffect(() => { menuIndexRef.current = menuIndex; }, [menuIndex]);
     useEffect(() => { leaderboardRef.current = leaderboard; }, [leaderboard]);
+    useEffect(() => { localLeaderboardRef.current = localLeaderboard; }, [localLeaderboard]); // Sync Local Ref
 
     // --- INIT GAME WORLD ---
     const initGameWorld = (levelIndex: number = 1, levelType: 'CAMPAIGN' | 'RANDOM' = 'CAMPAIGN') => {
@@ -101,10 +104,10 @@ export const useGameController = (props: GameControllerProps) => {
         saveNodesRef.current = [];
         platformGenCountRef.current = 0;
 
-        // Try to load custom level saved from editor
+        // Try to load custom level saved from editor - ONLY IN TEST MODE
         const savedCustomLevel = Persistence.loadTestLevel();
 
-        if (savedCustomLevel && savedCustomLevel.length > 0) {
+        if (stateRef.current.gameMode === 'TEST' && savedCustomLevel && savedCustomLevel.length > 0) {
             // Use custom level as the main level!
             platformsRef.current = savedCustomLevel;
             // Ensure ground platform exists
@@ -153,22 +156,22 @@ export const useGameController = (props: GameControllerProps) => {
         name: '🏆 OURO',
         color: '#ffd700',
         pixels: [
-            [0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0],
-            [0,0,0,0,0,0,1,6,6,1,0,0,0,0,0,0],
-            [0,0,1,1,1,1,6,6,6,6,1,1,1,1,0,0],
-            [0,1,6,6,6,6,6,6,6,6,6,6,6,6,1,0],
-            [1,6,6,6,6,6,6,6,6,6,6,6,6,6,6,1],
-            [1,6,6,3,3,6,6,6,6,6,6,3,3,6,6,1],
-            [1,6,6,3,3,6,6,6,6,6,6,3,3,6,6,1],
-            [0,1,6,6,6,6,6,6,6,6,6,6,6,6,1,0],
-            [0,0,1,6,6,6,6,6,6,6,6,6,6,1,0,0],
-            [0,0,0,1,6,6,6,6,6,6,6,6,1,0,0,0],
-            [0,0,0,0,1,6,6,6,6,6,6,1,0,0,0,0],
-            [0,0,0,0,0,1,1,6,6,1,1,0,0,0,0,0],
-            [0,0,0,0,0,0,1,6,6,1,0,0,0,0,0,0],
-            [0,0,0,0,0,1,6,6,6,6,1,0,0,0,0,0],
-            [0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0],
-            [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+            [0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 1, 6, 6, 1, 0, 0, 0, 0, 0, 0],
+            [0, 0, 1, 1, 1, 1, 6, 6, 6, 6, 1, 1, 1, 1, 0, 0],
+            [0, 1, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 1, 0],
+            [1, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 1],
+            [1, 6, 6, 3, 3, 6, 6, 6, 6, 6, 6, 3, 3, 6, 6, 1],
+            [1, 6, 6, 3, 3, 6, 6, 6, 6, 6, 6, 3, 3, 6, 6, 1],
+            [0, 1, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 1, 0],
+            [0, 0, 1, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 1, 0, 0],
+            [0, 0, 0, 1, 6, 6, 6, 6, 6, 6, 6, 6, 1, 0, 0, 0],
+            [0, 0, 0, 0, 1, 6, 6, 6, 6, 6, 6, 1, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 1, 1, 6, 6, 1, 1, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 1, 6, 6, 1, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 1, 6, 6, 6, 6, 1, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
         ]
     };
     const TROPHY_SILVER = {
@@ -176,22 +179,22 @@ export const useGameController = (props: GameControllerProps) => {
         name: '🥈 PRATA',
         color: '#c0c0c0',
         pixels: [
-            [0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0],
-            [0,0,0,0,0,0,1,2,2,1,0,0,0,0,0,0],
-            [0,0,1,1,1,1,2,2,2,2,1,1,1,1,0,0],
-            [0,1,2,2,2,2,2,2,2,2,2,2,2,2,1,0],
-            [1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1],
-            [1,2,2,3,3,2,2,2,2,2,2,3,3,2,2,1],
-            [1,2,2,3,3,2,2,2,2,2,2,3,3,2,2,1],
-            [0,1,2,2,2,2,2,2,2,2,2,2,2,2,1,0],
-            [0,0,1,2,2,2,2,2,2,2,2,2,2,1,0,0],
-            [0,0,0,1,2,2,2,2,2,2,2,2,1,0,0,0],
-            [0,0,0,0,1,2,2,2,2,2,2,1,0,0,0,0],
-            [0,0,0,0,0,1,1,2,2,1,1,0,0,0,0,0],
-            [0,0,0,0,0,0,1,2,2,1,0,0,0,0,0,0],
-            [0,0,0,0,0,1,2,2,2,2,1,0,0,0,0,0],
-            [0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0],
-            [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+            [0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 1, 2, 2, 1, 0, 0, 0, 0, 0, 0],
+            [0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 1, 1, 1, 1, 0, 0],
+            [0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 0],
+            [1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+            [1, 2, 2, 3, 3, 2, 2, 2, 2, 2, 2, 3, 3, 2, 2, 1],
+            [1, 2, 2, 3, 3, 2, 2, 2, 2, 2, 2, 3, 3, 2, 2, 1],
+            [0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 0],
+            [0, 0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 0, 0],
+            [0, 0, 0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 1, 0, 0, 0],
+            [0, 0, 0, 0, 1, 2, 2, 2, 2, 2, 2, 1, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 1, 1, 2, 2, 1, 1, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 1, 2, 2, 1, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 1, 2, 2, 2, 2, 1, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
         ]
     };
     const TROPHY_BRONZE = {
@@ -199,27 +202,27 @@ export const useGameController = (props: GameControllerProps) => {
         name: '🥉 BRONZE',
         color: '#cd7f32',
         pixels: [
-            [0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0],
-            [0,0,0,0,0,0,1,2,2,1,0,0,0,0,0,0],
-            [0,0,1,1,1,1,2,2,2,2,1,1,1,1,0,0],
-            [0,1,2,2,2,2,2,2,2,2,2,2,2,2,1,0],
-            [1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1],
-            [1,2,2,3,3,2,2,2,2,2,2,3,3,2,2,1],
-            [1,2,2,3,3,2,2,2,2,2,2,3,3,2,2,1],
-            [0,1,2,2,2,2,2,2,2,2,2,2,2,2,1,0],
-            [0,0,1,2,2,2,2,2,2,2,2,2,2,1,0,0],
-            [0,0,0,1,2,2,2,2,2,2,2,2,1,0,0,0],
-            [0,0,0,0,1,2,2,2,2,2,2,1,0,0,0,0],
-            [0,0,0,0,0,1,1,2,2,1,1,0,0,0,0,0],
-            [0,0,0,0,0,0,1,2,2,1,0,0,0,0,0,0],
-            [0,0,0,0,0,1,2,2,2,2,1,0,0,0,0,0],
-            [0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0],
-            [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+            [0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 1, 2, 2, 1, 0, 0, 0, 0, 0, 0],
+            [0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 1, 1, 1, 1, 0, 0],
+            [0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 0],
+            [1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+            [1, 2, 2, 3, 3, 2, 2, 2, 2, 2, 2, 3, 3, 2, 2, 1],
+            [1, 2, 2, 3, 3, 2, 2, 2, 2, 2, 2, 3, 3, 2, 2, 1],
+            [0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 0],
+            [0, 0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 0, 0],
+            [0, 0, 0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 1, 0, 0, 0],
+            [0, 0, 0, 0, 1, 2, 2, 2, 2, 2, 2, 1, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 1, 1, 2, 2, 1, 1, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 1, 2, 2, 1, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 1, 2, 2, 2, 2, 1, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
         ]
     };
 
     // --- GAME ACTIONS ---
-    const handleStart = async (mode: 'NORMAL' | 'TEST' = 'NORMAL') => {
+    const handleStart = async (mode: 'NORMAL' | 'TEST' | 'TUTORIAL' = 'NORMAL', skinOverride?: CharacterSkin) => {
         soundManager.init();
         soundManager.playClick();
         soundManager.startMusic();
@@ -243,10 +246,17 @@ export const useGameController = (props: GameControllerProps) => {
         initGameWorld(currentState.levelIndex, currentState.levelType);
 
         // Check Trophy Skins - now separate for gold/silver/bronze
-        let activeSkin = currentState.selectedSkin;
-        const skinId = currentState.selectedSkin?.id;
+        let activeSkin = skinOverride || currentState.selectedSkin;
+
+        // If override provided, update state immediately
+        if (skinOverride) {
+            stateRef.current.selectedSkin = skinOverride;
+            setGameState(prev => ({ ...prev, selectedSkin: skinOverride }));
+        }
+
+        const skinId = activeSkin?.id;
         let activeTrophyPowers: TrophyPowers | null = null;
-        
+
         // Only decrement if user selected a trophy skin
         if (skinId === 'trophy_gold' || skinId === 'trophy_silver' || skinId === 'trophy_bronze') {
             try {
@@ -254,12 +264,12 @@ export const useGameController = (props: GameControllerProps) => {
                 if (trophyData) {
                     const skins = JSON.parse(trophyData);
                     const key = skinId === 'trophy_gold' ? 'gold' : skinId === 'trophy_silver' ? 'silver' : 'bronze';
-                    
+
                     if (skins[key] && skins[key] > 0) {
                         // Decrement uses
                         skins[key] -= 1;
                         localStorage.setItem('TROPHY_SKINS', JSON.stringify(skins));
-                        
+
                         // Use correct trophy skin and apply powers
                         if (skinId === 'trophy_gold') {
                             activeSkin = TROPHY_GOLD;
@@ -281,10 +291,11 @@ export const useGameController = (props: GameControllerProps) => {
             }
         }
 
-        // Calculate health based on trophy powers
+        // Calculate health based on trophy powers AND upgrades
         const baseHealth = cfg.MAX_HEALTH;
-        const extraLives = activeTrophyPowers?.extraLives || 0;
-        const totalHealth = baseHealth + extraLives;
+        const trophyLives = activeTrophyPowers?.extraLives || 0;
+        const upgradeLives = currentState.upgrades.extraLives || 0;
+        const totalHealth = baseHealth + trophyLives + upgradeLives;
 
         const newRunId = `run-${Date.now()}-${Math.random()}`;
         const newState: GameState = {
@@ -308,7 +319,10 @@ export const useGameController = (props: GameControllerProps) => {
             selectedSkin: activeSkin,
             activeTrophyPowers: activeTrophyPowers,
             coinValueMultiplier: activeTrophyPowers?.coinValueMultiplier || 1.0,
-            coinSpawnMultiplier: activeTrophyPowers?.coinSpawnMultiplier || 1.0
+            coinSpawnMultiplier: activeTrophyPowers?.coinSpawnMultiplier || 1.0,
+            // CRITICAL FIX: Reset tutorial state
+            tutorialStep: mode === 'TUTORIAL' ? 0 : undefined,
+            tutorialPhase: mode === 'TUTORIAL' ? 'INSTRUCTION' : undefined
         };
         setGameState(newState);
         stateRef.current = newState;
@@ -388,13 +402,22 @@ export const useGameController = (props: GameControllerProps) => {
         if (state.isPaused && !state.isGameOver) {
             if (index === 0) setGameState(p => ({ ...p, isPaused: false }));
             if (index === 1) { setGameState(p => ({ ...p, isPaused: false })); handleStart('NORMAL'); }
-            if (index === 2) setGameState(p => ({ ...p, isPaused: false, isPlaying: false, isGameOver: false }));
+            if (index === 2) {
+                setGameState(p => ({ ...p, isPaused: false, isPlaying: false, isGameOver: false }));
+                initGameWorld(state.levelIndex, state.levelType); // Reset world for menu background
+            }
             return;
         }
         if (state.isGameOver && showGameOverMenu) {
             if (index === 0) handleStart('NORMAL');
-            if (index === 1) setGameState(p => ({ ...p, isGameOver: false, isPlaying: false, isShopOpen: true }));
-            if (index === 2) setGameState(p => ({ ...p, isGameOver: false, isPlaying: false }));
+            if (index === 1) {
+                setGameState(p => ({ ...p, isGameOver: false, isPlaying: false, isShopOpen: true }));
+                initGameWorld(state.levelIndex, state.levelType); // Reset world for shop background
+            }
+            if (index === 2) {
+                setGameState(p => ({ ...p, isGameOver: false, isPlaying: false }));
+                initGameWorld(state.levelIndex, state.levelType); // Reset world for menu background
+            }
             return;
         }
         if (isControlsOpenRef.current) { setIsControlsOpen(false); return; }
@@ -482,11 +505,17 @@ export const useGameController = (props: GameControllerProps) => {
     // Fetch Global Leaderboard on Mount & Poll every 15 seconds (Real-time ish)
     useEffect(() => {
         const fetchLeaderboard = () => {
+            // 1. Load Local Leaderboard
+            const local = Persistence.loadLeaderboard();
+            setLocalLeaderboard(local);
+            localLeaderboardRef.current = local;
+
+            // 2. Fetch Global Leaderboard
             Persistence.fetchGlobalLeaderboard().then(globalScores => {
                 if (globalScores && globalScores.length > 0) {
                     const oldTop = leaderboardRef.current[0];
                     const newTop = globalScores[0];
-                    
+
                     // Check for new #1 (if we had a previous top and it changed)
                     if (oldTop && newTop && newTop.score > oldTop.score && newTop.id !== oldTop.id) {
                         setGameState(prev => ({
@@ -496,14 +525,13 @@ export const useGameController = (props: GameControllerProps) => {
                                 type: 'success'
                             }
                         }));
-                        try { soundManager.playCollect(); } catch {} 
+                        try { soundManager.playCollect(); } catch { }
                     }
 
                     setLeaderboard(globalScores);
                     leaderboardRef.current = globalScores;
                 } else {
-                    // Fallback to local
-                    const local = Persistence.loadLeaderboard();
+                    // Fallback to local if global fails or is empty
                     setLeaderboard(local);
                     leaderboardRef.current = local;
                 }
@@ -537,21 +565,42 @@ export const useGameController = (props: GameControllerProps) => {
 
         // Optimistic Update (Local)
         const newEntry: LeaderboardEntry = { id: runId, name, score: currentScore, date: new Date().toISOString(), skinId };
+
+        // Update Global Ref (Optimistic)
         const newBoard = [...leaderboardRef.current, newEntry]
             .sort((a, b) => b.score - a.score)
             .slice(0, 10); // Keep top 10
-
         setLeaderboard(newBoard);
         leaderboardRef.current = newBoard;
+
+        // Update Local Ref
+        const newLocalBoard = [...localLeaderboardRef.current, newEntry]
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 10);
+        setLocalLeaderboard(newLocalBoard);
+        localLeaderboardRef.current = newLocalBoard;
+
         highScoreEntryStatusRef.current = 'SUBMITTED';
     };
 
+    // Sync Persistence
+    useEffect(() => {
+        if (gameState.totalCoins !== undefined) {
+            Persistence.saveCoins(gameState.totalCoins);
+        }
+        if (gameState.upgrades) {
+            Persistence.saveUpgrades(gameState.upgrades);
+        }
+    }, [gameState.totalCoins, gameState.upgrades]);
+
     return {
         gameState, setGameState, stateRef,
-        leaderboard, setLeaderboard, leaderboardRef, highScoreEntryStatusRef,
+        leaderboard, setLeaderboard, leaderboardRef,
+        localLeaderboard, setLocalLeaderboard, localLeaderboardRef, // EXPORT LOCAL LEADERBOARD
+        highScoreEntryStatusRef,
         showGameOverMenu, setShowGameOverMenu,
         menuIndex, setMenuIndex,
         handleStart, handleGameOver, handleMenuAction, updateMenuNavigation,
-        buyUpgrade, handleSaveLeaderboardScore, initGameWorld
+        buyUpgrade, handleSaveLeaderboardScore
     };
 };

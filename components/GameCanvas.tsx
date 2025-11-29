@@ -65,6 +65,7 @@ const GameCanvas: React.FC = () => {
     const [weedMode, setWeedMode] = useState(() => localStorage.getItem('WEED_MODE') === 'true');
     const [showLogin, setShowLogin] = useState(false);
     const [volumeNotification, setVolumeNotification] = useState<{ show: boolean, muted: boolean } | null>(null);
+    const [showTutorial, setShowTutorial] = useState(false);
 
     // Shadow Refs for Loop Stability
     const jetpackModeRef = useRef<'IDLE' | 'BURST' | 'GLIDE'>('IDLE');
@@ -136,6 +137,7 @@ const GameCanvas: React.FC = () => {
     const {
         gameState, setGameState, stateRef,
         leaderboard, setLeaderboard, leaderboardRef, highScoreEntryStatusRef,
+        localLeaderboard, localLeaderboardRef, // Destructure local leaderboard
         showGameOverMenu, setShowGameOverMenu,
         menuIndex, setMenuIndex,
         handleStart, handleGameOver, handleMenuAction, updateMenuNavigation,
@@ -168,6 +170,9 @@ const GameCanvas: React.FC = () => {
         const savedInvertMotion = localStorage.getItem('INVERT_MOTION') === 'true';
 
         if (savedCal) calibrationRef.current = savedCal;
+
+        const savedLayout = Persistence.loadControlLayout();
+        if (savedLayout) setControlLayout(savedLayout);
 
         // Detectar se é PC ou mobile para default
         const isMobile = typeof window !== 'undefined' && (window.innerWidth < 768 || 'ontouchstart' in window);
@@ -209,7 +214,7 @@ const GameCanvas: React.FC = () => {
             alert('Digite uma descrição para o personagem!');
             return;
         }
-        
+
         // Get API key from localStorage
         const apiKey = localStorage.getItem('GEMINI_API_KEY');
         if (!apiKey) {
@@ -239,8 +244,10 @@ const GameCanvas: React.FC = () => {
         setJetpackMode, handleStart, gamepadConnected, setGamepadConnected,
         setShowGameOverMenu, editorTool, selectedPlatformId, damageFlash, showGameOverMenu,
         saveNodesRef, jetpackModeRef, damageFlashRef, jetpackAllowedRef: useRef(true),
-        leaderboard, leaderboardRef, highScoreEntryStatusRef, onGameOver: handleGameOver, onMenuUpdate: updateMenuNavigation,
-        weedMode // Pass weedMode to GameLoop
+        leaderboard, leaderboardRef, localLeaderboard, localLeaderboardRef, highScoreEntryStatusRef, onGameOver: handleGameOver, onMenuUpdate: updateMenuNavigation,
+        weedMode, // Pass weedMode to GameLoop
+        showTutorial, // Pass showTutorial to pause background bot
+        showDebug // Pass showDebug for extensive overlay
     });
 
     return (
@@ -275,7 +282,7 @@ const GameCanvas: React.FC = () => {
                     />
 
                     {gameState.isPlaying && !gameState.isGameOver && (
-                        <div className="absolute top-6 right-6 z-40 flex flex-col gap-2">
+                        <div className="absolute top-14 right-6 z-40 flex flex-col gap-2">
                             <button
                                 onMouseEnter={() => soundManager.playHover()}
                                 onClick={() => { soundManager.playClick(); setGameState(p => ({ ...p, isPaused: !p.isPaused })); }}
@@ -289,16 +296,15 @@ const GameCanvas: React.FC = () => {
                                     configRef.current = { ...configRef.current, VOLUME_MASTER: newVol };
                                     setForceUpdate(p => p + 1);
                                     soundManager.setVolumes(newVol, configRef.current.VOLUME_MUSIC || 0.4, configRef.current.VOLUME_SFX || 0.6);
-                                    
+
                                     // Visual Confirmation
                                     setVolumeNotification({ show: true, muted: newVol === 0 });
                                     setTimeout(() => setVolumeNotification(null), 1500);
                                 }}
-                                className={`p-3 backdrop-blur rounded-full border transition-all ${
-                                    (configRef.current.VOLUME_MASTER || 0.5) > 0 
-                                        ? 'bg-black/50 text-green-400 border-green-500/50 hover:bg-green-900/50 shadow-[0_0_10px_rgba(34,197,94,0.3)]' 
-                                        : 'bg-black/50 text-slate-400 border-slate-500/50 hover:bg-slate-900/50'
-                                }`}>
+                                className={`p-3 backdrop-blur rounded-full border transition-all ${(configRef.current.VOLUME_MASTER || 0.5) > 0
+                                    ? 'bg-black/50 text-green-400 border-green-500/50 hover:bg-green-900/50 shadow-[0_0_10px_rgba(34,197,94,0.3)]'
+                                    : 'bg-black/50 text-slate-400 border-slate-500/50 hover:bg-slate-900/50'
+                                    }`}>
                                 {(configRef.current.VOLUME_MASTER || 0.5) > 0 ? <Volume2 size={20} /> : <VolumeX size={20} />}
                             </button>
                         </div>
@@ -368,6 +374,8 @@ const GameCanvas: React.FC = () => {
                             Persistence.setProfile('guest');
                             setShowLogin(true);
                         }}
+                        showTutorial={showTutorial}
+                        setShowTutorial={setShowTutorial}
                     />
                 )}
 
@@ -413,7 +421,7 @@ const GameCanvas: React.FC = () => {
                         initialLayout={controlLayout}
                         onSave={(newLayout: any) => {
                             setControlLayout(newLayout);
-                            // Persistence.saveControlLayout(newLayout); // TODO: Implement persistence
+                            Persistence.saveControlLayout(newLayout);
                             setShowLayoutEditor(false);
                         }}
                     />
@@ -472,16 +480,18 @@ const GameCanvas: React.FC = () => {
 
             {/* HUD */}
             {gameState.isPlaying && !gameState.isGameOver && (
-                <GameUI 
-                    gameState={gameState} 
-                    config={configRef.current} 
+                <GameUI
+                    gameState={gameState}
+                    config={configRef.current}
                     setConfig={(newConfig: any) => {
                         configRef.current = { ...configRef.current, ...newConfig };
                         setForceUpdate(p => p + 1);
-                    }} 
+                    }}
                     weedMode={weedMode}
                 />
             )}
+
+            {/* TUTORIAL REMOVED - WAS CAUSING CRASHES */}
 
             {/* Skill Tree Shop - Moved to Root Level */}
             {gameState.isShopOpen && (

@@ -93,10 +93,12 @@ export const UPGRADE_EFFICIENCY_BONUS = 0.10;
 export const UPGRADE_LUCK_BONUS = 0.05;
 export const UPGRADE_JUMP_BONUS = 5;
 export const UPGRADE_AERODYNAMICS_BONUS = 0.014;
+export const UPGRADE_EXTRA_LIFE_BONUS = 1;
 export const SHIELD_BOUNCE_FORCE = 180;
 
 // Item Costs
 export const ITEM_SHIELD_COST = 150;
+export const ITEM_HEART_COST = 250;
 
 // --- PERFORMANCE SETTINGS ---
 export const PERFORMANCE_MODE: 'auto' | 'high' | 'low' = 'auto';
@@ -110,7 +112,7 @@ export const ENABLE_SCREEN_EFFECTS: boolean = true;
 export const ENABLE_BACKDROP_BLUR: boolean = true;
 
 // Application version
-export const APP_VERSION = 'v3.2.7';
+export const APP_VERSION = 'v3.3.4';
 
 // --- Z-INDEX LAYERS ---
 export const Z_LAYERS = {
