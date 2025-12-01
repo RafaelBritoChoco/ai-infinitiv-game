@@ -91,9 +91,6 @@ export const PetHub: React.FC<PetHubProps> = ({ onClose }) => {
 
     // SHOP MODAL COMPONENT
     const ShopModal = () => {
-        // Dynamic require to avoid circular dependency issues if any, 
-        // though in this structure it should be fine. 
-        // Using require for safety as requested in previous steps logic.
         const { SHOP_ITEMS } = require('../../pet-constants');
 
         return (
@@ -260,7 +257,11 @@ export const PetHub: React.FC<PetHubProps> = ({ onClose }) => {
     }
 
     // MAIN PET SCREEN (After hatching)
-    const hungerPercent = Math.round((pet.stats.hunger / 100) * 100);
+    // CORRECTED LOGIC: Hunger bar now represents FULLNESS (Barriga Cheia)
+    // 0 Hunger = 100% Fullness (Green)
+    // 100 Hunger = 0% Fullness (Red)
+    const hungerPercent = pet.stats.hunger;
+    const fullnessPercent = Math.max(0, Math.min(100, 100 - hungerPercent));
     const happinessPercent = Math.round((pet.stats.happiness / 100) * 100);
     const cleanlinessPercent = Math.round(((100 - pet.stats.poop) / 100) * 100);
 
@@ -286,27 +287,27 @@ export const PetHub: React.FC<PetHubProps> = ({ onClose }) => {
                     </div>
 
                     <div className="pet-instruction">
-                        {pet.stats.hunger < 40 && "Seu pet está com fome!"}
+                        {pet.stats.hunger > 60 && "Seu pet está com fome!"}
                         {pet.stats.happiness < 40 && "Seu pet quer brincar!"}
                         {pet.stats.poop > 60 && "Seu pet precisa de limpeza!"}
-                        {pet.stats.hunger >= 70 && pet.stats.happiness >= 70 && pet.stats.poop < 30 && "Seu pet está feliz!"}
+                        {pet.stats.hunger <= 30 && pet.stats.happiness >= 70 && pet.stats.poop < 30 && "Seu pet está feliz!"}
                     </div>
 
                     <div className="pet-stats-bar">
                         <div className="stat-item">
-                            <span className="stat-label">FOME</span>
+                            <span className="stat-label">BARRIGA</span>
                             <div className="stat-bar-track">
                                 <div
                                     className="stat-bar-fill"
                                     style={{
-                                        width: `${hungerPercent}%`,
-                                        background: hungerPercent > 50
+                                        width: `${fullnessPercent}%`,
+                                        background: fullnessPercent > 50
                                             ? 'linear-gradient(90deg, #4ade80, #22c55e)'
-                                            : 'linear-gradient(90deg, #fbbf24, #f59e0b)'
+                                            : 'linear-gradient(90deg, #ef4444, #dc2626)'
                                     }}
                                 ></div>
                             </div>
-                            <span className="stat-value">{hungerPercent}%</span>
+                            <span className="stat-value">{Math.round(fullnessPercent)}%</span>
                         </div>
 
                         <div className="stat-item">
