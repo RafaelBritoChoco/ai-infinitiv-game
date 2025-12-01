@@ -32,7 +32,11 @@ import { getPetStateForUser } from './pet/pet-service';
 import { getPetBuffs } from './pet/pet-logic-core';
 import { PetBuffs } from '../pet-types';
 
-const GameCanvas: React.FC = () => {
+interface GameCanvasProps {
+    onLogout?: () => void;
+}
+
+const GameCanvas: React.FC<GameCanvasProps> = ({ onLogout }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
 
@@ -391,8 +395,12 @@ const GameCanvas: React.FC = () => {
                             setForceUpdate(p => p + 1);
                         }}
                         onLogout={() => {
-                            Persistence.setProfile('guest');
-                            setShowLogin(true);
+                            if (onLogout) {
+                                onLogout();
+                            } else {
+                                Persistence.setProfile('guest');
+                                setShowLogin(true);
+                            }
                         }}
                         showTutorial={showTutorial}
                         setShowTutorial={setShowTutorial}

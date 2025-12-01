@@ -1,93 +1,80 @@
 /* ============================================
-   PET HUB - TAMAGOTCHI STYLE (REDESIGN v2)
-   HIGH CONTRAST + CLEAR BUTTONS + NO EMOJIS
+   PET HUB - ULTRA LIGHT RETRO (v3)
+   PERFORMANCE FOCUSED + FLAT PIXEL ART
    ============================================ */
 
 :root {
-    --pet-bg-light: #e8f4ea;
-    --pet-bg-dark: #2d4a3e;
-    --pet-screen: #9cb89a;
-    --pet-border: #1a2921;
-    --pet-text: #1a2921;
-    --pet-accent: #4a7c59;
-    --pet-button: #6b9b79;
-    --pet-button-hover: #8bbf99;
+    --retro-bg: #f0f0d0;
+    /* GameBoy Screen Light */
+    --retro-dark: #202020;
+    /* Ink Black */
+    --retro-accent: #e04040;
+    /* Red LED */
+    --retro-green: #40a040;
+    /* Green */
+    --retro-border: #000000;
 }
 
 /* ===== MAIN OVERLAY ===== */
 .pet-hub-overlay {
     position: fixed;
     inset: 0;
-    background: linear-gradient(135deg, #1a2921 0%, #2d4a3e 100%);
+    background: rgba(0, 0, 0, 0.85);
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 10000;
-    padding: 1rem;
+    padding: 0;
+    backdrop-filter: none;
+    /* REMOVED for performance */
 }
 
-/* ===== TAMAGOTCHI DEVICE ===== */
+/* ===== DEVICE FRAME (Simple & Fast) ===== */
 .tamagotchi-device {
-    width: min(95vw, 400px);
-    background: linear-gradient(145deg, #e8f4ea 0%, #d4e8d6 100%);
-    border-radius: 48px 48px 24px 24px;
-    padding: 24px;
-    box-shadow:
-        0 30px 60px rgba(0, 0, 0, 0.6),
-        inset 0 2px 20px rgba(255, 255, 255, 0.5);
+    width: min(100vw, 400px);
+    height: min(100vh, 600px);
+    background: #e0e0e0;
+    border: 4px solid #000;
+    border-radius: 20px;
+    padding: 16px;
     position: relative;
+    display: flex;
+    flex-direction: column;
+    box-shadow: none;
+    /* REMOVED heavy shadows */
 }
 
 /* ===== HEADER ===== */
 .pet-header-bar {
-    background: var(--pet-border);
-    padding: 12px 16px;
-    border-radius: 16px 16px 0 0;
     text-align: center;
-    margin-bottom: 16px;
+    margin-bottom: 10px;
+    border-bottom: 2px solid #000;
+    padding-bottom: 5px;
 }
 
 .pet-title-text {
     font-family: 'Press Start 2P', monospace;
-    font-size: clamp(0.7rem, 2vw, 1rem);
-    color: #4ade80;
-    text-shadow: 0 0 10px rgba(74, 222, 128, 0.5);
-    letter-spacing: 0.1em;
+    font-size: 16px;
+    color: #000;
+    text-transform: uppercase;
 }
 
-/* ===== SCREEN AREA ===== */
+/* ===== SCREEN AREA (The "LCD") ===== */
 .pet-screen-area {
-    background: #9cb89a;
-    border: 6px solid var(--pet-border);
-    border-radius: 12px;
-    min-height: 280px;
+    background: #98c098;
+    /* Classic LCD Green */
+    border: 4px solid #405040;
+    border-radius: 8px;
+    flex: 1;
     position: relative;
     overflow: hidden;
-    box-shadow: inset 0 4px 20px rgba(0, 0, 0, 0.3);
     display: flex;
     flex-direction: column;
-    padding: 16px;
+    padding: 10px;
+    image-rendering: pixelated;
 }
 
-/* ===== PIXEL GRID BACKGROUND ===== */
-.pet-screen-area::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background-image:
-        repeating-linear-gradient(0deg,
-            rgba(0, 0, 0, 0.02) 0px,
-            transparent 1px,
-            transparent 4px,
-            rgba(0, 0, 0, 0.02) 5px),
-        repeating-linear-gradient(90deg,
-            rgba(0, 0, 0, 0.02) 0px,
-            transparent 1px,
-            transparent 4px,
-            rgba(0, 0, 0, 0.02) 5px);
-    pointer-events: none;
-    opacity: 0.5;
-}
+/* REMOVED: Pixel grid overlay (performance killer on some mobiles) */
 
 /* ===== PET DISPLAY ===== */
 .pet-display-zone {
@@ -96,205 +83,118 @@
     align-items: center;
     justify-content: center;
     position: relative;
-    z-index: 1;
 }
 
 .pet-sprite-container {
+    transform: scale(2);
+    /* Crisp pixel scaling */
     image-rendering: pixelated;
-    image-rendering: -moz-crisp-edges;
-    image-rendering: crisp-edges;
-    filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.3));
 }
 
 /* ===== INSTRUCTION TEXT ===== */
 .pet-instruction {
-    background: rgba(255, 255, 255, 0.8);
-    padding: 8px 12px;
-    border-radius: 8px;
-    border: 2px solid var(--pet-border);
+    background: transparent;
     text-align: center;
     font-family: 'Press Start 2P', monospace;
-    font-size: 0.5rem;
-    color: var(--pet-text);
-    margin-top: 12px;
-    line-height: 1.6;
-    animation: pulse 2s ease-in-out infinite;
-    z-index: 2;
+    font-size: 10px;
+    color: #000;
+    margin-top: 10px;
+    min-height: 20px;
 }
 
-@keyframes pulse {
-
-    0%,
-    100% {
-        opacity: 1;
-        transform: scale(1);
-    }
-
-    50% {
-        opacity: 0.9;
-        transform: scale(0.98);
-    }
-}
-
-/* ===== STATS BAR ===== */
+/* ===== STATS BAR (Simple Blocks) ===== */
 .pet-stats-bar {
-    background: rgba(255, 255, 255, 0.9);
-    border: 3px solid var(--pet-border);
-    border-radius: 8px;
-    padding: 12px;
-    margin-top: 12px;
-    z-index: 2;
+    margin-top: 10px;
+    border-top: 2px solid #405040;
+    padding-top: 5px;
 }
 
 .stat-item {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 8px;
-}
-
-.stat-item:last-child {
-    margin-bottom: 0;
+    margin-bottom: 4px;
 }
 
 .stat-label {
     font-family: 'Press Start 2P', monospace;
-    font-size: 0.45rem;
-    color: var(--pet-text);
-    min-width: 60px;
+    font-size: 8px;
+    color: #000;
+    width: 50px;
 }
 
 .stat-bar-track {
     flex: 1;
-    height: 12px;
-    background: rgba(0, 0, 0, 0.2);
-    border: 2px solid var(--pet-border);
-    border-radius: 6px;
-    overflow: hidden;
-    position: relative;
+    height: 8px;
+    background: #80a080;
+    /* Darker green */
+    border: 1px solid #000;
 }
 
 .stat-bar-fill {
     height: 100%;
-    background: linear-gradient(90deg, #4ade80, #22c55e);
-    transition: width 0.3s ease;
-    position: relative;
-    image-rendering: pixelated;
-}
-
-.stat-bar-fill::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: repeating-linear-gradient(90deg,
-            transparent 0px,
-            rgba(255, 255, 255, 0.3) 2px,
-            transparent 4px);
+    background: #000;
+    /* Solid black for contrast */
 }
 
 .stat-value {
     font-family: 'Press Start 2P', monospace;
-    font-size: 0.4rem;
-    color: var(--pet-text);
-    min-width: 35px;
+    font-size: 8px;
+    color: #000;
+    width: 30px;
     text-align: right;
 }
 
-/* ===== ACTION BUTTONS ===== */
+/* ===== ACTION BUTTONS (Physical Feel) ===== */
 .pet-action-buttons {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
-    margin-top: 20px;
-    padding: 0 8px;
+    gap: 8px;
+    margin-top: 16px;
 }
 
 .pet-action-btn {
-    background: linear-gradient(145deg, #6b9b79 0%, #5a8a68 100%);
-    border: 4px solid var(--pet-border);
-    border-radius: 12px;
-    padding: 16px 12px;
+    background: #d0d0d0;
+    border: 2px solid #000;
+    border-radius: 8px;
+    padding: 10px 4px;
     cursor: pointer;
-    transition: all 0.2s;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 6px;
-    box-shadow:
-        0 6px 0 var(--pet-border),
-        0 8px 20px rgba(0, 0, 0, 0.3);
-    position: relative;
+    gap: 4px;
+    box-shadow: 0 4px 0 #808080;
+    /* Simple CSS shadow */
+    transition: transform 0.1s;
 }
 
-.pet-action-btn:hover:not(:disabled) {
-    background: linear-gradient(145deg, #8bbf99 0%, #7aae88 100%);
-    transform: translateY(-2px);
-    box-shadow:
-        0 8px 0 var(--pet-border),
-        0 10px 25px rgba(0, 0, 0, 0.4);
-}
-
-.pet-action-btn:active:not(:disabled) {
-    transform: translateY(6px);
-    box-shadow:
-        0 0 0 var(--pet-border),
-        0 2px 10px rgba(0, 0, 0, 0.2);
-}
-
-.pet-action-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    filter: grayscale(0.5);
-}
-
-.btn-icon {
-    width: 32px;
-    height: 32px;
-    image-rendering: pixelated;
+.pet-action-btn:active {
+    transform: translateY(4px);
+    box-shadow: 0 0 0 #808080;
 }
 
 .btn-label {
     font-family: 'Press Start 2P', monospace;
-    font-size: 0.4rem;
-    color: white;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-    text-transform: uppercase;
+    font-size: 8px;
+    color: #000;
+    margin-top: 4px;
 }
 
 /* ===== CLOSE BUTTON ===== */
 .pet-close-btn {
     position: absolute;
-    top: 12px;
-    right: 12px;
-    width: 44px;
-    height: 44px;
-    background: linear-gradient(145deg, #ef4444 0%, #dc2626 100%);
-    border: 4px solid #991b1b;
+    top: -10px;
+    right: -10px;
+    width: 32px;
+    height: 32px;
+    background: #ff4040;
+    border: 2px solid #000;
     border-radius: 50%;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow:
-        0 4px 0 #7f1d1d,
-        0 6px 16px rgba(0, 0, 0, 0.4);
-    transition: all 0.2s;
     z-index: 100;
-}
-
-.pet-close-btn:hover {
-    background: linear-gradient(145deg, #f87171 0%, #ef4444 100%);
-    transform: translateY(-2px);
-    box-shadow:
-        0 6px 0 #7f1d1d,
-        0 8px 20px rgba(0, 0, 0, 0.5);
-}
-
-.pet-close-btn:active {
-    transform: translateY(4px);
-    box-shadow:
-        0 0 0 #7f1d1d,
-        0 2px 8px rgba(0, 0, 0, 0.3);
+    box-shadow: 2px 2px 0 #000;
 }
 
 /* ===== ADOPTION SCREEN ===== */
@@ -302,111 +202,48 @@
     display: flex;
     flex-direction: column;
     height: 100%;
-}
-
-.adoption-title {
-    font-family: 'Press Start 2P', monospace;
-    font-size: 0.7rem;
-    color: var(--pet-text);
-    text-align: center;
-    margin-bottom: 16px;
-    padding: 8px;
-    background: rgba(255, 255, 255, 0.8);
-    border-radius: 8px;
-}
-
-.egg-showcase {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 16px;
-}
-
-.name-input-area {
-    width: 100%;
-    margin-top: 16px;
 }
 
 .name-input {
-    width: 100%;
-    padding: 12px;
+    width: 80%;
+    padding: 8px;
     font-family: 'Press Start 2P', monospace;
-    font-size: 0.6rem;
+    font-size: 12px;
     text-align: center;
-    background: rgba(255, 255, 255, 0.9);
-    border: 3px solid var(--pet-border);
-    border-radius: 8px;
-    color: var(--pet-text);
-}
-
-.name-input:focus {
-    outline: none;
-    border-color: #4ade80;
-    box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.3);
+    background: #f0f0f0;
+    border: 2px solid #000;
+    margin: 10px 0;
+    color: #000;
 }
 
 .adopt-button {
-    width: 100%;
-    padding: 16px;
-    margin-top: 12px;
-    background: linear-gradient(145deg, #4ade80 0%, #22c55e 100%);
-    border: 4px solid var(--pet-border);
-    border-radius: 12px;
+    background: #40a040;
+    color: #fff;
+    border: 2px solid #000;
+    padding: 10px 20px;
     font-family: 'Press Start 2P', monospace;
-    font-size: 0.6rem;
-    color: white;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    font-size: 12px;
     cursor: pointer;
-    box-shadow:
-        0 6px 0 var(--pet-border),
-        0 8px 20px rgba(0, 0, 0, 0.3);
-    transition: all 0.2s;
+    box-shadow: 0 4px 0 #206020;
 }
 
-.adopt-button:hover:not(:disabled) {
-    background: linear-gradient(145deg, #86efac 0%, #4ade80 100%);
-    transform: translateY(-2px);
+.adopt-button:active {
+    transform: translateY(4px);
+    box-shadow: none;
 }
 
-.adopt-button:active:not(:disabled) {
-    transform: translateY(6px);
-    box-shadow:
-        0 0 0 var(--pet-border),
-        0 2px 10px rgba(0, 0, 0, 0.2);
-}
-
-.adopt-button:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-/* ===== MOBILE RESPONSIVE ===== */
+/* ===== MOBILE OPTIMIZATIONS ===== */
 @media (max-width: 480px) {
     .tamagotchi-device {
-        padding: 16px;
+        width: 100%;
+        height: 100%;
+        border-radius: 0;
+        border: none;
     }
 
     .pet-screen-area {
-        min-height: 240px;
-    }
-
-    .pet-action-buttons {
-        grid-template-columns: repeat(3, 1fr);
-        gap: 8px;
-    }
-
-    .pet-action-btn {
-        padding: 12px 8px;
-    }
-
-    .btn-icon {
-        width: 24px;
-        height: 24px;
-    }
-
-    .btn-label {
-        font-size: 0.35rem;
+        border-width: 2px;
     }
 }

@@ -1,123 +1,87 @@
 /**
- * Authentication API - Simple Login System
- * Credentials: username: "choco" / password: "senha pro"
+ * Authentication API - Admin & User System
+ * Admin: choco / senha pro
  */
 
-// Simple in-memory session storage (for demo - in production use Redis/Database)
+// In-memory storage
+const users = new Map();
 const sessions = new Map();
 
-// Valid credentials
-const VALID_CREDENTIALS = {
-    username: 'choco',
-    password: 'senha pro'
-};
-
-// CORS headers
-const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'Content-Type': 'application/json'
-};
+// Initialize ADMIN user with special flags
+users.set('choco', {
+    password: 'senha pro',
+    created: Date.now(),
+    isAdmin: true,
+    preferences: {
+        infiniteMoney: false,
+        unlockAll: true
+    }
+});
 
 export default async function handler(req, res) {
-    // Handle CORS preflight
-    if (req.method === 'OPTIONS') {
-        return res.status(200).json({});
+    if (req.method === 'OPTIONS') return res.status(200).json({});
+    if (req.method !== 'POST') return res.status(405).json({ success: false });
+
+    const { action, username, password, preferences } = req.body;
+
+    // --- REGISTER ---
+    if (action === 'register') {
+        if (users.has(username)) return res.status(409).json({ success: false, message: 'User exists' });
+        users.set(username, { password, created: Date.now(), isAdmin: false });
+
+        const token = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        sessions.set(token, { username, loginTime: Date.now(), isGuest: false, isAdmin: false });
+
+        return res.status(200).json({ success: true, token, username, isAdmin: false });
     }
 
-    const { method, body } = req;
-
-    // LOGIN
-    if (method === 'POST' && body.action === 'login') {
-        const { username, password } = body;
-
-        if (username === VALID_CREDENTIALS.username && password === VALID_CREDENTIALS.password) {
-            // Generate session token
-            const sessionToken = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-            sessions.set(sessionToken, {
-                username,
-                loginTime: Date.now(),
-                isGuest: false
-            });
-
-            return res.status(200).json({
-                success: true,
-                token: sessionToken,
-                username,
-                message: 'Login successful!'
-            });
-        } else {
-            return res.status(401).json({
-                success: false,
-                message: 'Invalid credentials'
-            });
+    // --- LOGIN ---
+    if (action === 'login') {
+        const user = users.get(username);
+        if (!user || user.password !== password) {
+            return res.status(401).json({ success: false, message: 'Invalid credentials' });
         }
-    }
 
-    // GUEST LOGIN
-    if (method === 'POST' && body.action === 'guest') {
-        const guestToken = `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-        sessions.set(guestToken, {
-            username: `Guest_${Math.floor(Math.random() * 9999)}`,
+        const token = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        sessions.set(token, {
+            username,
             loginTime: Date.now(),
-            isGuest: true
+            isGuest: false,
+            isAdmin: user.isAdmin,
+            preferences: user.preferences
         });
 
         return res.status(200).json({
             success: true,
-            token: guestToken,
-            username: sessions.get(guestToken).username,
-            isGuest: true,
-            message: 'Playing as guest - data will not be saved'
+            token,
+            username,
+            isAdmin: user.isAdmin,
+            preferences: user.preferences
         });
     }
 
-    // VERIFY SESSION
-    if (method === 'POST' && body.action === 'verify') {
-        const { token } = body;
+    // --- UPDATE PREFERENCES (Admin Only) ---
+    if (action === 'update_preferences') {
+        const { token, preferences } = req.body;
+        const session = sessions.get(token);
 
-        if (sessions.has(token)) {
-            const session = sessions.get(token);
-            return res.status(200).json({
-                success: true,
-                valid: true,
-                username: session.username,
-                isGuest: session.isGuest
-            });
-        } else {
-            return res.status(200).json({
-                success: true,
-                valid: false,
-                message: 'Session expired or invalid'
-            });
+        if (!session || !session.isAdmin) {
+            return res.status(403).json({ success: false, message: 'Unauthorized' });
+        }
+
+        const user = users.get(session.username);
+        if (user) {
+            user.preferences = { ...user.preferences, ...preferences };
+            return res.status(200).json({ success: true, preferences: user.preferences });
         }
     }
 
-    // LOGOUT
-    if (method === 'POST' && body.action === 'logout') {
-        const { token } = body;
-
-        if (sessions.has(token)) {
-            sessions.delete(token);
-            return res.status(200).json({
-                success: true,
-                message: 'Logged out successfully'
-            });
-        }
+    // --- GUEST ---
+    if (action === 'guest') {
+        const token = `guest_${Date.now()}`;
+        sessions.set(token, { username: 'Guest', isGuest: true });
+        return res.status(200).json({ success: true, token, username: 'Guest', isGuest: true });
     }
 
-    return res.status(400).json({
-        success: false,
-        message: 'Invalid request'
-    });
+    return res.status(400).json({ success: false });
 }
-
-// Set CORS headers for all responses
-export const config = {
-    api: {
-        bodyParser: true
-    }
-};

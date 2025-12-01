@@ -23,10 +23,7 @@ import { SHOP_ITEMS } from '../../pet-constants';
  * @returns Pet state or null if feature is disabled
  */
 export async function getPetStateForUser(): Promise<PetState | null> {
-    // Check feature flag
-    if (!Persistence.isPetEnabled()) {
-        return null;
-    }
+    // Feature flag check removed - always enabled
 
     try {
         const saved = localStorage.getItem('NEON_PET_STATE');
@@ -59,6 +56,9 @@ export const adoptEgg = async (name: string): Promise<PetState> => {
     return newPet;
 };
 
+// Alias for consistency with PetHub usage
+export const adoptNewPet = adoptEgg;
+
 /**
  * Perform pet action (feed, clean, play)
  */
@@ -66,7 +66,7 @@ export async function performPetAction(
     action: 'feed' | 'clean' | 'play',
     params?: { foodPower?: number; funPower?: number }
 ): Promise<PetState | null> {
-    if (!Persistence.isPetEnabled()) return null;
+    // Always enabled
 
     try {
         let pet = await getPetStateForUser();
@@ -119,7 +119,7 @@ export async function performPetAction(
  * Evolve pet to specific stage
  */
 export async function evolvePet(newStage: PetState['stage']): Promise<PetState | null> {
-    if (!Persistence.isPetEnabled()) return null;
+    // Always enabled
 
     try {
         let pet = await getPetStateForUser();
@@ -141,7 +141,7 @@ export async function evolvePet(newStage: PetState['stage']): Promise<PetState |
  * Buy item from shop
  */
 export async function buyItem(itemId: string): Promise<{ success: boolean; message: string; pet?: PetState }> {
-    if (!Persistence.isPetEnabled()) return { success: false, message: 'Pet system disabled' };
+    // Always enabled
 
     try {
         let pet = await getPetStateForUser();
@@ -183,7 +183,7 @@ export const savePetState = (pet: PetState) => {
  * Reset pet (for testing or after death)
  */
 export async function resetPet(name?: string): Promise<PetState | null> {
-    if (!Persistence.isPetEnabled()) return null;
+    // Always enabled
 
     try {
         const oldPet = await getPetStateForUser();

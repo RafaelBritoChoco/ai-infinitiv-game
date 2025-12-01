@@ -1,21 +1,63 @@
 /**
  * Version Check Component
- * Automatically detects new versions and forces update
+ * Automatically detects new versions and forces update seamlessly
  */
 
 import React, { useEffect, useState } from 'react';
-import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { AlertTriangle, RefreshCw, Loader2 } from 'lucide-react';
 
 const CURRENT_VERSION = '2.0.0'; // Update this when deploying new version
-const VERSION_CHECK_INTERVAL = 30000; // Check every 30 seconds
+const VERSION_CHECK_INTERVAL = 10000; // Check every 10 seconds
 
 export const VersionChecker: React.FC = () => {
-    const [needsUpdate, setNeedsUpdate] = useState(false);
-    const [isChecking, setIsChecking] = useState(false);
+    const [status, setStatus] = useState<'IDLE' | 'UPDATING'>('IDLE');
+
+    const performUpdate = async () => {
+        // Prevent infinite loops: check if we just tried to update
+        const lastUpdate = sessionStorage.getItem('last_update_attempt');
+        if (lastUpdate && Date.now() - parseInt(lastUpdate) < 5000) {
+            console.warn('⚠️ Update loop detected. Pausing update mechanism.');
+            return;
+        }
+
+        setStatus('UPDATING');
+        sessionStorage.setItem('last_update_attempt', Date.now().toString());
+
+        try {
+            console.log('🚀 AUTO-UPDATING GAME...');
+
+            // 1. Clear Caches
+            if ('caches' in window) {
+                const cacheNames = await caches.keys();
+                await Promise.all(cacheNames.map(name => caches.delete(name)));
+            }
+
+            // 2. Unregister Service Workers
+            if ('serviceWorker' in navigator) {
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                await Promise.all(registrations.map(reg => reg.unregister()));
+            }
+
+            // 3. Clear Storage (Optional - maybe keep user data?)
+            // localStorage.clear(); // Keeping user data might be better?
+            // sessionStorage.clear(); 
+            // Let's clear only critical things or everything if requested
+            // For now, let's keep it safe and clear everything to ensure fresh code
+            localStorage.clear();
+            sessionStorage.clear();
+
+            // 4. Force Reload with Cache Busting
+            console.log('✅ Ready to reload...');
+            window.location.href = window.location.href.split('?')[0] + '?v=' + Date.now();
+
+        } catch (error) {
+            console.error('Update failed:', error);
+            window.location.reload();
+        }
+    };
 
     const checkVersion = async () => {
         try {
-            // Fetch version from server (timestamp based)
             const response = await fetch(`/version.json?t=${Date.now()}`, {
                 cache: 'no-store',
                 headers: { 'Cache-Control': 'no-cache' }
@@ -25,130 +67,37 @@ export const VersionChecker: React.FC = () => {
                 const data = await response.json();
                 const serverVersion = data.version;
 
-                console.log('🔍 Version check:', {
-                    current: CURRENT_VERSION,
-                    server: serverVersion,
-                    needsUpdate: CURRENT_VERSION !== serverVersion
-                });
-
                 if (CURRENT_VERSION !== serverVersion) {
-                    setNeedsUpdate(true);
+                    console.log(`🔄 New version found: ${serverVersion} (Current: ${CURRENT_VERSION})`);
+                    performUpdate();
                 }
             }
         } catch (error) {
-            console.warn('Version check failed:', error);
+            // Silent fail
         }
     };
 
-    // Check on mount
     useEffect(() => {
         checkVersion();
-
-        // Check periodically
         const interval = setInterval(checkVersion, VERSION_CHECK_INTERVAL);
-
         return () => clearInterval(interval);
     }, []);
 
-    const handleForceUpdate = async () => {
-        setIsChecking(true);
+    if (status === 'IDLE') return null;
 
-        try {
-            console.log('🧹 CLEARING ALL BROWSER DATA FOR UPDATE...');
-
-            // Clear everything
-            if ('caches' in window) {
-                const cacheNames = await caches.keys();
-                await Promise.all(cacheNames.map(name => caches.delete(name)));
-            }
-
-            if ('serviceWorker' in navigator) {
-                const registrations = await navigator.serviceWorker.getRegistrations();
-                await Promise.all(registrations.map(reg => reg.unregister()));
-            }
-
-            localStorage.clear();
-            sessionStorage.clear();
-
-            if ('indexedDB' in window) {
-                const dbs = await indexedDB.databases();
-                dbs.forEach(db => {
-                    if (db.name) indexedDB.deleteDatabase(db.name);
-                });
-            }
-
-            document.cookie.split(";").forEach(c => {
-                document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
-            });
-
-            console.log('✅ ALL DATA CLEARED! Refreshing...');
-
-            // Force reload
-            window.location.href = window.location.href.split('?')[0] + '?v=' + Date.now();
-        } catch (error) {
-            console.error('Update error:', error);
-            window.location.reload();
-        }
-    };
-
-    if (!needsUpdate) return null;
-
-    // Blocking modal - user MUST update
+    // Full screen updating overlay
     return (
-        <div className="fixed inset-0 z-[99999] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4">
-            <div className="bg-gradient-to-br from-red-950 to-orange-950 border-4 border-red-500 rounded-2xl p-8 max-w-md w-full shadow-[0_0_50px_rgba(239,68,68,0.5)] animate-pulse">
-                {/* Warning Icon */}
-                <div className="flex justify-center mb-6">
-                    <div className="relative">
-                        <AlertTriangle size={80} className="text-red-500 animate-bounce" />
-                        <div className="absolute inset-0 bg-red-500 blur-3xl opacity-50"></div>
-                    </div>
+        <div className="fixed inset-0 z-[99999] bg-black flex items-center justify-center">
+            <div className="text-center animate-pulse">
+                <div className="relative inline-block mb-4">
+                    <div className="absolute inset-0 bg-cyan-500 blur-xl opacity-50 animate-ping"></div>
+                    <RefreshCw size={64} className="text-cyan-400 animate-spin relative z-10" />
                 </div>
-
-                {/* Title */}
-                <h2 className="text-3xl font-black text-white text-center mb-4">
-                    NOVA VERSÃO DISPONÍVEL
+                <h2 className="text-2xl font-black text-white tracking-widest uppercase">
+                    UPDATING GAME
                 </h2>
-
-                {/* Message */}
-                <p className="text-red-200 text-center mb-6 leading-relaxed">
-                    Uma atualização importante está disponível. Para continuar jogando, você precisa atualizar para a versão mais recente.
-                </p>
-
-                {/* Version Info */}
-                <div className="bg-black/40 rounded-lg p-4 mb-6 border border-red-500/30">
-                    <div className="flex justify-between items-center text-sm">
-                        <span className="text-red-400">Versão Atual:</span>
-                        <span className="text-white font-mono font-bold">{CURRENT_VERSION}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-sm mt-2">
-                        <span className="text-green-400">Nova Versão:</span>
-                        <span className="text-green-300 font-mono font-bold animate-pulse">Disponível</span>
-                    </div>
-                </div>
-
-                {/* Update Button */}
-                <button
-                    onClick={handleForceUpdate}
-                    disabled={isChecking}
-                    className="w-full py-4 bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 disabled:from-gray-700 disabled:to-gray-700 text-white font-black text-lg rounded-xl flex items-center justify-center gap-3 transition-all shadow-lg disabled:cursor-not-allowed"
-                >
-                    {isChecking ? (
-                        <>
-                            <RefreshCw size={24} className="animate-spin" />
-                            <span>ATUALIZANDO...</span>
-                        </>
-                    ) : (
-                        <>
-                            <RefreshCw size={24} />
-                            <span>ATUALIZAR AGORA</span>
-                        </>
-                    )}
-                </button>
-
-                {/* Info */}
-                <p className="text-xs text-red-300/70 text-center mt-4">
-                    Todos os caches serão limpos automaticamente
+                <p className="text-cyan-500/70 text-xs font-mono mt-2">
+                    INSTALLING VERSION {CURRENT_VERSION}...
                 </p>
             </div>
         </div>

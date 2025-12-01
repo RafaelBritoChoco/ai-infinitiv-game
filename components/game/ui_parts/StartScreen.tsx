@@ -154,63 +154,7 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
 
     return (
         <div className={`absolute inset-0 z-50 flex flex-col items-center backdrop-blur-md overflow-hidden ${weedMode ? 'bg-green-950/95' : 'bg-black/90'}`}>
-            {/* UPDATE BUTTON - FIXED position always visible - CLEARS EVERYTHING */}
-            <button
-                onClick={async () => {
-                    try {
-                        console.log('🧹 CLEARING ALL BROWSER DATA...');
-
-                        // 1. Clear ALL caches
-                        if ('caches' in window) {
-                            const cacheNames = await caches.keys();
-                            await Promise.all(cacheNames.map(name => caches.delete(name)));
-                            console.log('✅ Caches cleared');
-                        }
-
-                        // 2. Unregister ALL service workers
-                        if ('serviceWorker' in navigator) {
-                            const registrations = await navigator.serviceWorker.getRegistrations();
-                            await Promise.all(registrations.map(reg => reg.unregister()));
-                            console.log('✅ Service workers unregistered');
-                        }
-
-                        // 3. Clear localStorage (all game data)
-                        localStorage.clear();
-                        console.log('✅ localStorage cleared');
-
-                        // 4. Clear sessionStorage
-                        sessionStorage.clear();
-                        console.log('✅ sessionStorage cleared');
-
-                        // 5. Clear IndexedDB
-                        if ('indexedDB' in window) {
-                            const dbs = await indexedDB.databases();
-                            dbs.forEach(db => {
-                                if (db.name) indexedDB.deleteDatabase(db.name);
-                            });
-                            console.log('✅ IndexedDB cleared');
-                        }
-
-                        // 6. Clear cookies
-                        document.cookie.split(";").forEach(c => {
-                            document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
-                        });
-                        console.log('✅ Cookies cleared');
-
-                        console.log('✅ ALL DATA CLEARED! Refreshing...');
-
-                        // Force hard reload with cache bypass
-                        window.location.href = window.location.href.split('?')[0] + '?v=' + Date.now();
-                    } catch (e) {
-                        console.error('Update error:', e);
-                        // Fallback: hard reload
-                        window.location.reload();
-                    }
-                }}
-                className="fixed top-2 left-1/2 -translate-x-1/2 z-[100] px-4 py-2 bg-red-600 hover:bg-red-500 text-white font-bold text-[10px] uppercase tracking-wider rounded border-2 border-red-400 shadow-[0_0_15px_rgba(239,68,68,0.5)] hover:shadow-[0_0_25px_rgba(239,68,68,0.8)] transition-all flex items-center gap-2"
-            >
-                <RefreshCw size={12} className="animate-spin-slow" /> CLEAR & UPDATE <span className="text-yellow-300 font-mono">{Constants.APP_VERSION}</span>
-            </button>
+            {/* UPDATE BUTTON REMOVED - AUTO UPDATER ACTIVE */}
 
             {/* TOP RIGHT CONTROLS */}
             <div className="fixed top-2 right-2 z-[100] flex flex-col gap-2 items-end">
@@ -246,6 +190,15 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
                     title={t[lang].fullscreen}
                 >
                     <Monitor size={14} />
+                </button>
+
+                {/* LOGOUT BUTTON */}
+                <button
+                    onClick={onLogout}
+                    className="p-2 bg-red-900/80 hover:bg-red-800/90 text-red-200 rounded-xl border border-red-700 shadow-lg transition-all flex items-center justify-center mt-2"
+                    title="Logout"
+                >
+                    <LogOut size={14} />
                 </button>
 
                 {/* WEED MODE TOGGLE */}
