@@ -13,6 +13,7 @@ import { PixelArtEditor } from './PixelArtEditor';
 import { getUnlockedTrophySkins, getTrophySkinByRank, TROPHY_GOLD, TROPHY_SILVER, TROPHY_BRONZE } from './TrophySkins';
 import { Persistence } from '../persistence';
 import { TRANSLATIONS } from '../translations';
+import { PetHub } from '../../pet/PetHub';
 
 export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInput, setShowAiInput, aiPrompt, setAiPrompt, isGeneratingSkin, handleGenerateSkin, handleStart, onOpenControls, onOpenCalibration, onOpenSettings, selectedIndex, gyroEnabled, setGyroEnabled, onLogout, leaderboard, setLeaderboard, weedMode, setWeedMode, lang, setLang, config, setConfig }: any) => {
     // SAFETY: Ensure availableSkins is always an array
@@ -34,6 +35,7 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
 
     const [activeTab, setActiveTab] = useState<'local' | 'global'>('global');
     const [globalStatus, setGlobalStatus] = useState<string | null>(null);
+    const [showPetHub, setShowPetHub] = useState(false);
 
     // Fetch Global Leaderboard
     useEffect(() => {
@@ -152,26 +154,62 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
 
     return (
         <div className={`absolute inset-0 z-50 flex flex-col items-center backdrop-blur-md overflow-hidden ${weedMode ? 'bg-green-950/95' : 'bg-black/90'}`}>
-            {/* UPDATE BUTTON - FIXED position always visible */}
+            {/* UPDATE BUTTON - FIXED position always visible - CLEARS EVERYTHING */}
             <button
                 onClick={async () => {
                     try {
+                        console.log('🧹 CLEARING ALL BROWSER DATA...');
+
+                        // 1. Clear ALL caches
                         if ('caches' in window) {
                             const cacheNames = await caches.keys();
                             await Promise.all(cacheNames.map(name => caches.delete(name)));
+                            console.log('✅ Caches cleared');
                         }
+
+                        // 2. Unregister ALL service workers
                         if ('serviceWorker' in navigator) {
                             const registrations = await navigator.serviceWorker.getRegistrations();
                             await Promise.all(registrations.map(reg => reg.unregister()));
+                            console.log('✅ Service workers unregistered');
                         }
+
+                        // 3. Clear localStorage (all game data)
+                        localStorage.clear();
+                        console.log('✅ localStorage cleared');
+
+                        // 4. Clear sessionStorage
+                        sessionStorage.clear();
+                        console.log('✅ sessionStorage cleared');
+
+                        // 5. Clear IndexedDB
+                        if ('indexedDB' in window) {
+                            const dbs = await indexedDB.databases();
+                            dbs.forEach(db => {
+                                if (db.name) indexedDB.deleteDatabase(db.name);
+                            });
+                            console.log('✅ IndexedDB cleared');
+                        }
+
+                        // 6. Clear cookies
+                        document.cookie.split(";").forEach(c => {
+                            document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+                        });
+                        console.log('✅ Cookies cleared');
+
+                        console.log('✅ ALL DATA CLEARED! Refreshing...');
+
+                        // Force hard reload with cache bypass
                         window.location.href = window.location.href.split('?')[0] + '?v=' + Date.now();
                     } catch (e) {
+                        console.error('Update error:', e);
+                        // Fallback: hard reload
                         window.location.reload();
                     }
                 }}
-                className="fixed top-2 left-1/2 -translate-x-1/2 z-[100] px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-[10px] uppercase tracking-wider rounded border-2 border-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.5)] hover:shadow-[0_0_25px_rgba(6,182,212,0.8)] transition-all flex items-center gap-2"
+                className="fixed top-2 left-1/2 -translate-x-1/2 z-[100] px-4 py-2 bg-red-600 hover:bg-red-500 text-white font-bold text-[10px] uppercase tracking-wider rounded border-2 border-red-400 shadow-[0_0_15px_rgba(239,68,68,0.5)] hover:shadow-[0_0_25px_rgba(239,68,68,0.8)] transition-all flex items-center gap-2"
             >
-                <RefreshCw size={12} className="animate-spin-slow" /> UPDATE <span className="text-yellow-300 font-mono">{Constants.APP_VERSION}</span>
+                <RefreshCw size={12} className="animate-spin-slow" /> CLEAR & UPDATE <span className="text-yellow-300 font-mono">{Constants.APP_VERSION}</span>
             </button>
 
             {/* TOP RIGHT CONTROLS */}
@@ -396,6 +434,15 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
                             <span className="text-[8px] font-bold text-slate-300 uppercase">{t[lang].settingsShort}</span>
                         </button>
                     </div>
+
+                    {/* PET BUTTON - Always visible */}
+                    <button
+                        onClick={() => setShowPetHub(true)}
+                        className="w-full p-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 rounded-xl border border-purple-400 flex items-center justify-center gap-2 transition-all shadow-lg shadow-purple-900/50"
+                    >
+                        <span className="text-2xl">🥚</span>
+                        <span className="text-sm font-bold text-white uppercase">PET</span>
+                    </button>
                 </div>
             </div>
 
@@ -530,6 +577,9 @@ export const StartScreen = ({ gameState, setGameState, availableSkins, showAiInp
                     }}
                 />
             )}
+
+            {/* Pet Hub Modal */}
+            {showPetHub && <PetHub onClose={() => setShowPetHub(false)} />}
         </div>
     );
 };

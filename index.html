@@ -1,20 +1,43 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#020617" />
+    <meta name="description" content="AI Infinitiv - Vertical Ascent Protocol - Infinite Jumping Game" />
+    
     <title>AI Infinitiv</title>
+    
+    <!-- Preconnect to CDN for faster loading -->
+    <link rel="preconnect" href="https://aistudiocdn.com">
+    <link rel="preconnect" href="https://cdn.tailwindcss.com">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&family=JetBrains+Mono:wght@400;800&display=swap" rel="stylesheet">
+    
     <style>
+      * {
+        -webkit-tap-highlight-color: transparent;
+        -webkit-touch-callout: none;
+      }
+      
       body {
         font-family: 'Rajdhani', sans-serif;
         background-color: #020617;
-        /* Deep Space Radial */
         background-image: radial-gradient(circle at 50% 100%, #2e1065 0%, #0f172a 40%, #000000 100%);
         color: #e2e8f0;
         overflow: hidden;
         touch-action: none;
+        margin: 0;
+        padding: 0;
+        position: fixed;
+        width: 100%;
+        height: 100%;
+        overscroll-behavior: none;
       }
       
       /* CRT Scanline Effect */
@@ -52,14 +75,108 @@
         border-radius: 3px;
       }
       
-      .animate-spin-slow {
-        animation: spin 4s linear infinite;
+      /* LOADING SCREEN */
+      #loading-screen {
+        position: fixed;
+        inset: 0;
+        background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 99999;
+        transition: opacity 0.5s ease-out, transform 0.5s ease-out;
       }
+      
+      #loading-screen.fade-out {
+        opacity: 0;
+        transform: scale(1.1);
+        pointer-events: none;
+      }
+      
+      .loader-logo {
+        font-size: clamp(2rem, 8vw, 4rem);
+        font-weight: 800;
+        background: linear-gradient(135deg, #06b6d4, #8b5cf6, #ec4899);
+        background-size: 200% 200%;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        animation: gradient-shift 3s ease infinite, pulse-glow 2s ease-in-out infinite;
+        text-shadow: 0 0 30px rgba(6, 182, 212, 0.5);
+        letter-spacing: 0.1em;
+      }
+      
+      @keyframes gradient-shift {
+        0%, 100% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+      }
+      
+      @keyframes pulse-glow {
+        0%, 100% { filter: drop-shadow(0 0 10px rgba(6, 182, 212, 0.5)); }
+        50% { filter: drop-shadow(0 0 25px rgba(139, 92, 246, 0.8)); }
+      }
+      
+      .loading-bar-container {
+        width: min(80%, 400px);
+        height: 6px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 999px;
+        overflow: hidden;
+        margin-top: 2rem;
+        box-shadow: 0 0 20px rgba(6, 182, 212, 0.2);
+      }
+      
+      .loading-bar {
+        height: 100%;
+        background: linear-gradient(90deg, #06b6d4, #8b5cf6);
+        border-radius: 999px;
+        width: 0%;
+        transition: width 0.3s ease-out;
+        box-shadow: 0 0 15px rgba(6, 182, 212, 0.8);
+      }
+      
+      .loading-text {
+        margin-top: 1rem;
+        font-size: clamp(0.875rem, 2vw, 1rem);
+        color: rgba(226, 232, 240, 0.7);
+        font-family: 'JetBrains Mono', monospace;
+        letter-spacing: 0.05em;
+      }
+      
+      .loading-spinner {
+        width: 60px;
+        height: 60px;
+        border: 4px solid rgba(6, 182, 212, 0.2);
+        border-top-color: #06b6d4;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-top: 1.5rem;
+      }
+      
       @keyframes spin {
-        from { transform: rotate(0deg); }
         to { transform: rotate(360deg); }
       }
+      
+      /* Mobile optimizations */
+      @media (max-width: 768px) {
+        body {
+          -webkit-user-select: none;
+          user-select: none;
+        }
+      }
+      
+      /* PWA Safe Areas (Notch support) */
+      @supports (padding: max(0px)) {
+        body {
+          padding-left: env(safe-area-inset-left);
+          padding-right: env(safe-area-inset-right);
+          padding-top: env(safe-area-inset-top);
+          padding-bottom: env(safe-area-inset-bottom);
+        }
+      }
     </style>
+    
   <script type="importmap">
 {
   "imports": {
@@ -71,11 +188,101 @@
   }
 }
 </script>
-<link rel="stylesheet" href="/index.css">
 </head>
   <body>
+    <!-- LOADING SCREEN -->
+    <div id="loading-screen">
+      <div class="loader-logo">AI INFINITIV</div>
+      <div class="loading-spinner"></div>
+      <div class="loading-bar-container">
+        <div class="loading-bar" id="loading-bar"></div>
+      </div>
+      <div class="loading-text" id="loading-text">Inicializando...</div>
+    </div>
+    
+    <!-- APP ROOT -->
     <div id="root"></div>
     <div class="scanlines"></div>
+    
+    <!-- LOADING MANAGER SCRIPT -->
+    <script>
+      (function() {
+        const loadingScreen = document.getElementById('loading-screen');
+        const loadingBar = document.getElementById('loading-bar');
+        const loadingText = document.getElementById('loading-text');
+        let progress = 0;
+        
+        // Detect device type
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        
+        console.log('🔧 Device Info:', { isMobile, isIOS, userAgent: navigator.userAgent });
+        
+        // Store device info globally
+        window.__DEVICE_INFO__ = { isMobile, isIOS };
+        
+        const stages = [
+          { progress: 20, text: 'Carregando recursos...' },
+          { progress: 40, text: 'Inicializando motor gráfico...' },
+          { progress: 60, text: 'Configurando controles...' },
+          { progress: 80, text: 'Preparando ambiente...' },
+          { progress: 100, text: 'Pronto!' }
+        ];
+        
+        let currentStage = 0;
+        
+        function updateProgress() {
+          if (currentStage < stages.length) {
+            const stage = stages[currentStage];
+            progress = stage.progress;
+            loadingBar.style.width = progress + '%';
+            loadingText.textContent = stage.text;
+            currentStage++;
+            
+            if (currentStage < stages.length) {
+              setTimeout(updateProgress, 400 + Math.random() * 300);
+            }
+          }
+        }
+        
+        // Start progress animation
+        setTimeout(updateProgress, 300);
+        
+        // Hide loading screen when React app is ready
+        window.hideLoadingScreen = function() {
+          loadingBar.style.width = '100%';
+          loadingText.textContent = 'Iniciando jogo...';
+          
+          setTimeout(() => {
+            loadingScreen.classList.add('fade-out');
+            setTimeout(() => {
+              loadingScreen.style.display = 'none';
+            }, 500);
+          }, 500);
+        };
+        
+        // Fallback: hide after 5 seconds if not manually hidden
+        setTimeout(() => {
+          if (loadingScreen.style.display !== 'none') {
+            console.warn('⚠️ Auto-hiding loading screen (timeout)');
+            window.hideLoadingScreen();
+          }
+        }, 5000);
+        
+        // Prevent zoom on double-tap (iOS)
+        if (isIOS) {
+          let lastTouchEnd = 0;
+          document.addEventListener('touchend', function(event) {
+            const now = Date.now();
+            if (now - lastTouchEnd <= 300) {
+              event.preventDefault();
+            }
+            lastTouchEnd = now;
+          }, { passive: false });
+        }
+      })();
+    </script>
+    
   <script type="module" src="/index.tsx"></script>
 </body>
 </html>

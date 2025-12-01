@@ -502,9 +502,14 @@ export const useGameController = (props: GameControllerProps) => {
         }
     }, [handleMenuAction, showGameOverMenu, showCalibration]);
 
-    // Fetch Global Leaderboard on Mount & Poll every 15 seconds (Real-time ish)
+    // Fetch Global Leaderboard on Mount & Poll every 15 seconds (only when not playing)
     useEffect(() => {
         const fetchLeaderboard = () => {
+            // Skip if actively playing to reduce overhead
+            if (stateRef.current.isPlaying && !stateRef.current.isGameOver) {
+                return;
+            }
+
             // 1. Load Local Leaderboard
             const local = Persistence.loadLeaderboard();
             setLocalLeaderboard(local);
@@ -542,7 +547,7 @@ export const useGameController = (props: GameControllerProps) => {
         const interval = setInterval(fetchLeaderboard, 15 * 1000); // 15 seconds
 
         return () => clearInterval(interval);
-    }, []);
+    }, []); // Empty deps - interval manages its own polling
 
     // Clear notification after 5s
     useEffect(() => {

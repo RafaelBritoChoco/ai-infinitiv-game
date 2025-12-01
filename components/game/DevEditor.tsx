@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Save, MousePointer2, RotateCcw } from 'lucide-react';
 import * as Constants from '../../constants';
 import { Platform } from '../../types';
@@ -103,7 +104,7 @@ export const CUSTOM_UI_LAYOUT = {
     // Use Portal to render at root level, avoiding overflow/z-index issues
     if (typeof document === 'undefined') return null;
 
-    return React.createPortal(
+    return createPortal(
         <div
             className="fixed inset-0 flex flex-col font-sans text-white select-none pointer-events-none"
             style={{ zIndex: Constants.Z_LAYERS.OVERLAY + 10 }}

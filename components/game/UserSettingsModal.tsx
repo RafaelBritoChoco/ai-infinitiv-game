@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { 
-    X, Settings, Volume2, Gamepad2, Key, Smartphone, Monitor, 
-    ChevronRight, Check, ExternalLink, Eye, EyeOff, Move, 
+import {
+    X, Settings, Volume2, Gamepad2, Key, Smartphone, Monitor,
+    ChevronRight, Check, ExternalLink, Eye, EyeOff, Move,
     RefreshCw, Lock, Unlock, Sliders, Edit3, Zap, Sparkles, Cpu, Trash2, Loader2, Trophy
 } from 'lucide-react';
 
@@ -109,13 +109,13 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
             setDevPassword('');
         }
     };
-    
+
     const handleResetGlobalRanking = async () => {
         if (!window.confirm('⚠️ TEM CERTEZA que quer ZERAR o ranking GLOBAL? Esta ação não pode ser desfeita!')) return;
-        
+
         setIsResettingRank(true);
         setResetRankResult(null);
-        
+
         try {
             const response = await fetch('/api/leaderboard', {
                 method: 'POST',
@@ -123,7 +123,7 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
                 body: JSON.stringify({ action: 'RESET_LEADERBOARD_2025' })
             });
             const data = await response.json();
-            
+
             if (data.success) {
                 setResetRankResult('✅ Ranking global ZERADO com sucesso!');
                 onLeaderboardReset?.();
@@ -166,8 +166,7 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
     // Toggle Button
     const Toggle = ({ label, value, onChange, desc }: any) => (
         <button onClick={() => onChange(!value)}
-            className={`w-full p-3 rounded-lg border flex items-center justify-between transition-all ${
-                value ? 'bg-green-900/30 border-green-700 text-green-400' : 'bg-slate-800 border-slate-700 text-slate-400'}`}>
+            className={`w-full p-3 rounded-lg border flex items-center justify-between transition-all ${value ? 'bg-green-900/30 border-green-700 text-green-400' : 'bg-slate-800 border-slate-700 text-slate-400'}`}>
             <span className="text-sm font-bold">{label}</span>
             <span className="text-xs opacity-70">{value ? 'ON' : 'OFF'}</span>
         </button>
@@ -176,7 +175,7 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
     return (
         <div className="fixed inset-0 z-[200] bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
             <div className="w-full max-w-md max-h-[85vh] bg-slate-950 border border-slate-800 rounded-2xl shadow-2xl flex flex-col overflow-hidden">
-                
+
                 {/* HEADER */}
                 <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
                     <div className="flex items-center gap-3">
@@ -202,16 +201,39 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
 
                 {/* CONTENT */}
                 <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                    
+
                     {/* MAIN MENU */}
                     {tab === 'MAIN' && (<>
                         <MenuBtn icon={Monitor} label="Interface" desc="Escala, tamanho dos botões" onClick={() => setTab('INTERFACE')} color="purple" />
                         <MenuBtn icon={Volume2} label="Áudio" desc="Volume geral, música, efeitos" onClick={() => setTab('AUDIO')} color="blue" />
                         <MenuBtn icon={Gamepad2} label="Controles" desc="Sensibilidade, inverter motion" onClick={() => setTab('CONTROLS')} color="green" />
                         <MenuBtn icon={Key} label="API Key (Gemini)" desc="Para gerar skins com IA" onClick={() => setTab('API_KEY')} color="yellow" />
+
+                        {/* TAMAGOTCHI FEATURE TOGGLE - PUBLIC BETA */}
+                        <div className="bg-purple-900/20 border border-purple-800/50 rounded-xl p-3 mt-4">
+                            <div className="flex items-center justify-between mb-2">
+                                <h3 className="text-purple-400 font-bold text-xs uppercase flex items-center gap-2">
+                                    🥚 Tamagotchi (BETA)
+                                </h3>
+                                <span className="text-[10px] bg-purple-500/20 text-purple-300 px-1.5 py-0.5 rounded border border-purple-500/30">Novo</span>
+                            </div>
+                            <button
+                                onClick={() => {
+                                    const current = localStorage.getItem('FEATURE_TAMAGOTCHI_ENABLED') === 'true';
+                                    localStorage.setItem('FEATURE_TAMAGOTCHI_ENABLED', (!current).toString());
+                                    if (confirm(!current ? '✅ Pet system ATIVADO! Recarregar agora para aplicar?' : '❌ Pet system DESATIVADO. Recarregar agora?')) {
+                                        window.location.reload();
+                                    }
+                                }}
+                                className={`w-full py-2 text-xs ${localStorage.getItem('FEATURE_TAMAGOTCHI_ENABLED') === 'true' ? 'bg-purple-600 hover:bg-purple-500' : 'bg-slate-700 hover:bg-slate-600'} text-white font-bold rounded-lg transition-all flex items-center justify-center gap-2`}
+                            >
+                                {localStorage.getItem('FEATURE_TAMAGOTCHI_ENABLED') === 'true' ? '✅ ATIVADO' : '⬜ DESATIVADO'}
+                            </button>
+                        </div>
+
                         <div className="border-t border-slate-800 pt-3 mt-4">
-                            <MenuBtn icon={devUnlocked ? Unlock : Lock} label="Modo Desenvolvedor" 
-                                desc={devUnlocked ? "Acessar console DEV" : "Requer senha"} 
+                            <MenuBtn icon={devUnlocked ? Unlock : Lock} label="Modo Desenvolvedor"
+                                desc={devUnlocked ? "Acessar console DEV" : "Requer senha"}
                                 onClick={() => devUnlocked && onOpenDevConsole ? (onClose(), onOpenDevConsole()) : setTab('DEV_LOGIN')} color="red" />
                         </div>
                     </>)}
@@ -238,11 +260,10 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
                                             <button
                                                 key={quality}
                                                 onClick={() => handleGraphicsChange(quality)}
-                                                className={`p-3 rounded-xl border flex flex-col items-center gap-2 transition-all ${
-                                                    isActive
+                                                className={`p-3 rounded-xl border flex flex-col items-center gap-2 transition-all ${isActive
                                                         ? `bg-${bg}-900/50 border-${bg}-500 text-${bg}-400 shadow-lg shadow-${bg}-500/20`
                                                         : 'bg-slate-800 border-slate-700 text-slate-500 hover:border-slate-600'
-                                                }`}
+                                                    }`}
                                             >
                                                 <Icon size={20} className={isActive ? `text-${bg}-400` : ''} />
                                                 <span className="font-bold text-xs">{preset.label}</span>
@@ -261,7 +282,7 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
                             </section>
 
                             {/* Visual Control Editor Button */}
-                            <button 
+                            <button
                                 onClick={() => { onClose(); onOpenVisualEditor?.(); }}
                                 className="w-full p-4 bg-gradient-to-r from-purple-900/80 to-cyan-900/80 border border-purple-500/50 rounded-xl hover:border-cyan-400 transition-all flex items-center gap-4 group"
                             >
@@ -319,9 +340,8 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
                                     {['BUTTONS', 'ARROWS', 'JOYSTICK', 'TILT'].map((mode) => (
                                         <button key={mode}
                                             onClick={() => setGameState((p: any) => ({ ...p, mobileControlMode: mode }))}
-                                            className={`p-3 rounded-lg border flex flex-col items-center gap-1 text-[10px] transition-all ${
-                                                gameState?.mobileControlMode === mode 
-                                                    ? 'bg-green-900/50 border-green-500 text-green-400' 
+                                            className={`p-3 rounded-lg border flex flex-col items-center gap-1 text-[10px] transition-all ${gameState?.mobileControlMode === mode
+                                                    ? 'bg-green-900/50 border-green-500 text-green-400'
                                                     : 'bg-slate-800 border-slate-700 text-slate-500'}`}>
                                             {mode === 'BUTTONS' && <Gamepad2 size={16} />}
                                             {mode === 'ARROWS' && <ChevronRight size={16} className="rotate-180" />}
@@ -344,7 +364,7 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
                                 <h3 className="text-green-400 font-bold text-xs uppercase flex items-center gap-2">
                                     <Sliders size={14} /> Sensibilidade - {gameState?.mobileControlMode || 'BUTTONS'}
                                 </h3>
-                                
+
                                 {/* MOTION/TILT mode settings */}
                                 {gameState?.mobileControlMode === 'TILT' && (
                                     <>
@@ -356,7 +376,7 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
                                             min={0.5} max={5} step={0.1} format={(v: number) => `${v.toFixed(1)}x`} />
                                     </>
                                 )}
-                                
+
                                 {/* JOYSTICK mode settings */}
                                 {gameState?.mobileControlMode === 'JOYSTICK' && (
                                     <>
@@ -368,7 +388,7 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
                                             min={0.05} max={0.4} step={0.05} format={(v: number) => `${Math.round(v * 100)}%`} />
                                     </>
                                 )}
-                                
+
                                 {/* BUTTONS mode settings */}
                                 {gameState?.mobileControlMode === 'BUTTONS' && (
                                     <>
@@ -380,7 +400,7 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
                                             min={0.7} max={1.5} step={0.1} format={(v: number) => `${Math.round(v * 100)}%`} />
                                     </>
                                 )}
-                                
+
                                 {/* ARROWS mode settings */}
                                 {gameState?.mobileControlMode === 'ARROWS' && (
                                     <>
@@ -409,9 +429,9 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
 
                             {/* Presets - Dynamic based on mode */}
                             <div className="grid grid-cols-3 gap-2">
-                                <button onClick={() => { 
+                                <button onClick={() => {
                                     if (gameState?.mobileControlMode === 'TILT') {
-                                        updateConfig('GYRO_SENSITIVITY', 25); 
+                                        updateConfig('GYRO_SENSITIVITY', 25);
                                         updateConfig('MOBILE_SENSITIVITY_MULTIPLIER', 1.5);
                                     } else if (gameState?.mobileControlMode === 'JOYSTICK') {
                                         updateConfig('JOYSTICK_SENSITIVITY', 0.6);
@@ -422,9 +442,9 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
                                     }
                                 }}
                                     className="p-2 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-400 hover:border-slate-600">LENTO</button>
-                                <button onClick={() => { 
+                                <button onClick={() => {
                                     if (gameState?.mobileControlMode === 'TILT') {
-                                        updateConfig('GYRO_SENSITIVITY', 40); 
+                                        updateConfig('GYRO_SENSITIVITY', 40);
                                         updateConfig('MOBILE_SENSITIVITY_MULTIPLIER', 2.5);
                                     } else if (gameState?.mobileControlMode === 'JOYSTICK') {
                                         updateConfig('JOYSTICK_SENSITIVITY', 1.0);
@@ -435,9 +455,9 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
                                     }
                                 }}
                                     className="p-2 bg-green-900/30 border border-green-700 rounded-lg text-xs text-green-400">NORMAL</button>
-                                <button onClick={() => { 
+                                <button onClick={() => {
                                     if (gameState?.mobileControlMode === 'TILT') {
-                                        updateConfig('GYRO_SENSITIVITY', 70); 
+                                        updateConfig('GYRO_SENSITIVITY', 70);
                                         updateConfig('MOBILE_SENSITIVITY_MULTIPLIER', 4);
                                     } else if (gameState?.mobileControlMode === 'JOYSTICK') {
                                         updateConfig('JOYSTICK_SENSITIVITY', 1.5);
@@ -499,7 +519,7 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
                                             Abrir Console DEV
                                         </button>
                                     </div>
-                                    
+
                                     {/* ADMIN TOOLS */}
                                     <div className="bg-red-900/20 border border-red-800/50 rounded-xl p-4">
                                         <h3 className="text-red-400 font-bold text-sm uppercase mb-3 flex items-center gap-2">

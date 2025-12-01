@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { GameState, Player, Platform, Particle, CharacterSkin, GameConfig, SaveNode, LeaderboardEntry, FloatingText } from '../../types';
+import { PetBuffs } from '../../pet-types';
 import { SceneryObject, drawBackground } from './background';
 import { updatePlayerPhysics } from './physics';
 import { drawPlatformTexture } from './platformRender';
@@ -58,6 +59,7 @@ interface GameLoopProps {
     weedMode?: boolean;
     showTutorial?: boolean;
     showDebug?: boolean;
+    petBuffs: PetBuffs | null;
 }
 
 export const useGameLoop = (props: GameLoopProps) => {
@@ -70,7 +72,7 @@ export const useGameLoop = (props: GameLoopProps) => {
         setShowGameOverMenu, editorTool, selectedPlatformId,
         damageFlash, showGameOverMenu, saveNodesRef,
         jetpackModeRef, damageFlashRef, leaderboard, leaderboardRef, localLeaderboard, localLeaderboardRef, jetpackAllowedRef,
-        highScoreEntryStatusRef, onGameOver, onMenuUpdate, weedMode, showTutorial, showDebug
+        highScoreEntryStatusRef, onGameOver, onMenuUpdate, weedMode, showTutorial, showDebug, petBuffs
     } = props;
 
     const lastTimeRef = useRef<number>(0);
@@ -117,7 +119,6 @@ export const useGameLoop = (props: GameLoopProps) => {
             playerRef.current.isGrounded = false;
 
         } else if (!gameState.isGameOver) {
-            // BACKGROUND BOT MODE - Start at user's max altitude
             const startY = -(gameState.maxAltitude || 0) * 10;
             if (startY < -1000) {
                 playerRef.current.y = startY;
@@ -127,6 +128,16 @@ export const useGameLoop = (props: GameLoopProps) => {
                 platformsRef.current = [];
                 platformGenCountRef.current = Math.floor(Math.abs(startY) / 100);
             }
+        }
+
+        // Apply Pet Shield Buff on Start
+        if (gameState.isPlaying && petBuffs?.shieldOnStart && gameState.score === 0 && gameState.upgrades.shield === 0) {
+            // Only apply if score is 0 (fresh start) and no shield yet
+            setGameState(prev => ({
+                ...prev,
+                upgrades: { ...prev.upgrades, shield: 1 }
+            }));
+            // Visual feedback could be added here
         }
     }, [gameState.runId, gameState.isPlaying, gameState.isGameOver]);
 
@@ -486,7 +497,14 @@ export const useGameLoop = (props: GameLoopProps) => {
         }
 
         const currentAltitude = Math.floor(Math.abs(Math.min(0, player.y)) / 10);
-        if (currentAltitude > scoreRef.current) scoreRef.current = currentAltitude;
+
+        // Apply Pet Score Multiplier
+        let finalScore = currentAltitude;
+        if (petBuffs?.scoreMultiplier && petBuffs.scoreMultiplier > 1.0) {
+            finalScore = Math.floor(currentAltitude * petBuffs.scoreMultiplier);
+        }
+
+        if (finalScore > scoreRef.current) scoreRef.current = finalScore;
 
         // Check if player passed a leaderboard record - trigger celebration
         if (leaderboardRef.current && leaderboardRef.current.length > 0 && state.isPlaying && !state.isGameOver) {

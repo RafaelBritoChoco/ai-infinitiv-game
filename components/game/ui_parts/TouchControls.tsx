@@ -57,37 +57,30 @@ export const TouchControls = ({ inputRef, mode, layout = { scale: 1, x: 0, y: 0 
     const [perfectJumpTimer, setPerfectJumpTimer] = React.useState<number | null>(null);
     const PERFECT_WINDOW_MS = 160; // Match physics.ts PARRY_WINDOW_MS
 
-    // Update perfect indicator with 160ms timing window
+    // Update perfect indicator - OPTIMIZED: React to state changes instead of polling
     React.useEffect(() => {
-        const checkGrounded = () => {
-            const isGrounded = playerRef?.current?.isGrounded === true;
+        const isGrounded = playerRef?.current?.isGrounded === true;
 
-            if (isGrounded) {
-                // Player just landed - start 160ms timer
-                if (perfectJumpTimer === null) {
-                    setPerfectJumpTimer(Date.now());
-                }
+        if (isGrounded) {
+            // Player just landed - start 160ms timer
+            if (perfectJumpTimer === null) {
+                setPerfectJumpTimer(Date.now());
             } else {
-                // Player in air - reset timer
-                setPerfectJumpTimer(null);
-                setShowPerfectIndicator(false);
-            }
-
-            // Show perfect indicator if within 160ms window
-            if (perfectJumpTimer !== null) {
+                // Check if timer expired
                 const elapsed = Date.now() - perfectJumpTimer;
-                setShowPerfectIndicator(elapsed < PERFECT_WINDOW_MS);
-
-                // Auto-reset after window expires
                 if (elapsed >= PERFECT_WINDOW_MS) {
                     setPerfectJumpTimer(null);
+                    setShowPerfectIndicator(false);
+                } else {
+                    setShowPerfectIndicator(true);
                 }
             }
-        };
-        // Check frequently for responsive feedback
-        const interval = setInterval(checkGrounded, 16); // ~60fps
-        return () => clearInterval(interval);
-    }, [playerRef, perfectJumpTimer]);
+        } else {
+            // Player in air - reset timer
+            setPerfectJumpTimer(null);
+            setShowPerfectIndicator(false);
+        }
+    }, [playerRef?.current?.isGrounded, perfectJumpTimer]);
 
     // Update when controlsLayout prop changes OR mode changes
     React.useEffect(() => {

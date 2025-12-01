@@ -27,6 +27,10 @@ import { UserSettingsModal } from './game/UserSettingsModal';
 import { VisualControlEditor, ControlsLayout } from './game/VisualControlEditor';
 import { SkillTreeShop } from './game/SkillTreeShop';
 import { VirtualJoystick } from './game/VirtualJoystick';
+import { PetHub } from './pet/PetHub';
+import { getPetStateForUser } from './pet/pet-service';
+import { getPetBuffs } from './pet/pet-logic-core';
+import { PetBuffs } from '../pet-types';
 
 const GameCanvas: React.FC = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -66,6 +70,8 @@ const GameCanvas: React.FC = () => {
     const [showLogin, setShowLogin] = useState(false);
     const [volumeNotification, setVolumeNotification] = useState<{ show: boolean, muted: boolean } | null>(null);
     const [showTutorial, setShowTutorial] = useState(false);
+    const [showPetHub, setShowPetHub] = useState(false);
+    const [petBuffs, setPetBuffs] = useState<PetBuffs | null>(null);
 
     // Shadow Refs for Loop Stability
     const jetpackModeRef = useRef<'IDLE' | 'BURST' | 'GLIDE'>('IDLE');
@@ -206,7 +212,20 @@ const GameCanvas: React.FC = () => {
 
         // Initialize available skins from local storage if needed, or stick to default
         // If using AI skins, you might want to load them here too
+
+        // Load Pet Buffs
+        loadPetBuffs();
     }, []);
+
+    const loadPetBuffs = async () => {
+        const pet = await getPetStateForUser();
+        if (pet) {
+            const buffs = getPetBuffs(pet);
+            setPetBuffs(buffs);
+            // Apply Shield Buff immediately if starting fresh? 
+            // Better to pass to GameLoop and let it handle "onStart" logic
+        }
+    };
 
     // --- Helpers ---
     const handleGenerateSkinWrapper = async () => {
@@ -247,7 +266,8 @@ const GameCanvas: React.FC = () => {
         leaderboard, leaderboardRef, localLeaderboard, localLeaderboardRef, highScoreEntryStatusRef, onGameOver: handleGameOver, onMenuUpdate: updateMenuNavigation,
         weedMode, // Pass weedMode to GameLoop
         showTutorial, // Pass showTutorial to pause background bot
-        showDebug // Pass showDebug for extensive overlay
+        showDebug, // Pass showDebug for extensive overlay
+        petBuffs // Pass Pet Buffs
     });
 
     return (
@@ -496,6 +516,14 @@ const GameCanvas: React.FC = () => {
             {/* Skill Tree Shop - Moved to Root Level */}
             {gameState.isShopOpen && (
                 <SkillTreeShop gameState={gameState} setGameState={setGameState} lang={lang} />
+            )}
+
+            {/* Pet Hub - Tamagotchi System */}
+            {showPetHub && (
+                <PetHub onClose={() => {
+                    setShowPetHub(false);
+                    loadPetBuffs(); // Refresh buffs when closing hub
+                }} />
             )}
 
             <RightSidebar gameState={gameState} config={configRef.current} jetpackMode={jetpackMode} setShowDebug={setShowDebug} tiltDebug={tiltDebug} gyroEnabled={gyroEnabled} />

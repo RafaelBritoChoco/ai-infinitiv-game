@@ -240,6 +240,7 @@ export interface GameState {
   activeTrophyPowers?: TrophyPowers | null; // Trophy powers for current run
   coinValueMultiplier?: number; // Active coin value multiplier
   coinSpawnMultiplier?: number; // Active coin spawn multiplier
+  petBuffs?: any | null; // Pet buffs from Tamagotchi system (PetBuffs type)
   notification?: { message: string, type: 'info' | 'success' | 'warning' } | null; // Global notification
 }
 

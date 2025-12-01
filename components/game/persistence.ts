@@ -285,4 +285,32 @@ export const Persistence = {
     saveControlLayout: (layout: any) => {
         localStorage.setItem(getKey('NEON_CONTROL_LAYOUT'), JSON.stringify(layout));
     },
+
+    // Pet System Persistence
+    loadPetState: (): any | null => {
+        try {
+            const s = localStorage.getItem(getKey('NEON_PET_STATE'));
+            if (s) return JSON.parse(s);
+        } catch (e) {
+            console.error('Pet state load error:', e);
+        }
+        return null;
+    },
+
+    savePetState: (pet: any) => {
+        try {
+            localStorage.setItem(getKey('NEON_PET_STATE'), JSON.stringify(pet));
+        } catch (e) {
+            console.error('Pet state save error:', e);
+        }
+    },
+
+    isPetEnabled: (): boolean => {
+        return true; // Pet system always enabled
+    },
+
+    setPetEnabled: (enabled: boolean) => {
+        // Keep function for compatibility but does nothing
+        // Pet system is now always enabled
+    },
 };

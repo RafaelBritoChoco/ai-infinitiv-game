@@ -50,7 +50,7 @@ export const useInputController = (props: InputControllerProps) => {
     // This effect now uses mobileControlMode prop (reactive) instead of stateRef (non-reactive)
     useEffect(() => {
         console.log('Motion Effect: mobileControlMode =', mobileControlMode, 'gyroEnabled =', gyroEnabled);
-        
+
         // Only run for TILT mode
         if (mobileControlMode !== 'TILT') {
             console.log('Motion: Not in TILT mode, skipping setup. Current mode:', mobileControlMode);
@@ -115,11 +115,11 @@ export const useInputController = (props: InputControllerProps) => {
         // Initialize motion controls
         const initMotion = async () => {
             console.log('Motion: Initializing...HTTPS:', window.isSecureContext);
-            
+
             // Request permission (needed for iOS)
             const status = await motionManager.requestPermission();
             console.log('Motion: Permission status:', status);
-            
+
             if (status === 'granted' || status === 'not-required') {
                 console.log('Motion: Starting listener...');
                 motionManager.startListening(handleOrientation);
@@ -138,17 +138,6 @@ export const useInputController = (props: InputControllerProps) => {
             motionManager.stopListening(handleOrientation);
         };
     }, [mobileControlMode, gyroEnabled]); // Now using reactive props
-
-    // 3. Game Loop for Input Smoothing (Optional but good for analog feel)
-    useEffect(() => {
-        let rAF: number;
-        const loop = () => {
-            // Smooth interpolation for tilt could go here if raw input is jittery
-            rAF = requestAnimationFrame(loop);
-        };
-        rAF = requestAnimationFrame(loop);
-        return () => cancelAnimationFrame(rAF);
-    }, []);
 
     // --- MOUSE / TOUCH ---
     const handleCanvasMouseDown = (e: React.MouseEvent | React.TouchEvent) => {
