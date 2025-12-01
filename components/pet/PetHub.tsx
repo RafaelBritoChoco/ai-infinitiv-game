@@ -1,17 +1,13 @@
 /**
- * Pet Hub - Premium Tamagotchi Interface
+ * Pet Hub - REDESIGN v2 - Clean Tamagotchi Interface
+ * HIGH CONTRAST + CLEAR UX + PIXEL ART + NO EMOJIS
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { getPetStateForUser, performPetAction, resetPet } from './pet-service';
 import type { PetState } from '../../pet-types';
-import { PET_SPRITES } from '../../pet-constants';
 import { PixelPetRenderer } from './PixelPetRenderer';
-import { PetShop } from './PetShop';
-import { MiniGameRPS } from './MiniGameRPS';
-import { AdoptionCenter } from './AdoptionCenter';
-import { X, ShoppingBag, Gamepad2, Trash2, Heart, Utensils, Sparkles, AlertTriangle, Thermometer } from 'lucide-react';
-import { POOP_SPRITE, ITEM_SPRITES } from '../../pet-constants';
+import { FoodIcon, PlayIcon, CleanIcon, ShopIcon, ExitIcon, EggIcon } from './PetIcons';
 import './PetHub.css';
 
 interface PetHubProps {
@@ -21,17 +17,9 @@ interface PetHubProps {
 export const PetHub: React.FC<PetHubProps> = ({ onClose }) => {
     const [pet, setPet] = useState<PetState | null>(null);
     const [loading, setLoading] = useState(true);
-    const [showShop, setShowShop] = useState(false);
-    const [showMiniGame, setShowMiniGame] = useState(false);
-    const [dragItem, setDragItem] = useState<{ type: 'food' | 'toy', icon: string } | null>(null);
-    const [petAnimation, setPetAnimation] = useState<'IDLE' | 'HAPPY'>('IDLE');
-
-    // Incubation State
-    const [warmth, setWarmth] = useState(0); // 0-100
+    const [petName, setPetName] = useState('');
+    const [warmth, setWarmth] = useState(0);
     const [isHatching, setIsHatching] = useState(false);
-
-    // Refs for drag detection
-    const petRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         loadPet();
@@ -43,16 +31,14 @@ export const PetHub: React.FC<PetHubProps> = ({ onClose }) => {
         setLoading(false);
     };
 
-    const handleAction = async (action: 'feed' | 'clean' | 'play', params?: any) => {
+    const handleAction = async (action: 'feed' | 'clean' | 'play') => {
         if (!pet) return;
 
-        // Egg Logic: Only 'play' (rubbing) works to increase warmth
+        // If egg, only play (rub) increases warmth
         if (pet.stage === 'EGG') {
             if (action === 'play') {
-                const newWarmth = Math.min(100, warmth + 5);
+                const newWarmth = Math.min(100, warmth + 10);
                 setWarmth(newWarmth);
-                setPetAnimation('HAPPY'); // Shake/Bounce
-                setTimeout(() => setPetAnimation('IDLE'), 500);
 
                 if (newWarmth >= 100 && !isHatching) {
                     hatchEgg();
@@ -61,235 +47,262 @@ export const PetHub: React.FC<PetHubProps> = ({ onClose }) => {
             return;
         }
 
-        const updated = await performPetAction(action, params);
+        const updated = await performPetAction(action);
         if (updated) {
             setPet(updated);
-
-            // Trigger happy animation
-            setPetAnimation('HAPPY');
-            setTimeout(() => setPetAnimation('IDLE'), 2000);
         }
     };
 
     const hatchEgg = async () => {
         setIsHatching(true);
-        // Animation delay
+
         setTimeout(async () => {
-            // Use service to evolve and save
             const { evolvePet } = await import('./pet-service');
             const updated = await evolvePet('SLIME');
 
             if (updated) {
                 setPet(updated);
                 setIsHatching(false);
-                // Trigger happy animation
-                setPetAnimation('HAPPY');
-                setTimeout(() => setPetAnimation('IDLE'), 2000);
             }
         }, 2000);
     };
 
-    const handleDrop = (e: React.DragEvent) => {
-        e.preventDefault();
-        if (!dragItem || !pet) return;
-        if (pet.stage === 'EGG') return; // Cannot feed egg
+    const adoptPet = async () => {
+        if (!petName.trim()) return;
 
-        // Check if dropped on pet
-        const petRect = petRef.current?.getBoundingClientRect();
-        if (petRect) {
-            const dropX = e.clientX;
-            const dropY = e.clientY;
+        const { adoptNewPet } = await import('./pet-service');
+        const newPet = await adoptNewPet(petName.trim());
 
-            if (
-                dropX >= petRect.left &&
-                dropX <= petRect.right &&
-                dropY >= petRect.top &&
-                dropY <= petRect.bottom
-            ) {
-                // Successful drop!
-                if (dragItem.type === 'food') {
-                    handleAction('feed', { foodPower: 30 }); // Default food power
-                } else {
-                    handleAction('play', { funPower: 25 });
-                }
-            }
+        if (newPet) {
+            setPet(newPet);
         }
-        setDragItem(null);
     };
 
-    if (loading) return <div className="pet-loading">Loading...</div>;
-
-    // Show Adoption Center if no pet
-    if (!pet) {
-        return <AdoptionCenter onAdopt={(newPet) => setPet(newPet)} onClose={onClose} />;
+    if (loading) {
+        return (
+            <div className="pet-hub-overlay">
+                <div className="tamagotchi-device">
+                    <div className="pet-screen-area">
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            height: '100%',
+                            fontFamily: "'Press Start 2P', monospace",
+                            fontSize: '0.7rem',
+                            color: '#1a2921'
+                        }}>
+                            LOADING...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
     }
+
+    // ADOPTION SCREEN (No pet yet)
+    if (!pet) {
+        return (
+            <div className="pet-hub-overlay">
+                <div className="tamagotchi-device">
+                    <button onClick={onClose} className="pet-close-btn">
+                        <ExitIcon size={24} />
+                    </button>
+
+                    <div className="pet-header-bar">
+                        <div className="pet-title-text">ADOÇÃO PET</div>
+                    </div>
+
+                    <div className="pet-screen-area">
+                        <div className="adoption-screen">
+                            <div className="adoption-title">
+                                ADOTE SEU PET!
+                            </div>
+
+                            <div className="egg-showcase">
+                                <EggIcon size={80} />
+
+                                <div className="pet-instruction">
+                                    Escolha um nome para seu pet
+                                </div>
+                            </div>
+
+                            <div className="name-input-area">
+                                <input
+                                    type="text"
+                                    className="name-input"
+                                    placeholder="NOME DO PET"
+                                    value={petName}
+                                    onChange={(e) => setPetName(e.target.value)}
+                                    maxLength={12}
+                                />
+
+                                <button
+                                    className="adopt-button"
+                                    onClick={adoptPet}
+                                    disabled={!petName.trim()}
+                                >
+                                    ADOTAR
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // EGG INCUBATION SCREEN
+    if (pet.stage === 'EGG') {
+        return (
+            <div className="pet-hub-overlay">
+                <div className="tamagotchi-device">
+                    <button onClick={onClose} className="pet-close-btn">
+                        <ExitIcon size={24} />
+                    </button>
+
+                    <div className="pet-header-bar">
+                        <div className="pet-title-text">🥚 {pet.name}</div>
+                    </div>
+
+                    <div className="pet-screen-area">
+                        <div className="pet-display-zone">
+                            <EggIcon size={120} cracked={warmth > 50} />
+                        </div>
+
+                        <div className="pet-instruction">
+                            {warmth < 50 && "Clique em PLAY para aquecer o ovo!"}
+                            {warmth >= 50 && warmth < 100 && "Continue! O ovo está rachando..."}
+                            {warmth >= 100 && "ECLODINDO!"}
+                        </div>
+
+                        <div className="pet-stats-bar">
+                            <div className="stat-item">
+                                <span className="stat-label">CALOR</span>
+                                <div className="stat-bar-track">
+                                    <div
+                                        className="stat-bar-fill"
+                                        style={{
+                                            width: `${warmth}%`,
+                                            background: warmth < 100
+                                                ? 'linear-gradient(90deg, #fbbf24, #f59e0b)'
+                                                : 'linear-gradient(90deg, #4ade80, #22c55e)'
+                                        }}
+                                    ></div>
+                                </div>
+                                <span className="stat-value">{warmth}%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="pet-action-buttons">
+                        <button className="pet-action-btn" onClick={() => handleAction('play')}>
+                            <PlayIcon size={32} />
+                            <span className="btn-label">AQUECER</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // MAIN PET SCREEN (After hatching)
+    const hungerPercent = Math.round((pet.stats.hunger / 100) * 100);
+    const happinessPercent = Math.round((pet.stats.happiness / 100) * 100);
+    const cleanlinessPercent = Math.round(((100 - pet.stats.poop) / 100) * 100);
 
     return (
         <div className="pet-hub-overlay">
-            {/* Modals */}
-            {showShop && <PetShop onClose={() => setShowShop(false)} onBuySuccess={loadPet} />}
-            {showMiniGame && <MiniGameRPS onClose={() => setShowMiniGame(false)} onGameEnd={loadPet} />}
+            <div className="tamagotchi-device">
+                <button onClick={onClose} className="pet-close-btn">
+                    <ExitIcon size={24} />
+                </button>
 
-            <div className="pet-device-container">
-                {/* Device Frame */}
-                <div className="pet-device-frame">
+                <div className="pet-header-bar">
+                    <div className="pet-title-text">🐾 {pet.name}</div>
+                </div>
 
-                    {/* Screen */}
-                    <div
-                        className="pet-screen"
-                        onDragOver={(e) => e.preventDefault()}
-                        onDrop={handleDrop}
-                    >
-                        {/* Header Stats */}
-                        <div className="pet-header">
-                            <div className="pet-name-tag">{pet.name}</div>
-                            <div className="pet-coin-display">
-                                💰 {pet.coins || 0}
-                            </div>
+                <div className="pet-screen-area">
+                    <div className="pet-display-zone">
+                        <div className="pet-sprite-container">
+                            <PixelPetRenderer pet={pet} size={100} />
                         </div>
-
-                        {/* Main Pet Area */}
-                        <div className="pet-world">
-                            {/* Poop (Only if not Egg) */}
-                            {pet.stage !== 'EGG' && Array.from({ length: Math.min(pet.poopCount, 5) }).map((_, i) => (
-                                <div
-                                    key={i}
-                                    className="poop-pixel"
-                                    style={{ left: `${20 + (i * 15)}%`, bottom: '10%' }}
-                                    onClick={() => handleAction('clean')}
-                                >
-                                    <PixelPetRenderer pixels={POOP_SPRITE} scale={3} />
-                                </div>
-                            ))}
-
-                            {/* The Pet / Egg */}
-                            <div
-                                ref={petRef}
-                                className={`pet-entity ${petAnimation === 'HAPPY' ? 'bounce' : 'breathe'} ${isHatching ? 'hatching' : ''}`}
-                                onClick={() => handleAction('play', { funPower: 5 })}
-                                style={{ cursor: 'pointer' }}
-                            >
-                                <PixelPetRenderer
-                                    pixels={PET_SPRITES[pet.stage][petAnimation] || PET_SPRITES.SLIME.IDLE}
-                                    scale={6}
-                                />
-                                {/* Cracks overlay for Egg */}
-                                {pet.stage === 'EGG' && warmth > 30 && <div className="egg-crack-1">⚡</div>}
-                                {pet.stage === 'EGG' && warmth > 70 && <div className="egg-crack-2">⚡</div>}
-                            </div>
-
-                            {/* Status Indicators */}
-                            {pet.sickness !== 'NONE' && (
-                                <div className="status-icon sick"><Thermometer size={24} color="#f59e0b" /></div>
-                            )}
-                            {pet.hunger > 80 && pet.stage !== 'EGG' && (
-                                <div className="status-icon hungry"><Utensils size={24} color="#ef4444" /></div>
-                            )}
-                        </div>
-
-                        {/* Interactive Toolbar (Draggables) - Hidden for Egg */}
-                        {pet.stage !== 'EGG' ? (
-                            <div className="pet-toolbar">
-                                <div
-                                    className="tool-item"
-                                    draggable
-                                    onDragStart={() => setDragItem({ type: 'food', icon: 'apple' })}
-                                >
-                                    <div className="tool-icon">
-                                        <PixelPetRenderer pixels={ITEM_SPRITES['apple']} scale={3} />
-                                    </div>
-                                    <span className="tool-label">Feed</span>
-                                </div>
-
-                                <div
-                                    className="tool-item"
-                                    draggable
-                                    onDragStart={() => setDragItem({ type: 'toy', icon: 'ball' })}
-                                >
-                                    <div className="tool-icon">
-                                        <PixelPetRenderer pixels={ITEM_SPRITES['ball']} scale={3} />
-                                    </div>
-                                    <span className="tool-label">Play</span>
-                                </div>
-
-                                <button className="tool-item" onClick={() => handleAction('clean')} disabled={pet.poopCount === 0}>
-                                    <div className="tool-icon"><Trash2 size={24} /></div>
-                                    <span className="tool-label">Clean</span>
-                                </button>
-                            </div>
-                        ) : (
-                            <div className="pet-toolbar incubation-toolbar">
-                                <div className="warmth-meter">
-                                    <span className="warmth-label">WARMTH</span>
-                                    <div className="warmth-bar">
-                                        <div className="warmth-fill" style={{ width: `${warmth}%` }}></div>
-                                    </div>
-                                </div>
-                                <div className="incubation-hint">
-                                    Rub the egg to hatch!
-                                </div>
-                            </div>
-                        )}
                     </div>
 
-                    {/* Physical Buttons Area */}
-                    <div className="pet-controls">
-                        <button className="control-btn big" onClick={() => setShowShop(true)} disabled={pet.stage === 'EGG'}>
-                            <ShoppingBag size={24} />
-                            <span>SHOP</span>
-                        </button>
+                    <div className="pet-instruction">
+                        {pet.stats.hunger < 40 && "Seu pet está com fome!"}
+                        {pet.stats.happiness < 40 && "Seu pet quer brincar!"}
+                        {pet.stats.poop > 60 && "Seu pet precisa de limpeza!"}
+                        {pet.stats.hunger >= 70 && pet.stats.happiness >= 70 && pet.stats.poop < 30 && "Seu pet está feliz!"}
+                    </div>
 
-                        <div className="d-pad">
-                            <div className="d-pad-center" />
+                    <div className="pet-stats-bar">
+                        <div className="stat-item">
+                            <span className="stat-label">FOME</span>
+                            <div className="stat-bar-track">
+                                <div
+                                    className="stat-bar-fill"
+                                    style={{
+                                        width: `${hungerPercent}%`,
+                                        background: hungerPercent > 50
+                                            ? 'linear-gradient(90deg, #4ade80, #22c55e)'
+                                            : 'linear-gradient(90deg, #fbbf24, #f59e0b)'
+                                    }}
+                                ></div>
+                            </div>
+                            <span className="stat-value">{hungerPercent}%</span>
                         </div>
 
-                        <button className="control-btn big" onClick={() => setShowMiniGame(true)} disabled={pet.stage === 'EGG'}>
-                            <Gamepad2 size={24} />
-                            <span>GAME</span>
-                        </button>
-                    </div>
-
-                    {/* Stats Panel (Holographic Overlay) - Different for Egg */}
-                    <div className="pet-stats-panel">
-                        {pet.stage === 'EGG' ? (
-                            <div className="incubation-status">
-                                INCUBATING... {warmth}%
+                        <div className="stat-item">
+                            <span className="stat-label">FELIZ</span>
+                            <div className="stat-bar-track">
+                                <div
+                                    className="stat-bar-fill"
+                                    style={{
+                                        width: `${happinessPercent}%`,
+                                        background: happinessPercent > 50
+                                            ? 'linear-gradient(90deg, #4ade80, #22c55e)'
+                                            : 'linear-gradient(90deg, #fbbf24, #f59e0b)'
+                                    }}
+                                ></div>
                             </div>
-                        ) : (
-                            <>
-                                <StatRow label="HUNGER" value={pet.hunger} max={100} color="#f59e0b" invert />
-                                <StatRow label="DIRT" value={pet.dirt} max={100} color="#78350f" invert />
-                                <StatRow label="FUN" value={100 - pet.boredom} max={100} color="#8b5cf6" />
-                                <StatRow label="HAPPY" value={pet.happiness} max={100} color="#ec4899" />
-                            </>
-                        )}
-                    </div>
+                            <span className="stat-value">{happinessPercent}%</span>
+                        </div>
 
-                    {/* Close Button */}
-                    <button onClick={onClose} className="device-close-btn">
-                        <X size={24} />
+                        <div className="stat-item">
+                            <span className="stat-label">LIMPO</span>
+                            <div className="stat-bar-track">
+                                <div
+                                    className="stat-bar-fill"
+                                    style={{
+                                        width: `${cleanlinessPercent}%`,
+                                        background: cleanlinessPercent > 50
+                                            ? 'linear-gradient(90deg, #4ade80, #22c55e)'
+                                            : 'linear-gradient(90deg, #fbbf24, #f59e0b)'
+                                    }}
+                                ></div>
+                            </div>
+                            <span className="stat-value">{cleanlinessPercent}%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="pet-action-buttons">
+                    <button className="pet-action-btn" onClick={() => handleAction('feed')}>
+                        <FoodIcon size={32} />
+                        <span className="btn-label">COMIDA</span>
+                    </button>
+
+                    <button className="pet-action-btn" onClick={() => handleAction('play')}>
+                        <PlayIcon size={32} />
+                        <span className="btn-label">BRINCAR</span>
+                    </button>
+
+                    <button className="pet-action-btn" onClick={() => handleAction('clean')}>
+                        <CleanIcon size={32} />
+                        <span className="btn-label">LIMPAR</span>
                     </button>
                 </div>
-            </div>
-        </div>
-    );
-};
-
-const StatRow: React.FC<{ label: string, value: number, max: number, color: string, invert?: boolean }> = ({ label, value, max, color, invert }) => {
-    const pct = Math.min(100, Math.max(0, (value / max) * 100));
-
-    return (
-        <div className="stat-row">
-            <span className="stat-label">{label}</span>
-            <div className="stat-track">
-                <div
-                    className="stat-fill"
-                    style={{
-                        width: `${pct}%`,
-                        backgroundColor: color,
-                        opacity: invert ? 0.7 : 1
-                    }}
-                />
             </div>
         </div>
     );
