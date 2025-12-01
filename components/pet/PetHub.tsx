@@ -1,10 +1,10 @@
 /**
- * Pet Hub - REDESIGN v2 - Clean Tamagotchi Interface
- * HIGH CONTRAST + CLEAR UX + PIXEL ART + NO EMOJIS
+ * Pet Hub - REDESIGN v3 - Clean Tamagotchi Interface
+ * HIGH CONTRAST + CLEAR UX + PIXEL ART + NO EMOJIS + SHOP
  */
 
 import React, { useState, useEffect } from 'react';
-import { getPetStateForUser, performPetAction, resetPet } from './pet-service';
+import { getPetStateForUser, performPetAction, resetPet, buyItem } from './pet-service';
 import type { PetState } from '../../pet-types';
 import { PixelPetRenderer } from './PixelPetRenderer';
 import { FoodIcon, PlayIcon, CleanIcon, ShopIcon, ExitIcon, EggIcon } from './PetIcons';
@@ -20,6 +20,7 @@ export const PetHub: React.FC<PetHubProps> = ({ onClose }) => {
     const [petName, setPetName] = useState('');
     const [warmth, setWarmth] = useState(0);
     const [isHatching, setIsHatching] = useState(false);
+    const [showShop, setShowShop] = useState(false);
 
     useEffect(() => {
         loadPet();
@@ -76,6 +77,58 @@ export const PetHub: React.FC<PetHubProps> = ({ onClose }) => {
         if (newPet) {
             setPet(newPet);
         }
+    };
+
+    const handleBuy = async (itemId: string) => {
+        const result = await buyItem(itemId);
+
+        if (result.success && result.pet) {
+            setPet(result.pet);
+        } else {
+            alert(result.message);
+        }
+    };
+
+    // SHOP MODAL COMPONENT
+    const ShopModal = () => {
+        // Dynamic require to avoid circular dependency issues if any, 
+        // though in this structure it should be fine. 
+        // Using require for safety as requested in previous steps logic.
+        const { SHOP_ITEMS } = require('../../pet-constants');
+
+        return (
+            <div className="pet-shop-overlay">
+                <div className="pet-shop-container">
+                    <div className="shop-header">
+                        <span>LOJA</span>
+                        <button onClick={() => setShowShop(false)} className="shop-close-btn"><ExitIcon size={16} /></button>
+                    </div>
+
+                    <div className="shop-coins">
+                        💰 {pet?.coins || 0}
+                    </div>
+
+                    <div className="shop-items-grid">
+                        {SHOP_ITEMS.map((item: any) => (
+                            <div key={item.id} className="shop-item-card">
+                                <div className="item-icon">{item.icon}</div>
+                                <div className="item-info">
+                                    <span className="item-name">{item.name}</span>
+                                    <span className="item-price">💰 {item.price}</span>
+                                </div>
+                                <button
+                                    className="buy-btn"
+                                    disabled={(pet?.coins || 0) < item.price}
+                                    onClick={() => handleBuy(item.id)}
+                                >
+                                    COMPRAR
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        );
     };
 
     if (loading) {
@@ -220,9 +273,12 @@ export const PetHub: React.FC<PetHubProps> = ({ onClose }) => {
 
                 <div className="pet-header-bar">
                     <div className="pet-title-text">🐾 {pet.name}</div>
+                    <div className="pet-coins-display">💰 {pet.coins}</div>
                 </div>
 
                 <div className="pet-screen-area">
+                    {showShop && <ShopModal />}
+
                     <div className="pet-display-zone">
                         <div className="pet-sprite-container">
                             <PixelPetRenderer pet={pet} size={100} />
@@ -289,18 +345,23 @@ export const PetHub: React.FC<PetHubProps> = ({ onClose }) => {
 
                 <div className="pet-action-buttons">
                     <button className="pet-action-btn" onClick={() => handleAction('feed')}>
-                        <FoodIcon size={32} />
+                        <FoodIcon size={24} />
                         <span className="btn-label">COMIDA</span>
                     </button>
 
                     <button className="pet-action-btn" onClick={() => handleAction('play')}>
-                        <PlayIcon size={32} />
+                        <PlayIcon size={24} />
                         <span className="btn-label">BRINCAR</span>
                     </button>
 
                     <button className="pet-action-btn" onClick={() => handleAction('clean')}>
-                        <CleanIcon size={32} />
+                        <CleanIcon size={24} />
                         <span className="btn-label">LIMPAR</span>
+                    </button>
+
+                    <button className="pet-action-btn shop-btn" onClick={() => setShowShop(true)}>
+                        <ShopIcon size={24} />
+                        <span className="btn-label">LOJA</span>
                     </button>
                 </div>
             </div>
