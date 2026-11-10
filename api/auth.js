@@ -1,22 +1,23 @@
 /**
  * Authentication API - Admin & User System
- * Admin: choco / senha pro
+ * Admin account is enabled only when ADMIN_USERNAME and ADMIN_PASSWORD are set.
  */
 
-// In-memory storage
+// shortcut: in-memory storage resets on every serverless cold start; move to Redis for real accounts.
 const users = new Map();
 const sessions = new Map();
 
-// Initialize ADMIN user with special flags
-users.set('choco', {
-    password: 'senha pro',
-    created: Date.now(),
-    isAdmin: true,
-    preferences: {
-        infiniteMoney: false,
-        unlockAll: true
-    }
-});
+if (process.env.ADMIN_USERNAME && process.env.ADMIN_PASSWORD) {
+    users.set(process.env.ADMIN_USERNAME, {
+        password: process.env.ADMIN_PASSWORD,
+        created: Date.now(),
+        isAdmin: true,
+        preferences: {
+            infiniteMoney: false,
+            unlockAll: true
+        }
+    });
+}
 
 export default async function handler(req, res) {
     if (req.method === 'OPTIONS') return res.status(200).json({});

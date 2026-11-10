@@ -1,38 +1,60 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# AI Infinitiv
 
-# Run and deploy your AI Studio app
+Endless vertical jumping game for the browser and Android. Climb platforms as high as you can, collect coins, unlock skins and look after a virtual pet between runs.
 
-This contains everything you need to run your app locally.
+**Play:** https://ai-infinitiv.vercel.app
 
-View your app in AI Studio: https://ai.studio/apps/drive/1qbYigSrvD80fBrHn4xL351NrrOTRqSzs
+## Features
 
-## Run Locally
+- Canvas game loop with custom physics (gravity, air resistance, fall damage)
+- Touch joystick, on-screen buttons, keyboard and device tilt controls
+- Skill tree shop, unlockable skins and achievements
+- Virtual pet hub with feeding, shop and a rock-paper-scissors mini-game
+- Optional AI-generated skins using the player's own Gemini API key
+- Global leaderboard (Vercel serverless function + Upstash Redis)
+- Installable PWA; Android build through Capacitor
 
-**Prerequisites:**  Node.js
+## Stack
 
+React 19, TypeScript, Vite, vite-plugin-pwa, Capacitor, Vercel Functions, Upstash Redis.
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## Run locally
 
-## Testing & Deployment
+Requires Node.js 18+.
 
-**Live Demo:** [https://ai-infinitiv.vercel.app](https://ai-infinitiv.vercel.app)
-
-### How to Verify Updates
-1. **Check Version**: Look for the version string (e.g., `v4.3.7-REVIEW`) in the bottom right corner of the screen.
-2. **Developer Tools**:
-   - Click the **DEV** button in the top-left corner.
-   - This opens the **Settings Modal** where you can tweak game parameters.
-   - Use the **Sensor Diagnostics** (if available in the menu) to test device sensors.
-
-### Deployment
-To deploy the latest changes to Vercel:
 ```bash
-npm run deploy
+npm install
+npm run dev
 ```
-*Note: This requires the Vercel CLI to be configured.*
+
+The dev server runs on `https://localhost:5173` with a self-signed certificate (needed for device sensors on mobile).
+
+Without the `/api` functions, login falls back to a local mock and the leaderboard shows empty entries. To run them locally, use `vercel dev`.
+
+## Configuration
+
+Set these in the Vercel project, not in the repository:
+
+| Variable | Used by | Required |
+|---|---|---|
+| `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` | Leaderboard | No (leaderboard is empty without it) |
+| `ADMIN_USERNAME`, `ADMIN_PASSWORD` | Admin login | No (no admin account without it) |
+
+The Gemini key for AI skins is entered by each player in **Settings** and stays in their browser.
+
+## Build
+
+```bash
+npm run build          # web build in dist/
+npx cap sync android   # copy the web build into the Android project
+```
+
+## Project layout
+
+```
+components/game/   game loop, physics, rendering, input, UI
+components/pet/    virtual pet logic and screens
+api/               serverless functions (auth, leaderboard)
+android/           Capacitor Android project
+apk-build/         Trusted Web Activity wrapper
+```

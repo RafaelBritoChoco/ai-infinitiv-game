@@ -84,16 +84,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
 
                 // Simulação de validação local
                 if (mode === 'LOGIN') {
-                    if (username === 'choco' && password === 'senha pro') {
-                        handleSuccess({
-                            token: 'dev_token_admin',
-                            username: 'choco',
-                            isAdmin: true,
-                            preferences: { infiniteMoney: false, unlockAll: true }
-                        });
-                        return;
-                    }
-                    // Outros usuários (simulado)
                     handleSuccess({
                         token: `dev_token_${Date.now()}`,
                         username: username,
